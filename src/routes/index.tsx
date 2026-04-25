@@ -7,6 +7,7 @@ import { UnsubscribePage } from '@pages/Unsubscribe'
 import { RegisterPage } from '@pages/Register'
 import { ChangePasswordPage } from '@pages/ChangePassword'
 import { DashboardPage } from '@pages/Dashboard'
+import { AdminPage } from '@pages/Admin'
 
 export function AppRoutes() {
   return (
@@ -22,7 +23,9 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Route>
+
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
