@@ -106,10 +106,20 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         isActive: routine.isActive,
       })
     } else {
-      setForm(EMPTY)
+      const firstAirline = airlines.find((a) => a.active)?.code ?? ''
+      setForm({ ...EMPTY, airline: firstAirline })
     }
     setCcEmailInput('')
-  }, [routine, open])
+  }, [routine, open, airlines])
+
+  // When airlines load after the drawer opens and airline is still unset, pick the first
+  useEffect(() => {
+    setForm((prev) => {
+      if (prev.airline) return prev
+      const first = airlines.find((a) => a.active)?.code
+      return first ? { ...prev, airline: first } : prev
+    })
+  }, [airlines])
 
   function set<K extends keyof CreateRoutineRequest>(key: K, value: CreateRoutineRequest[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -128,6 +138,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
+    if (!form.name || !form.airline || !form.origin || !form.destination || !form.outboundStart || !form.outboundEnd) {
+      return
+    }
     setLoading(true)
     try {
       await onSubmit(form)
