@@ -12,7 +12,7 @@ export function UnsubscribePage() {
   useEffect(() => {
     if (!token) { setStatus('error'); return }
 
-    fetch(`${import.meta.env.VITE_API_URL}/unsubscribe?token=${encodeURIComponent(token)}`)
+    fetch(`${import.meta.env.VITE_API_URL}/unsubscribe/${encodeURIComponent(token)}`)
       .then(async (res) => {
         const data = (await res.json()) as { message: string }
         if (res.ok) {
