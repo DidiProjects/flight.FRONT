@@ -10,9 +10,8 @@ import {
   Typography,
 } from '@mui/material'
 import LogoutIcon from '@mui/icons-material/Logout'
-import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined'
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Logo } from '@atomic-components/atoms/Logo'
 import { useAuth } from '@hooks/useAuth'
 import { headerStyles } from './style'
@@ -20,15 +19,12 @@ import { headerStyles } from './style'
 export function AppHeader() {
   const { logout } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   const handleLogout = async () => {
     await logout()
     navigate('/login', { replace: true })
   }
-
-  const isAdmin = location.pathname.startsWith('/admin')
 
   return (
     <AppBar position="sticky" sx={headerStyles.appBar} elevation={0}>
@@ -46,30 +42,13 @@ export function AppHeader() {
           <Box
             component="button"
             onClick={() => navigate('/dashboard')}
-            sx={headerStyles.navItem(!isAdmin)}
+            sx={headerStyles.navItem(true)}
           >
             Rotinas
-          </Box>
-          <Box
-            component="button"
-            onClick={() => navigate('/admin')}
-            sx={headerStyles.navItem(isAdmin)}
-          >
-            Admin
           </Box>
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Tooltip title="Admin">
-            <IconButton
-              size="small"
-              onClick={() => navigate('/admin')}
-              sx={headerStyles.iconBtn(isAdmin)}
-              aria-label="Painel de administração"
-            >
-              <AdminPanelSettingsOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
           <Tooltip title="Sair">
             <IconButton
               size="small"
