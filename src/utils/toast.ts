@@ -10,9 +10,9 @@ type ToastListener = (event: ToastEvent) => void
 const listeners = new Set<ToastListener>()
 
 export const toastEmitter = {
-  subscribe: (listener: ToastListener) => {
+  subscribe: (listener: ToastListener): (() => void) => {
     listeners.add(listener)
-    return () => listeners.delete(listener)
+    return () => { listeners.delete(listener) }
   },
 
   emit: (message: string, variant: ToastVariant = 'info') => {

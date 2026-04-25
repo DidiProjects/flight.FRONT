@@ -2,7 +2,7 @@ import {
   Box,
   Typography,
   Button,
-  Grid,
+  Grid2 as Grid,
   Pagination,
   LinearProgress,
 } from '@mui/material'

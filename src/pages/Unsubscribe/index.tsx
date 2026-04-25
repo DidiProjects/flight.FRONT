@@ -1,17 +1,18 @@
 import { Box, Typography, Alert, CircularProgress } from '@mui/material'
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '@atomic-components/templates/AuthLayout'
 
 export function UnsubscribePage() {
-  const { token } = useParams<{ token: string }>()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token')
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
     if (!token) { setStatus('error'); return }
 
-    fetch(`${import.meta.env.VITE_API_URL}/unsubscribe/${token}`)
+    fetch(`${import.meta.env.VITE_API_URL}/unsubscribe?token=${encodeURIComponent(token)}`)
       .then(async (res) => {
         const data = (await res.json()) as { message: string }
         if (res.ok) {
