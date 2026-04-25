@@ -2,17 +2,22 @@ import { createContext, useCallback, useEffect, useState, type ReactNode } from 
 import { AuthService } from '@services/AuthService'
 import { tokenStore } from '@utils/tokenStore'
 import { storage } from '@utils/storage'
+import { decodeJwtPayload } from '@utils/jwt'
 import type { LoginRequest, ChangePasswordRequest } from '@app-types/auth'
+
+export type UserRole = 'user' | 'admin'
 
 export interface AuthUser {
   accessToken: string
   mustChangePassword: boolean
+  role: UserRole
 }
 
 export interface AuthContextValue {
   user: AuthUser | null
   isLoading: boolean
   isAuthenticated: boolean
+  isAdmin: boolean
   login: (data: LoginRequest) => Promise<{ mustChangePassword: boolean }>
   logout: () => Promise<void>
   changePassword: (data: ChangePasswordRequest) => Promise<void>
@@ -20,6 +25,12 @@ export interface AuthContextValue {
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
+
+function extractRole(token: string): UserRole {
+  const payload = decodeJwtPayload(token)
+  console.log('Decoded JWT payload:', payload)
+  return payload?.role === 'admin' ? 'admin' : 'user'
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -44,7 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((data) => {
         tokenStore.set(data.accessToken)
         storage.setRefreshToken(data.refreshToken)
-        setUser({ accessToken: data.accessToken, mustChangePassword: false })
+        setUser({
+          accessToken: data.accessToken,
+          mustChangePassword: false,
+          role: extractRole(data.accessToken),
+        })
       })
       .catch(() => {
         tokenStore.clear()
@@ -61,7 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (data: LoginRequest) => {
     const res = await AuthService.login(data)
-    setUser({ accessToken: res.accessToken, mustChangePassword: res.mustChangePassword })
+    setUser({
+      accessToken: res.accessToken,
+      mustChangePassword: res.mustChangePassword,
+      role: extractRole(res.accessToken),
+    })
     return { mustChangePassword: res.mustChangePassword }
   }, [])
 
@@ -76,8 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const changePassword = useCallback(async (data: ChangePasswordRequest) => {
-    await AuthService.changePassword(data)
-    setUser((prev) => (prev ? { ...prev, mustChangePassword: false } : null))
+    const res = await AuthService.changePassword(data)
+    setUser((prev) =>
+      prev
+        ? { ...prev, mustChangePassword: false, role: extractRole(res.accessToken) }
+        : null,
+    )
   }, [])
 
   const clearMustChangePassword = useCallback(() => {
@@ -90,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         isAuthenticated: !!user,
+        isAdmin: user?.role === 'admin',
         login,
         logout,
         changePassword,

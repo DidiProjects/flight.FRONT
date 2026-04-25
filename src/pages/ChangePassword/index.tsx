@@ -1,5 +1,5 @@
 import { Box, Typography, Button, CircularProgress, Alert } from '@mui/material'
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@atomic-components/templates/AuthLayout'
 import { FormField } from '@atomic-components/molecules/FormField'
@@ -14,7 +14,7 @@ export function ChangePasswordPage() {
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
     if (next !== confirm) {
       toastEmitter.error('As senhas não coincidem.')

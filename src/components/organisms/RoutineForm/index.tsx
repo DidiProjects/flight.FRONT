@@ -106,7 +106,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     set('ccEmails', form.ccEmails.filter((e) => e !== email))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
     setLoading(true)
     try {

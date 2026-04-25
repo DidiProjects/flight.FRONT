@@ -1,5 +1,5 @@
 import { Box, Typography, Button, CircularProgress, Link as MuiLink, Alert } from '@mui/material'
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AuthLayout } from '@atomic-components/templates/AuthLayout'
 import { FormField } from '@atomic-components/molecules/FormField'
@@ -11,7 +11,7 @@ export function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
     setLoading(true)
     try {

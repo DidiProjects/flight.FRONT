@@ -18,7 +18,7 @@ import { useAuth } from '@hooks/useAuth'
 import { headerStyles } from './style'
 
 export function AppHeader() {
-  const { logout } = useAuth()
+  const { logout, isAdmin } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -28,7 +28,7 @@ export function AppHeader() {
     navigate('/login', { replace: true })
   }
 
-  const isAdmin = location.pathname.startsWith('/admin')
+  const onAdminPage = location.pathname.startsWith('/admin')
 
   return (
     <AppBar position="sticky" sx={headerStyles.appBar} elevation={0}>
@@ -46,36 +46,39 @@ export function AppHeader() {
           <Box
             component="button"
             onClick={() => navigate('/dashboard')}
-            sx={headerStyles.navItem(!isAdmin)}
+            sx={headerStyles.navItem(!onAdminPage)}
           >
             Rotinas
           </Box>
-          <Box
-            component="button"
-            onClick={() => navigate('/admin')}
-            sx={headerStyles.navItem(isAdmin)}
-          >
-            Admin
-          </Box>
+          {isAdmin && (
+            <Box
+              component="button"
+              onClick={() => navigate('/admin')}
+              sx={headerStyles.navItem(onAdminPage)}
+            >
+              Admin
+            </Box>
+          )}
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Tooltip title="Admin">
-            <IconButton
-              size="small"
-              onClick={() => navigate('/admin')}
-              sx={headerStyles.iconBtn(isAdmin)}
-              aria-label="Painel de administração"
-            >
-              <AdminPanelSettingsOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {isAdmin && (
+            <Tooltip title="Admin">
+              <IconButton
+                size="small"
+                onClick={() => navigate('/admin')}
+                sx={headerStyles.iconBtn(onAdminPage)}
+                aria-label="Painel de administração"
+              >
+                <AdminPanelSettingsOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Sair">
             <IconButton
               size="small"
-              onClick={() => setAnchorEl(document.getElementById('logout-anchor'))}
+              onClick={(e) => setAnchorEl(e.currentTarget)}
               sx={headerStyles.iconBtn(false)}
-              id="logout-anchor"
               aria-label="Sair"
             >
               <LogoutIcon fontSize="small" />
