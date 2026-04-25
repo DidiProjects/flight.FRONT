@@ -128,7 +128,7 @@ export function DashboardPage() {
         <>
           <Grid container spacing={2}>
             {paginated.map((routine) => (
-              <Grid key={routine.id} size={{ xs: 12, sm: 6, lg: 4 }}>
+              <Grid key={routine.id} size={{ xs: 12, sm: 6, xl: 4 }}>
                 <RoutineCard
                   routine={routine}
                   onEdit={handleEdit}

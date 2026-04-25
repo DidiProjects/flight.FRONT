@@ -6,7 +6,6 @@ import {
   IconButton,
   Tooltip,
   Switch,
-  Divider,
 } from '@mui/material'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
@@ -21,127 +20,162 @@ interface RoutineCardProps {
   onToggleActive: (id: string, isActive: boolean) => void
 }
 
-const priorityLabels = { brl: 'R$', pts: 'Pontos', hyb: 'Híbrido' }
+const priorityLabels: Record<string, string> = {
+  brl: 'Menor preço em R$',
+  pts: 'Menor em pontos',
+  hyb: 'Híbrido (pts + taxa)',
+}
+
+const modeLabels: Record<string, string> = {
+  alert_only: 'Somente alertas',
+  daily_best_and_alert: 'Melhor do dia',
+  end_of_period: 'Fim do período',
+}
+
+function MetaItem({ label, value }: { label: string; value: string }) {
+  return (
+    <Box sx={cardStyles.metaItem}>
+      <Typography sx={cardStyles.metaLabel}>{label}</Typography>
+      <Typography sx={cardStyles.metaValue}>{value}</Typography>
+    </Box>
+  )
+}
 
 export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: RoutineCardProps) {
   const hasReturn = routine.returnStart && routine.returnEnd
 
+  const formatDateRange = (start: string | null | undefined, end: string | null | undefined) => {
+    const fmt = (d: string | null | undefined) => {
+      if (!d) return '—'
+      const [y, m, day] = d.split('-')
+      return `${day}/${m}/${y?.slice(2)}`
+    }
+    return `${fmt(start)} – ${fmt(end)}`
+  }
+
   return (
     <Card sx={cardStyles.root(routine.isActive)}>
       <CardContent sx={cardStyles.content}>
-        <Box sx={cardStyles.header}>
-          <Box sx={cardStyles.routeRow}>
-            <Typography variant="caption" sx={cardStyles.airlineLabel}>
-              {routine.airline.toUpperCase()}
-            </Typography>
-            <Box sx={cardStyles.routeIata}>
-              <Typography variant="h5" sx={cardStyles.iata}>
-                {routine.origin}
-              </Typography>
-              <FlightIcon sx={cardStyles.flightIcon} />
-              <Typography variant="h5" sx={cardStyles.iata}>
-                {routine.destination}
-              </Typography>
-              {hasReturn && (
-                <>
-                  <FlightIcon sx={{ ...cardStyles.flightIcon, transform: 'rotate(180deg)' }} />
-                  <Typography variant="h5" sx={cardStyles.iata}>
-                    {routine.origin}
-                  </Typography>
-                </>
-              )}
-            </Box>
-          </Box>
-          <Box sx={cardStyles.actions}>
-            <Switch
-              checked={routine.isActive}
-              onChange={() => onToggleActive(routine.id, !routine.isActive)}
-              size="small"
-              aria-label={routine.isActive ? 'Desativar rotina' : 'Ativar rotina'}
+
+        {/* Airline + status */}
+        <Box sx={cardStyles.topRow}>
+          <Box sx={cardStyles.airlineBadge}>{routine.airline.toUpperCase()}</Box>
+          <Box sx={cardStyles.statusChip(routine.isActive)}>
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                backgroundColor: routine.isActive ? 'success.main' : 'text.disabled',
+              }}
             />
+            {routine.isActive ? 'Ativa' : 'Pausada'}
           </Box>
         </Box>
 
-        <Typography variant="h6" sx={cardStyles.name}>
-          {routine.name}
-        </Typography>
-
-        <Divider sx={{ my: 1.5 }} />
-
-        <Box sx={cardStyles.meta}>
-          <Box sx={cardStyles.metaItem}>
-            <Typography variant="caption" sx={cardStyles.metaLabel}>
-              Ida
-            </Typography>
-            <Typography variant="body2" sx={cardStyles.metaValue}>
-              {routine.outboundStart} — {routine.outboundEnd}
-            </Typography>
-          </Box>
-          {hasReturn && (
-            <Box sx={cardStyles.metaItem}>
-              <Typography variant="caption" sx={cardStyles.metaLabel}>
-                Volta
-              </Typography>
-              <Typography variant="body2" sx={cardStyles.metaValue}>
-                {routine.returnStart} — {routine.returnEnd}
-              </Typography>
+        {/* Route hero */}
+        <Box>
+          <Box sx={cardStyles.routeHero}>
+            <Typography sx={cardStyles.iata}>{routine.origin}</Typography>
+            <Box sx={cardStyles.flightArrow}>
+              <FlightIcon sx={{ fontSize: 16 }} />
+              <Box sx={cardStyles.arrowLine} />
             </Box>
+            <Typography sx={cardStyles.iata}>{routine.destination}</Typography>
+            {hasReturn && (
+              <>
+                <Box sx={cardStyles.flightArrow}>
+                  <FlightIcon sx={{ fontSize: 16, transform: 'rotate(180deg)' }} />
+                  <Box sx={cardStyles.arrowLine} />
+                </Box>
+                <Typography sx={cardStyles.iata}>{routine.origin}</Typography>
+              </>
+            )}
+          </Box>
+          <Typography sx={cardStyles.routineName}>{routine.name}</Typography>
+        </Box>
+
+        {/* Meta grid */}
+        <Box sx={cardStyles.meta}>
+          <MetaItem label="Ida" value={formatDateRange(routine.outboundStart, routine.outboundEnd)} />
+
+          {hasReturn ? (
+            <MetaItem
+              label="Volta"
+              value={formatDateRange(routine.returnStart!, routine.returnEnd!)}
+            />
+          ) : (
+            <MetaItem label="Volta" value="Somente ida" />
           )}
-          <Box sx={cardStyles.metaItem}>
-            <Typography variant="caption" sx={cardStyles.metaLabel}>
-              Passageiros
-            </Typography>
-            <Typography variant="body2" sx={cardStyles.metaValue}>
-              {routine.passengers}
-            </Typography>
-          </Box>
-          <Box sx={cardStyles.metaItem}>
-            <Typography variant="caption" sx={cardStyles.metaLabel}>
-              Prioridade
-            </Typography>
-            <Typography variant="body2" sx={cardStyles.metaValue}>
-              {priorityLabels[routine.priority]}
-            </Typography>
-          </Box>
-          {routine.targetBrl !== null && (
-            <Box sx={cardStyles.metaItem}>
-              <Typography variant="caption" sx={cardStyles.metaLabel}>
-                Target R$
-              </Typography>
-              <Typography variant="body2" sx={{ ...cardStyles.metaValue, color: 'primary.main', fontWeight: 600 }}>
+
+          <MetaItem label="Passageiros" value={`${routine.passengers} pax`} />
+          <MetaItem label="Frequência" value={modeLabels[routine.notificationMode] ?? routine.notificationMode} />
+
+          {routine.targetBrl != null && (
+            <Box sx={{ ...cardStyles.metaItem, gridColumn: '1 / -1' }}>
+              <Typography sx={cardStyles.metaLabel}>Target</Typography>
+              <Typography sx={cardStyles.targetValue}>
                 {routine.targetBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               </Typography>
             </Box>
           )}
-          {routine.targetPts !== null && (
-            <Box sx={cardStyles.metaItem}>
-              <Typography variant="caption" sx={cardStyles.metaLabel}>
-                Target pts
-              </Typography>
-              <Typography variant="body2" sx={{ ...cardStyles.metaValue, color: 'primary.main', fontWeight: 600 }}>
-                {routine.targetPts.toLocaleString('pt-BR')}
+          {routine.targetPts != null && (
+            <Box sx={{ ...cardStyles.metaItem, gridColumn: '1 / -1' }}>
+              <Typography sx={cardStyles.metaLabel}>Target</Typography>
+              <Typography sx={cardStyles.targetValue}>
+                {routine.targetPts.toLocaleString('pt-BR')} pts
               </Typography>
             </Box>
           )}
+          {routine.targetHybPts != null && routine.targetHybBrl != null && (
+            <Box sx={{ ...cardStyles.metaItem, gridColumn: '1 / -1' }}>
+              <Typography sx={cardStyles.metaLabel}>Target híbrido</Typography>
+              <Typography sx={cardStyles.targetValue}>
+                {routine.targetHybPts.toLocaleString('pt-BR')} pts
+                {' + '}
+                {routine.targetHybBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </Typography>
+            </Box>
+          )}
+
+          <Box sx={{ ...cardStyles.metaItem, gridColumn: '1 / -1' }}>
+            <Typography sx={cardStyles.metaLabel}>Prioridade</Typography>
+            <Typography sx={cardStyles.metaValue}>{priorityLabels[routine.priority] ?? routine.priority}</Typography>
+          </Box>
         </Box>
+
       </CardContent>
 
+      {/* Footer */}
       <Box sx={cardStyles.footer}>
-        <Tooltip title="Editar">
-          <IconButton size="small" onClick={() => onEdit(routine)} aria-label="Editar rotina">
-            <EditOutlinedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Excluir">
-          <IconButton
+        <Box sx={cardStyles.toggle}>
+          <Switch
+            checked={routine.isActive}
+            onChange={() => onToggleActive(routine.id, !routine.isActive)}
             size="small"
-            color="error"
-            onClick={() => onDelete(routine.id)}
-            aria-label="Excluir rotina"
-          >
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+            aria-label={routine.isActive ? 'Desativar rotina' : 'Ativar rotina'}
+          />
+          <Typography variant="caption" color="text.secondary">
+            {routine.isActive ? 'Ativa' : 'Pausada'}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="Editar">
+            <IconButton size="small" onClick={() => onEdit(routine)} aria-label="Editar rotina">
+              <EditOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Excluir">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => onDelete(routine.id)}
+              aria-label="Excluir rotina"
+            >
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
     </Card>
   )

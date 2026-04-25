@@ -3,96 +3,146 @@ import type { SxProps } from '@mui/material'
 export const cardStyles = {
   root: (isActive: boolean): SxProps => ({
     position: 'relative',
-    opacity: isActive ? 1 : 0.65,
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    opacity: isActive ? 1 : 0.6,
+    borderLeft: '3px solid',
+    borderLeftColor: isActive ? 'primary.main' : 'divider',
     transition: 'opacity 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+    '&:hover': {
+      boxShadow: 3,
+    },
   }),
 
   content: {
-    pb: '8px !important',
-    pt: 2,
+    flex: 1,
+    pt: 2.5,
     px: 2.5,
-  } as SxProps,
-
-  header: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    mb: 0.5,
-  } as SxProps,
-
-  routeRow: {
+    pb: '12px !important',
     display: 'flex',
     flexDirection: 'column',
-    gap: 0.25,
+    gap: 2,
   } as SxProps,
 
-  airlineLabel: {
-    color: 'text.disabled',
-    fontWeight: 600,
-    letterSpacing: '0.08em',
-  } as SxProps,
-
-  routeIata: {
+  topRow: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 1,
+  } as SxProps,
+
+  airlineBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    px: 1,
+    py: 0.25,
+    borderRadius: 1,
+    backgroundColor: 'action.hover',
+    fontSize: '0.6875rem',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    color: 'text.secondary',
+  } as SxProps,
+
+  statusChip: (isActive: boolean): SxProps => ({
+    display: 'inline-flex',
+    alignItems: 'center',
     gap: 0.5,
+    px: 1,
+    py: 0.25,
+    borderRadius: 1,
+    fontSize: '0.6875rem',
+    fontWeight: 600,
+    letterSpacing: '0.04em',
+    color: isActive ? 'success.dark' : 'text.disabled',
+    backgroundColor: isActive ? 'rgba(45, 155, 107, 0.08)' : 'action.hover',
+  }),
+
+  routeHero: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1.5,
   } as SxProps,
 
   iata: {
     fontWeight: 700,
-    letterSpacing: '-0.01em',
+    fontSize: '2rem',
+    letterSpacing: '-0.02em',
+    lineHeight: 1,
   } as SxProps,
 
-  flightIcon: {
-    fontSize: 14,
-    color: 'text.secondary',
-    mx: 0.25,
-  } as SxProps,
-
-  actions: {
+  flightArrow: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: 0.5,
-    mt: -0.5,
+    gap: 0.25,
+    color: 'text.disabled',
+    flexShrink: 0,
   } as SxProps,
 
-  name: {
-    color: 'text.secondary',
+  arrowLine: {
+    width: 36,
+    height: 1,
+    backgroundColor: 'divider',
+  } as SxProps,
+
+  routineName: {
     fontWeight: 400,
-    mt: 0.25,
+    color: 'text.secondary',
+    fontSize: '0.875rem',
+    mt: -0.5,
   } as SxProps,
 
   meta: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-    gap: 1.5,
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px 16px',
   } as SxProps,
 
   metaItem: {
     display: 'flex',
     flexDirection: 'column',
     gap: 0.25,
+    minWidth: 0,
   } as SxProps,
 
   metaLabel: {
+    fontSize: '0.625rem',
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase' as const,
     color: 'text.disabled',
-    fontWeight: 500,
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
   } as SxProps,
 
   metaValue: {
-    color: 'text.primary',
+    fontSize: '0.8125rem',
     fontWeight: 500,
+    color: 'text.primary',
+    whiteSpace: 'nowrap' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  } as SxProps,
+
+  targetValue: {
+    fontSize: '0.875rem',
+    fontWeight: 700,
+    color: 'primary.main',
   } as SxProps,
 
   footer: {
     display: 'flex',
-    justifyContent: 'flex-end',
-    gap: 0.5,
-    px: 1.5,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    px: 2,
     py: 1,
     borderTop: '1px solid',
     borderColor: 'divider',
+  } as SxProps,
+
+  toggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.5,
   } as SxProps,
 }
