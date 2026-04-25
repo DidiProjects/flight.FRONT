@@ -52,6 +52,17 @@ const EMPTY: CreateRoutineRequest = {
   isActive: true,
 }
 
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <Typography
+      variant="overline"
+      sx={{ color: 'text.disabled', display: 'block', mb: 1.5, mt: 0.5 }}
+    >
+      {children}
+    </Typography>
+  )
+}
+
 export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: RoutineFormProps) {
   const [form, setForm] = useState<CreateRoutineRequest>(EMPTY)
   const [loading, setLoading] = useState(false)
@@ -123,6 +134,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   return (
     <Drawer anchor="right" open={open} onClose={onClose} sx={formStyles.drawer}>
       <Box component="form" onSubmit={handleSubmit} sx={formStyles.container} noValidate>
+
+        {/* Header */}
         <Box sx={formStyles.header}>
           <Typography variant="h5" fontWeight={600}>
             {isEdit ? 'Editar rotina' : 'Nova rotina'}
@@ -134,7 +147,11 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
         <Divider />
 
+        {/* Body */}
         <Box sx={formStyles.body}>
+
+          {/* — Identificação — */}
+          <SectionLabel>Identificação</SectionLabel>
           <Grid container spacing={2}>
             <Grid size={12}>
               <FormField
@@ -142,10 +159,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 value={form.name}
                 onChange={handleTextChange('name')}
                 required
+                size="medium"
                 inputProps={{ 'aria-label': 'Nome da rotina' }}
               />
             </Grid>
-
             <Grid size={12}>
               <FormField
                 select
@@ -153,6 +170,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 value={form.airline}
                 onChange={handleTextChange('airline')}
                 required
+                size="medium"
               >
                 {activeAirlines.map((a) => (
                   <MenuItem key={a.code} value={a.code}>
@@ -161,71 +179,86 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 ))}
               </FormField>
             </Grid>
-
             <Grid size={6}>
               <FormField
                 label="Origem (IATA)"
                 value={form.origin}
                 onChange={handleTextChange('origin')}
                 required
-                inputProps={{ maxLength: 3, style: { textTransform: 'uppercase' } }}
+                size="medium"
+                inputProps={{ maxLength: 3, style: { textTransform: 'uppercase', letterSpacing: '0.12em' } }}
                 helperText="Ex: GRU"
               />
             </Grid>
-
             <Grid size={6}>
               <FormField
                 label="Destino (IATA)"
                 value={form.destination}
                 onChange={handleTextChange('destination')}
                 required
-                inputProps={{ maxLength: 3, style: { textTransform: 'uppercase' } }}
+                size="medium"
+                inputProps={{ maxLength: 3, style: { textTransform: 'uppercase', letterSpacing: '0.12em' } }}
                 helperText="Ex: LIS"
               />
             </Grid>
+          </Grid>
 
+          <Divider sx={{ my: 3 }} />
+
+          {/* — Datas — */}
+          <SectionLabel>Datas</SectionLabel>
+          <Grid container spacing={2}>
             <Grid size={6}>
               <FormField
-                label="Ida - início"
+                label="Ida — início"
                 type="date"
                 value={form.outboundStart}
                 onChange={handleTextChange('outboundStart')}
                 required
+                size="medium"
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-
             <Grid size={6}>
               <FormField
-                label="Ida - fim"
+                label="Ida — fim"
                 type="date"
                 value={form.outboundEnd}
                 onChange={handleTextChange('outboundEnd')}
                 required
+                size="medium"
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-
             <Grid size={6}>
               <FormField
-                label="Volta - início"
+                label="Volta — início"
                 type="date"
                 value={form.returnStart ?? ''}
                 onChange={(e) => set('returnStart', e.target.value || null)}
+                size="medium"
                 InputLabelProps={{ shrink: true }}
+                helperText="Opcional"
               />
             </Grid>
-
             <Grid size={6}>
               <FormField
-                label="Volta - fim"
+                label="Volta — fim"
                 type="date"
                 value={form.returnEnd ?? ''}
                 onChange={(e) => set('returnEnd', e.target.value || null)}
+                size="medium"
                 InputLabelProps={{ shrink: true }}
+                helperText="Opcional"
               />
             </Grid>
+          </Grid>
 
+          <Divider sx={{ my: 3 }} />
+
+          {/* — Monitoramento — */}
+          <SectionLabel>Monitoramento</SectionLabel>
+          <Grid container spacing={2}>
             <Grid size={6}>
               <FormField
                 label="Passageiros"
@@ -233,22 +266,22 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 value={form.passengers}
                 onChange={(e) => set('passengers', Number(e.target.value))}
                 required
+                size="medium"
                 inputProps={{ min: 1, max: 9 }}
               />
             </Grid>
-
             <Grid size={6}>
               <FormField
-                label="Margem (%)"
+                label="Margem"
                 type="number"
                 value={form.margin * 100}
                 onChange={(e) => set('margin', Number(e.target.value) / 100)}
                 required
+                size="medium"
                 inputProps={{ min: 0, max: 100, step: 1 }}
                 InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
               />
             </Grid>
-
             <Grid size={12}>
               <FormField
                 select
@@ -256,6 +289,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 value={form.priority}
                 onChange={handleTextChange('priority')}
                 required
+                size="medium"
               >
                 <MenuItem value="brl">R$ — Menor preço em reais</MenuItem>
                 <MenuItem value="pts">Pontos — Menor em pontos</MenuItem>
@@ -263,13 +297,14 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               </FormField>
             </Grid>
 
-            {(form.priority === 'brl' || form.priority === 'hyb') && (
-              <Grid size={form.priority === 'hyb' ? 6 : 12}>
+            {form.priority === 'brl' && (
+              <Grid size={12}>
                 <FormField
-                  label="Target R$"
+                  label="Target (R$)"
                   type="number"
                   value={form.targetBrl ?? ''}
                   onChange={(e) => set('targetBrl', e.target.value ? Number(e.target.value) : null)}
+                  size="medium"
                   InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
                 />
               </Grid>
@@ -278,10 +313,11 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
             {form.priority === 'pts' && (
               <Grid size={12}>
                 <FormField
-                  label="Target em pontos"
+                  label="Target (pontos)"
                   type="number"
                   value={form.targetPts ?? ''}
                   onChange={(e) => set('targetPts', e.target.value ? Number(e.target.value) : null)}
+                  size="medium"
                 />
               </Grid>
             )}
@@ -290,31 +326,40 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               <>
                 <Grid size={6}>
                   <FormField
-                    label="Target pts (híbrido)"
+                    label="Target (pontos)"
                     type="number"
                     value={form.targetHybPts ?? ''}
                     onChange={(e) => set('targetHybPts', e.target.value ? Number(e.target.value) : null)}
+                    size="medium"
                   />
                 </Grid>
                 <Grid size={6}>
                   <FormField
-                    label="Target R$ (taxa)"
+                    label="Target (taxa R$)"
                     type="number"
                     value={form.targetHybBrl ?? ''}
                     onChange={(e) => set('targetHybBrl', e.target.value ? Number(e.target.value) : null)}
+                    size="medium"
                     InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
                   />
                 </Grid>
               </>
             )}
+          </Grid>
 
+          <Divider sx={{ my: 3 }} />
+
+          {/* — Notificações — */}
+          <SectionLabel>Notificações</SectionLabel>
+          <Grid container spacing={2}>
             <Grid size={12}>
               <FormField
                 select
-                label="Modo de notificação"
+                label="Modo"
                 value={form.notificationMode}
                 onChange={handleTextChange('notificationMode')}
                 required
+                size="medium"
               >
                 <MenuItem value="alert_only">Somente alertas de target</MenuItem>
                 <MenuItem value="daily_best_and_alert">Melhor do dia + alertas</MenuItem>
@@ -330,6 +375,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   value={form.endOfPeriodTime ?? ''}
                   onChange={(e) => set('endOfPeriodTime', e.target.value || null)}
                   required
+                  size="medium"
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -342,6 +388,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 value={form.notificationFrequency}
                 onChange={handleTextChange('notificationFrequency')}
                 required
+                size="medium"
               >
                 <MenuItem value="hourly">A cada hora</MenuItem>
                 <MenuItem value="daily">Uma vez por dia</MenuItem>
@@ -350,13 +397,14 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
             </Grid>
 
             <Grid size={12}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                 <FormField
                   label="Emails adicionais (CC)"
                   value={ccEmailInput}
                   onChange={(e) => setCcEmailInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCcEmail() } }}
                   type="email"
+                  size="medium"
                   placeholder="email@exemplo.com"
                   helperText={`${form.ccEmails.length}/10 emails`}
                   sx={{ flex: 1 }}
@@ -365,21 +413,16 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   variant="outlined"
                   onClick={addCcEmail}
                   disabled={form.ccEmails.length >= 10}
-                  sx={{ mt: 0, mb: 'auto', height: 38, minWidth: 42, px: 1.5 }}
                   aria-label="Adicionar email"
+                  sx={{ height: 56, minWidth: 48, px: 1.5, flexShrink: 0 }}
                 >
-                  <AddIcon fontSize="small" />
+                  <AddIcon />
                 </Button>
               </Box>
               {form.ccEmails.length > 0 && (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
                   {form.ccEmails.map((email) => (
-                    <Chip
-                      key={email}
-                      label={email}
-                      size="small"
-                      onDelete={() => removeCcEmail(email)}
-                    />
+                    <Chip key={email} label={email} size="small" onDelete={() => removeCcEmail(email)} />
                   ))}
                 </Box>
               )}
@@ -391,10 +434,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   <Switch
                     checked={form.isActive}
                     onChange={(e) => set('isActive', e.target.checked)}
-                    size="small"
                   />
                 }
                 label="Rotina ativa"
+                sx={{ ml: 0 }}
               />
             </Grid>
           </Grid>
@@ -402,19 +445,22 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
         <Divider />
 
+        {/* Footer */}
         <Box sx={formStyles.footer}>
-          <Button variant="outlined" onClick={onClose} disabled={loading}>
+          <Button variant="outlined" onClick={onClose} disabled={loading} size="large">
             Cancelar
           </Button>
           <Button
             type="submit"
             variant="contained"
+            size="large"
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
+            startIcon={loading ? <CircularProgress size={18} color="inherit" /> : undefined}
           >
             {isEdit ? 'Salvar alterações' : 'Criar rotina'}
           </Button>
         </Box>
+
       </Box>
     </Drawer>
   )

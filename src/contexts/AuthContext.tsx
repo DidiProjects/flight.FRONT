@@ -36,6 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
+    const controller = new AbortController()
+
     const rt = storage.getRefreshToken()
     if (!rt) {
       setIsLoading(false)
@@ -46,12 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: rt }),
+      signal: controller.signal,
     })
       .then((res) => {
         if (!res.ok) throw new Error('Invalid session')
         return res.json() as Promise<{ accessToken: string; refreshToken: string }>
       })
       .then((data) => {
+        if (cancelled) return
         tokenStore.set(data.accessToken)
         storage.setRefreshToken(data.refreshToken)
         setUser({
@@ -60,11 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: extractRole(data.accessToken),
         })
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        if (cancelled || (err instanceof Error && err.name === 'AbortError')) return
         tokenStore.clear()
         storage.clearRefreshToken()
       })
-      .finally(() => setIsLoading(false))
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
   }, [])
 
   useEffect(() => {

@@ -3,7 +3,7 @@ import type { SxProps } from '@mui/material'
 export const formStyles = {
   drawer: {
     '& .MuiDrawer-paper': {
-      width: { xs: '100vw', sm: 520 },
+      width: { xs: '100vw', sm: 560 },
       maxWidth: '100vw',
     },
   } as SxProps,
@@ -27,7 +27,7 @@ export const formStyles = {
     flex: 1,
     overflowY: 'auto',
     px: 3,
-    py: 2.5,
+    py: 3,
   } as SxProps,
 
   footer: {
