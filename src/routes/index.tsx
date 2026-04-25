@@ -7,7 +7,6 @@ import { UnsubscribePage } from '@pages/Unsubscribe'
 import { RegisterPage } from '@pages/Register'
 import { ChangePasswordPage } from '@pages/ChangePassword'
 import { DashboardPage } from '@pages/Dashboard'
-import { AdminPage } from '@pages/Admin'
 
 export function AppRoutes() {
   return (
@@ -15,15 +14,14 @@ export function AppRoutes() {
       {/* public */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-      <Route path="/unsubscribe/:token" element={<UnsubscribePage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/unsubscribe" element={<UnsubscribePage />} />
       <Route path="/register" element={<RegisterPage />} />
 
       {/* authenticated */}
       <Route element={<ProtectedRoute />}>
         <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/admin" element={<AdminPage />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
