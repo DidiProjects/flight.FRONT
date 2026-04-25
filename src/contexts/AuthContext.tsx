@@ -28,7 +28,6 @@ export const AuthContext = createContext<AuthContextValue | null>(null)
 
 function extractRole(token: string): UserRole {
   const payload = decodeJwtPayload(token)
-  console.log('Decoded JWT payload:', payload)
   return payload?.role === 'admin' ? 'admin' : 'user'
 }
 
