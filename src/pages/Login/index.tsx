@@ -83,6 +83,15 @@ export function LoginPage() {
         >
           Entrar
         </Button>
+
+        <MuiLink
+          component={Link}
+          to="/register"
+          variant="body2"
+          sx={{ alignSelf: 'center', color: 'text.secondary' }}
+        >
+          Não tem conta? Solicitar acesso
+        </MuiLink>
       </Box>
     </AuthLayout>
   )

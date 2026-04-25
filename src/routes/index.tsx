@@ -4,6 +4,7 @@ import { LoginPage } from '@pages/Login'
 import { ForgotPasswordPage } from '@pages/ForgotPassword'
 import { ResetPasswordPage } from '@pages/ResetPassword'
 import { UnsubscribePage } from '@pages/Unsubscribe'
+import { RegisterPage } from '@pages/Register'
 import { ChangePasswordPage } from '@pages/ChangePassword'
 import { DashboardPage } from '@pages/Dashboard'
 import { AdminPage } from '@pages/Admin'
@@ -16,6 +17,7 @@ export function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/unsubscribe/:token" element={<UnsubscribePage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
       {/* authenticated */}
       <Route element={<ProtectedRoute />}>

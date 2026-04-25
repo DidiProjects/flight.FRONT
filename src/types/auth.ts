@@ -19,6 +19,11 @@ export interface ChangePasswordRequest {
   newPassword: string
 }
 
+export interface RegisterRequest {
+  name: string
+  email: string
+}
+
 export interface ForgotPasswordRequest {
   email: string
 }

@@ -5,6 +5,7 @@ import type {
   LoginRequest,
   LoginResponse,
   RefreshResponse,
+  RegisterRequest,
   ChangePasswordRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
@@ -30,6 +31,10 @@ class AuthServiceClass extends ApiService {
     tokenStore.set(res.accessToken)
     storage.setRefreshToken(res.refreshToken)
     return res
+  }
+
+  async register(data: RegisterRequest): Promise<MessageResponse> {
+    return this.post<MessageResponse>('/register', data)
   }
 
   async forgotPassword(data: ForgotPasswordRequest): Promise<MessageResponse> {
