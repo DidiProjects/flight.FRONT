@@ -10,6 +10,7 @@ import {
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import FlightIcon from '@mui/icons-material/Flight'
+import { StatusChip } from '@atomic-components/atoms/StatusChip'
 import { cardStyles } from './style'
 import type { Routine } from '@app-types/routines'
 
@@ -55,22 +56,17 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
 
   return (
     <Card sx={cardStyles.root(routine.isActive)}>
-      <CardContent sx={cardStyles.content}>
+      <CardContent sx={cardStyles.content(routine.isActive)}>
 
         {/* Airline + status */}
         <Box sx={cardStyles.topRow}>
-          <Box sx={cardStyles.airlineBadge}>{routine.airline.toUpperCase()}</Box>
-          <Box sx={cardStyles.statusChip(routine.isActive)}>
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                backgroundColor: routine.isActive ? 'success.main' : 'text.disabled',
-              }}
-            />
-            {routine.isActive ? 'Ativa' : 'Pausada'}
+          <Box sx={{ ...cardStyles.airlineBadge, filter: routine.isActive ? 'none' : 'grayscale(1)' }}>
+            {routine.airline.toUpperCase()}
           </Box>
+          <StatusChip
+            status={routine.isActive ? 'active' : 'paused'}
+            label={routine.isActive ? 'Ativa' : 'Pausada'}
+          />
         </Box>
 
         {/* Route hero */}

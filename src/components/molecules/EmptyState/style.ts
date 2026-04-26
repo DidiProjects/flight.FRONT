@@ -12,25 +12,26 @@ export const emptyStyles = {
   } as SxProps,
 
   iconWrapper: {
-    width: 72,
-    height: 72,
+    width: 56,
+    height: 56,
     borderRadius: '50%',
-    backgroundColor: 'grey.100',
+    backgroundColor: 'info.light',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     mb: 2.5,
     border: '1px solid',
-    borderColor: 'divider',
+    borderColor: 'rgba(74,144,217,0.2)',
   } as SxProps,
 
   icon: {
-    fontSize: 32,
-    color: 'text.disabled',
+    fontSize: 28,
+    color: 'info.dark',
   } as SxProps,
 
   title: {
-    fontWeight: 600,
+    fontSize: '1rem',
+    fontWeight: 500,
     color: 'text.primary',
     mb: 1,
   } as SxProps,

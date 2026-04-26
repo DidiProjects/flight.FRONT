@@ -546,7 +546,13 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
         {/* ── Footer ── */}
         <Box sx={formStyles.footer}>
-          <Button variant="outlined" onClick={onClose} disabled={loading} size="large">
+          <Button
+            variant="outlined"
+            onClick={onClose}
+            disabled={loading}
+            size="large"
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
             Cancelar
           </Button>
           <Button
@@ -555,7 +561,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
             size="large"
             disabled={loading}
             startIcon={loading ? <CircularProgress size={18} color="inherit" /> : undefined}
-            sx={{ minWidth: 160 }}
+            sx={{ minWidth: { sm: 160 }, width: { xs: '100%', sm: 'auto' } }}
           >
             {isEdit ? 'Salvar alterações' : 'Criar rotina'}
           </Button>

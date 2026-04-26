@@ -1,23 +1,25 @@
-import { Chip } from '@mui/material'
-import { chipStyles } from './style'
-import type { UserStatus } from '@app-types/users'
+import { Box, Typography } from '@mui/material'
+import { chipStyles, type ChipStatus } from './style'
 
 interface StatusChipProps {
-  status: UserStatus
+  status: ChipStatus
+  label?: string
 }
 
-const labels: Record<UserStatus, string> = {
-  active: 'Ativo',
-  pending: 'Pendente',
+const defaultLabels: Record<ChipStatus, string> = {
+  active:    'Ativo',
+  pending:   'Pendente',
   suspended: 'Suspenso',
+  paused:    'Pausada',
 }
 
-export function StatusChip({ status }: StatusChipProps) {
+export function StatusChip({ status, label }: StatusChipProps) {
   return (
-    <Chip
-      label={labels[status]}
-      size="small"
-      sx={chipStyles.root(status)}
-    />
+    <Box sx={chipStyles.root(status)}>
+      <Box sx={chipStyles.bullet(status)} />
+      <Typography component="span" sx={chipStyles.label}>
+        {label ?? defaultLabels[status]}
+      </Typography>
+    </Box>
   )
 }

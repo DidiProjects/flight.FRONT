@@ -38,6 +38,9 @@ export const layoutStyles = {
       from: { opacity: 0, transform: 'translateY(-12px)' },
       to: { opacity: 1, transform: 'translateY(0)' },
     },
+    '@media (prefers-reduced-motion: reduce)': {
+      animation: 'none',
+    },
   } as SxProps,
 
   card: {
@@ -51,6 +54,9 @@ export const layoutStyles = {
     '@keyframes fadeInUp': {
       from: { opacity: 0, transform: 'translateY(12px)' },
       to: { opacity: 1, transform: 'translateY(0)' },
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      animation: 'none',
     },
   } as SxProps,
 }

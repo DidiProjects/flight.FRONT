@@ -39,7 +39,7 @@ export function AppHeader() {
           sx={headerStyles.logoButton}
           aria-label="Ir para o dashboard"
         >
-          <Logo size="sm" />
+          <Logo size="sm" variant="white" />
         </Box>
 
         <Box sx={headerStyles.nav}>

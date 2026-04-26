@@ -25,7 +25,7 @@ export function EmptyState({ Icon, title, description, actionLabel, onAction }: 
         </Typography>
       )}
       {actionLabel && onAction && (
-        <Button variant="outlined" onClick={onAction} sx={{ mt: 3 }}>
+        <Button variant="contained" onClick={onAction} sx={{ mt: 3 }}>
           {actionLabel}
         </Button>
       )}

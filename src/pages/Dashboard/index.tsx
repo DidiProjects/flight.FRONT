@@ -5,6 +5,7 @@ import {
   Grid2 as Grid,
   Pagination,
   LinearProgress,
+  Tooltip,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff'
@@ -102,14 +103,19 @@ export function DashboardPage() {
             {' '}· limite de 10
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleNew}
-          disabled={routines.length >= 10}
-        >
-          Nova rotina
-        </Button>
+        <Tooltip title={routines.length >= 10 ? 'Limite de 10 rotinas atingido' : ''}>
+          <span>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleNew}
+              disabled={routines.length >= 10}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
+              Nova rotina
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
 
       {loading && <LinearProgress sx={{ borderRadius: '4px', mb: 3 }} />}

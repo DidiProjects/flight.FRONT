@@ -92,10 +92,9 @@ export const components: Components<Omit<Theme, 'components'>> = {
       root: {
         border: '1px solid #E4E8EF',
         borderRadius: '12px',
-        transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+        transition: 'border-color 0.2s ease',
         '&:hover': {
           borderColor: '#B8C4D4',
-          boxShadow: '0 4px 16px rgba(30, 58, 95, 0.08)',
         },
       },
     },

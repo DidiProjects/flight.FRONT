@@ -11,14 +11,14 @@ export const typography = {
     letterSpacing: '-0.02em',
   },
   h2: {
-    fontSize: '1.5rem',
-    fontWeight: 600,
+    fontSize: '1.25rem',
+    fontWeight: 500,
     lineHeight: 1.3,
     letterSpacing: '-0.01em',
   },
   h3: {
-    fontSize: '1.25rem',
-    fontWeight: 600,
+    fontSize: '1.125rem',
+    fontWeight: 500,
     lineHeight: 1.4,
   },
   h4: {
@@ -27,7 +27,7 @@ export const typography = {
     lineHeight: 1.4,
   },
   h5: {
-    fontSize: '1rem',
+    fontSize: '1.0625rem',
     fontWeight: 500,
     lineHeight: 1.5,
   },
@@ -42,7 +42,7 @@ export const typography = {
     lineHeight: 1.6,
   },
   body2: {
-    fontSize: '0.875rem',
+    fontSize: '0.8125rem',
     fontWeight: 400,
     lineHeight: 1.6,
   },

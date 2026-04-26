@@ -2,10 +2,8 @@ import type { SxProps } from '@mui/material'
 
 export const headerStyles = {
   appBar: {
-    backgroundColor: 'background.paper',
-    borderBottom: '1px solid',
-    borderColor: 'divider',
-    color: 'text.primary',
+    backgroundColor: 'primary.main',
+    color: 'primary.contrastText',
   } as SxProps,
 
   toolbar: {
@@ -40,18 +38,18 @@ export const headerStyles = {
     py: 0.75,
     borderRadius: '8px',
     fontSize: '0.875rem',
-    fontWeight: active ? 600 : 400,
-    color: active ? 'primary.main' : 'text.secondary',
-    backgroundColor: active ? 'rgba(30, 58, 95, 0.06)' : 'transparent',
+    fontWeight: active ? 500 : 400,
+    color: active ? '#FFFFFF' : 'rgba(255,255,255,0.7)',
+    backgroundColor: active ? 'rgba(255,255,255,0.12)' : 'transparent',
     transition: 'all 0.15s ease',
     '&:hover': {
-      backgroundColor: 'rgba(30, 58, 95, 0.06)',
-      color: 'primary.main',
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      color: 'rgba(255,255,255,0.9)',
     },
   }),
 
   iconBtn: (active: boolean): SxProps => ({
-    color: active ? 'primary.main' : 'text.secondary',
-    '&:hover': { color: 'primary.main' },
+    color: active ? '#FFFFFF' : 'rgba(255,255,255,0.7)',
+    '&:hover': { color: '#FFFFFF', backgroundColor: 'rgba(255,255,255,0.06)' },
   }),
 }

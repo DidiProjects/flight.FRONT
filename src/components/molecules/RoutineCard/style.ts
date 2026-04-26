@@ -6,16 +6,12 @@ export const cardStyles = {
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
-    opacity: isActive ? 1 : 0.6,
     borderLeft: '3px solid',
     borderLeftColor: isActive ? 'primary.main' : 'divider',
-    transition: 'opacity 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
-    '&:hover': {
-      boxShadow: 3,
-    },
+    transition: 'border-color 0.2s ease',
   }),
 
-  content: {
+  content: (isActive: boolean): SxProps => ({
     flex: 1,
     pt: 2.5,
     px: 2.5,
@@ -23,7 +19,9 @@ export const cardStyles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
-  } as SxProps,
+    opacity: isActive ? 1 : 0.85,
+    transition: 'opacity 0.2s ease',
+  }),
 
   topRow: {
     display: 'flex',
@@ -45,20 +43,6 @@ export const cardStyles = {
     color: 'text.secondary',
   } as SxProps,
 
-  statusChip: (isActive: boolean): SxProps => ({
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 0.5,
-    px: 1,
-    py: 0.25,
-    borderRadius: 1,
-    fontSize: '0.6875rem',
-    fontWeight: 600,
-    letterSpacing: '0.04em',
-    color: isActive ? 'success.dark' : 'text.disabled',
-    backgroundColor: isActive ? 'rgba(45, 155, 107, 0.08)' : 'action.hover',
-  }),
-
   routeHero: {
     display: 'flex',
     alignItems: 'center',
@@ -66,10 +50,11 @@ export const cardStyles = {
   } as SxProps,
 
   iata: {
-    fontWeight: 700,
-    fontSize: '2rem',
-    letterSpacing: '-0.02em',
+    fontWeight: 500,
+    fontSize: '1.125rem',
+    letterSpacing: '0.5px',
     lineHeight: 1,
+    textTransform: 'uppercase' as const,
   } as SxProps,
 
   flightArrow: {

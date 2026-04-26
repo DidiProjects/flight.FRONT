@@ -33,9 +33,9 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontWeight: 600, pb: 1 }}>{title}</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 500, fontSize: '1rem', pb: 1 }}>{title}</DialogTitle>
       <DialogContent>
-        <DialogContentText sx={{ color: 'text.secondary', fontSize: '0.9rem' }}>
+        <DialogContentText component="p" sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
           {message}
         </DialogContentText>
       </DialogContent>
