@@ -19,8 +19,26 @@ import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
-import { useState, useEffect, type ChangeEvent, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type ChangeEvent, type ReactNode } from 'react'
 import { FormField } from '@atomic-components/molecules/FormField'
+import type { TextFieldProps } from '@mui/material'
+
+function DebouncedField({ value, onChange, delay = 300, ...props }: TextFieldProps & { delay?: number }) {
+  const [local, setLocal] = useState(value ?? '')
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  useEffect(() => {
+    setLocal(value ?? '')
+  }, [value])
+
+  function handleChange(e: ChangeEvent<HTMLInputElement>) {
+    setLocal(e.target.value)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => onChange?.(e), delay)
+  }
+
+  return <FormField {...props} value={local} onChange={handleChange} />
+}
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
 import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
@@ -179,7 +197,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
           {/* Rota */}
           <Section icon={<RouteOutlinedIcon sx={formStyles.sectionIcon} />} title="Rota">
-            <FormField
+            <DebouncedField
               label="Nome da rotina"
               value={form.name}
               onChange={handleChange('name')}
@@ -205,7 +223,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
             </FormField>
 
             <Box sx={formStyles.routeRow}>
-              <FormField
+              <DebouncedField
                 label="Origem"
                 value={form.origin}
                 onChange={handleChange('origin')}
@@ -221,7 +239,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               <Box sx={formStyles.routeArrow}>
                 <FlightIcon sx={{ fontSize: 20, transform: 'rotate(0deg)' }} />
               </Box>
-              <FormField
+              <DebouncedField
                 label="Destino"
                 value={form.destination}
                 onChange={handleChange('destination')}
