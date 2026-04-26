@@ -22,10 +22,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create .env for build
+        run: |
+          printf 'VITE_API_URL=%s\nVITE_APP_URL=%s\n' \
+            '${{ vars.VITE_API_URL }}' \
+            '${{ vars.VITE_APP_URL }}' > .env
+
       - name: Build project
-        env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
-          VITE_APP_URL: ${{ vars.VITE_APP_URL }}
         run: npm run build
 
       - name: Install Netlify CLI
