@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@atomic-components/templates/AuthLayout'
 import { FormField } from '@atomic-components/molecules/FormField'
 import { useAuth } from '@hooks/useAuth'
+import { useZodForm } from '@hooks/useZodForm'
+import { changePasswordSchema } from '@utils/schemas'
 import { toastEmitter } from '@utils/toast'
 
 export function ChangePasswordPage() {
@@ -13,13 +15,17 @@ export function ChangePasswordPage() {
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
+  const { errors, validate, revalidate } = useZodForm<{
+    currentPassword: string
+    newPassword: string
+    confirm: string
+  }>(changePasswordSchema)
+
+  const formData = { currentPassword: current, newPassword: next, confirm }
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
-    if (next !== confirm) {
-      toastEmitter.error('As senhas não coincidem.')
-      return
-    }
+    if (!validate(formData)) return
     setLoading(true)
     try {
       await changePassword({ currentPassword: current, newPassword: next })
@@ -43,7 +49,9 @@ export function ChangePasswordPage() {
           label="Senha atual"
           type="password"
           value={current}
-          onChange={(e) => setCurrent(e.target.value)}
+          onChange={(e) => { setCurrent(e.target.value); revalidate({ ...formData, currentPassword: e.target.value }) }}
+          error={!!errors.currentPassword}
+          helperText={errors.currentPassword}
           required
           autoFocus
           autoComplete="current-password"
@@ -52,7 +60,9 @@ export function ChangePasswordPage() {
           label="Nova senha"
           type="password"
           value={next}
-          onChange={(e) => setNext(e.target.value)}
+          onChange={(e) => { setNext(e.target.value); revalidate({ ...formData, newPassword: e.target.value }) }}
+          error={!!errors.newPassword}
+          helperText={errors.newPassword ?? 'Mín. 8 caracteres, letras maiúsculas, minúsculas e números'}
           required
           autoComplete="new-password"
         />
@@ -60,7 +70,9 @@ export function ChangePasswordPage() {
           label="Confirmar nova senha"
           type="password"
           value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
+          onChange={(e) => { setConfirm(e.target.value); revalidate({ ...formData, confirm: e.target.value }) }}
+          error={!!errors.confirm}
+          helperText={errors.confirm}
           required
           autoComplete="new-password"
         />

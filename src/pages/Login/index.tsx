@@ -4,6 +4,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { AuthLayout } from '@atomic-components/templates/AuthLayout'
 import { FormField } from '@atomic-components/molecules/FormField'
 import { useAuth } from '@hooks/useAuth'
+import { useZodForm } from '@hooks/useZodForm'
+import { loginSchema } from '@utils/schemas'
 import { toastEmitter } from '@utils/toast'
 import { pageStyles } from './style'
 
@@ -16,9 +18,13 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const { errors, validate, revalidate } = useZodForm<{ email: string; password: string }>(loginSchema)
+
+  const formData = { email, password }
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
+    if (!validate(formData)) return
     setLoading(true)
     try {
       const { mustChangePassword } = await login({ email, password })
@@ -48,7 +54,9 @@ export function LoginPage() {
           label="Email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); revalidate({ ...formData, email: e.target.value }) }}
+          error={!!errors.email}
+          helperText={errors.email}
           required
           autoComplete="email"
           autoFocus
@@ -58,7 +66,9 @@ export function LoginPage() {
           label="Senha"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => { setPassword(e.target.value); revalidate({ ...formData, password: e.target.value }) }}
+          error={!!errors.password}
+          helperText={errors.password}
           required
           autoComplete="current-password"
         />
@@ -66,6 +76,7 @@ export function LoginPage() {
         <MuiLink
           component={Link}
           to="/forgot-password"
+          state={{ email }}
           variant="body2"
           sx={pageStyles.forgotLink}
         >

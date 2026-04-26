@@ -4,15 +4,21 @@ import { Link } from 'react-router-dom'
 import { AuthLayout } from '@atomic-components/templates/AuthLayout'
 import { FormField } from '@atomic-components/molecules/FormField'
 import { AuthService } from '@services/AuthService'
+import { useZodForm } from '@hooks/useZodForm'
+import { registerSchema } from '@utils/schemas'
 
 export function RegisterPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const { errors, validate, revalidate } = useZodForm<{ name: string; email: string }>(registerSchema)
+
+  const formData = { name, email }
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
+    if (!validate(formData)) return
     setLoading(true)
     try {
       await AuthService.register({ name, email })
@@ -44,7 +50,9 @@ export function RegisterPage() {
             <FormField
               label="Nome"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); revalidate({ ...formData, name: e.target.value }) }}
+              error={!!errors.name}
+              helperText={errors.name}
               required
               autoFocus
               autoComplete="name"
@@ -53,7 +61,9 @@ export function RegisterPage() {
               label="Email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); revalidate({ ...formData, email: e.target.value }) }}
+              error={!!errors.email}
+              helperText={errors.email}
               required
               autoComplete="email"
             />

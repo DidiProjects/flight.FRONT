@@ -4,6 +4,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '@atomic-components/templates/AuthLayout'
 import { FormField } from '@atomic-components/molecules/FormField'
 import { AuthService } from '@services/AuthService'
+import { useZodForm } from '@hooks/useZodForm'
+import { resetPasswordSchema } from '@utils/schemas'
 import { toastEmitter } from '@utils/toast'
 
 export function ResetPasswordPage() {
@@ -14,18 +16,20 @@ export function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const { errors, validate, revalidate } = useZodForm<{ password: string; confirm: string }>(resetPasswordSchema)
+
+  const formData = { password, confirm }
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
-    if (password !== confirm) {
-      toastEmitter.error('As senhas não coincidem.')
-      return
-    }
+    if (!validate(formData)) return
     if (!token) return
     setLoading(true)
     try {
       await AuthService.resetPassword(token, { password })
       setDone(true)
+    } catch {
+      toastEmitter.error('Link inválido ou expirado.')
     } finally {
       setLoading(false)
     }
@@ -54,7 +58,9 @@ export function ResetPasswordPage() {
               label="Nova senha"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); revalidate({ ...formData, password: e.target.value }) }}
+              error={!!errors.password}
+              helperText={errors.password ?? 'Mín. 8 caracteres, letras maiúsculas, minúsculas e números'}
               required
               autoFocus
               autoComplete="new-password"
@@ -63,7 +69,9 @@ export function ResetPasswordPage() {
               label="Confirmar senha"
               type="password"
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={(e) => { setConfirm(e.target.value); revalidate({ ...formData, confirm: e.target.value }) }}
+              error={!!errors.confirm}
+              helperText={errors.confirm}
               required
               autoComplete="new-password"
             />
