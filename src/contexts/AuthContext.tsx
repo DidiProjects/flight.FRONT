@@ -11,6 +11,7 @@ export interface AuthUser {
   accessToken: string
   mustChangePassword: boolean
   role: UserRole
+  email: string | null
 }
 
 export interface AuthContextValue {
@@ -29,6 +30,10 @@ export const AuthContext = createContext<AuthContextValue | null>(null)
 function extractRole(token: string): UserRole {
   const payload = decodeJwtPayload(token)
   return payload?.role === 'admin' ? 'admin' : 'user'
+}
+
+function extractEmail(token: string): string | null {
+  return decodeJwtPayload(token)?.email ?? null
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -63,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           accessToken: data.accessToken,
           mustChangePassword: false,
           role: extractRole(data.accessToken),
+          email: extractEmail(data.accessToken),
         })
       })
       .catch((err: unknown) => {
@@ -92,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accessToken: res.accessToken,
       mustChangePassword: res.mustChangePassword,
       role: extractRole(res.accessToken),
+      email: extractEmail(res.accessToken),
     })
     return { mustChangePassword: res.mustChangePassword }
   }, [])
@@ -110,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await AuthService.changePassword(data)
     setUser((prev) =>
       prev
-        ? { ...prev, mustChangePassword: false, role: extractRole(res.accessToken) }
+        ? { ...prev, mustChangePassword: false, role: extractRole(res.accessToken), email: extractEmail(res.accessToken) }
         : null,
     )
   }, [])

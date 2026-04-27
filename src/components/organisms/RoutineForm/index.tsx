@@ -21,6 +21,7 @@ import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
 import { useState, useEffect, useRef, type ChangeEvent, type ReactNode } from 'react'
 import { FormField } from '@atomic-components/molecules/FormField'
+import { useAuth } from '@hooks/useAuth'
 import type { TextFieldProps } from '@mui/material'
 
 function DebouncedField({ value, onChange, delay = 300, ...props }: TextFieldProps & { delay?: number }) {
@@ -95,6 +96,8 @@ function Section({
 }
 
 export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: RoutineFormProps) {
+  const { user } = useAuth()
+  const userEmail = user?.email
   const [form, setForm] = useState<CreateRoutineRequest>(EMPTY)
   const [loading, setLoading] = useState(false)
   const [ccEmailInput, setCcEmailInput] = useState('')
@@ -425,9 +428,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 size="medium"
                 sx={{ flex: 3 }}
               >
-                <MenuItem value="alert_only">Somente alertas de target</MenuItem>
-                <MenuItem value="daily_best_and_alert">Melhor do dia + alertas</MenuItem>
-                <MenuItem value="end_of_period">Ao final do período</MenuItem>
+                <MenuItem value="alert_only">Melhor preço alcançado ou superado</MenuItem>
+                <MenuItem value="daily_best_and_alert">Melhor do dia + melhor preço</MenuItem>
+                <MenuItem value="end_of_period">Em horário agendado</MenuItem>
               </FormField>
 
               <FormField
@@ -456,6 +459,16 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 InputLabelProps={{ shrink: true }}
                 helperText="Horário em que a notificação será enviada"
                 sx={{ maxWidth: 220 }}
+              />
+            )}
+
+            {userEmail && (
+              <FormField
+                label="Seu email (sempre notificado)"
+                value={userEmail}
+                size="medium"
+                disabled
+                helperText="Você sempre receberá as notificações desta rotina"
               />
             )}
 

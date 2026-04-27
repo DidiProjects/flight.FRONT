@@ -1,6 +1,7 @@
 interface JwtPayload {
   role?: string
   sub?: string
+  email?: string
   exp?: number
   [key: string]: unknown
 }
