@@ -269,11 +269,11 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
           <Divider />
 
           {/* Datas */}
-          <Section icon={<CalendarTodayOutlinedIcon sx={formStyles.sectionIcon} />} title="Período">
+          <Section icon={<CalendarTodayOutlinedIcon sx={formStyles.sectionIcon} />} title="Períodos">
 
             <Box sx={formStyles.dateGroup}>
-              <Typography sx={formStyles.dateGroupLabel}>
-                Ida <span style={{ fontWeight: 400, opacity: 0.6, fontSize: '0.7rem' }}>obrigatório</span>
+              <Typography sx={formStyles.dateGroupLabel} style={{ marginBottom: '0.5rem' }}>
+                Disponibilidade para ida <span style={{ fontWeight: 400, opacity: 0.6, fontSize: '0.7rem' }}>obrigatório</span>
               </Typography>
               <Box sx={formStyles.row}>
                 <FormField
@@ -304,8 +304,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
             </Box>
 
             <Box sx={formStyles.dateGroup}>
-              <Typography sx={formStyles.dateGroupLabel}>
-                Volta
+              <Typography sx={formStyles.dateGroupLabel} style={{ marginBottom: '0.5rem' }}>
+                Disponibilidade para volta
                 <Typography component="span" sx={formStyles.optionalTag}>opcional</Typography>
               </Typography>
               <Box sx={formStyles.row}>
