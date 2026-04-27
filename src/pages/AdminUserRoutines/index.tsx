@@ -158,7 +158,6 @@ export function AdminUserRoutinesPage() {
     try {
       await Promise.all([...selected].map((id) => RoutinesService.dispatch(id)))
       toastEmitter.success(`${selected.size} rotina(s) disparada(s).`)
-      setSelected(new Set())
     } catch {
       toastEmitter.error('Falha em uma ou mais rotinas.')
     } finally {
@@ -171,7 +170,6 @@ export function AdminUserRoutinesPage() {
     try {
       await Promise.all([...selected].map((id) => RoutinesService.activate(id)))
       toastEmitter.success(`${selected.size} rotina(s) ativada(s).`)
-      setSelected(new Set())
       void loadRoutines()
     } catch {
       toastEmitter.error('Falha em uma ou mais rotinas.')
@@ -185,7 +183,6 @@ export function AdminUserRoutinesPage() {
     try {
       await Promise.all([...selected].map((id) => RoutinesService.deactivate(id)))
       toastEmitter.info(`${selected.size} rotina(s) pausada(s).`)
-      setSelected(new Set())
       void loadRoutines()
     } catch {
       toastEmitter.error('Falha em uma ou mais rotinas.')
@@ -197,8 +194,9 @@ export function AdminUserRoutinesPage() {
   async function handleBulkDelete() {
     setDeleteLoading(true)
     try {
-      await Promise.all([...selected].map((id) => RoutinesService.remove(id)))
-      toastEmitter.success(`${selected.size} rotina(s) excluída(s).`)
+      const ids = [...selected]
+      await Promise.all(ids.map((id) => RoutinesService.remove(id)))
+      toastEmitter.success(`${ids.length} rotina(s) excluída(s).`)
       setSelected(new Set())
       setBulkDeleteOpen(false)
       void loadRoutines()
