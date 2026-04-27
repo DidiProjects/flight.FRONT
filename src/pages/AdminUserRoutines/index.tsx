@@ -265,7 +265,7 @@ export function AdminUserRoutinesPage() {
             <span>
               <Button
                 size="small"
-                startIcon={<SendIcon fontSize="small" />}
+                startIcon={<PlayArrowIcon fontSize="small" />}
                 onClick={handleBulkDispatch}
                 disabled={bulkLoading}
                 variant="outlined"

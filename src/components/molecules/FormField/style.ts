@@ -1,7 +1,7 @@
-import type { SxProps } from '@mui/material'
+import type { SxProps, Theme } from '@mui/material'
 
 export const fieldStyles = {
-  wrapper: (sx?: SxProps): SxProps => ({
+  wrapper: (sx?: SxProps<Theme>): SxProps<Theme> => ({
     position: 'relative',
     width: '100%',
     ...(sx as object),
@@ -18,5 +18,5 @@ export const fieldStyles = {
     lineHeight: 1.2,
     pointerEvents: 'none',
     whiteSpace: 'nowrap',
-  } as SxProps,
+  } as SxProps<Theme>,
 }
