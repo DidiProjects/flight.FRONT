@@ -19,6 +19,7 @@ export interface UsersListResponse {
 }
 
 export interface CreateUserRequest {
+  name: string
   email: string
 }
 

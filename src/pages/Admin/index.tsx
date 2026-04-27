@@ -33,6 +33,7 @@ export function AdminPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
+  const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [createLoading, setCreateLoading] = useState(false)
   const [approveTarget, setApproveTarget] = useState<User | null>(null)
@@ -57,9 +58,10 @@ export function AdminPage() {
   async function handleCreate() {
     setCreateLoading(true)
     try {
-      await UsersService.create({ email: newEmail })
+      await UsersService.create({ name: newName, email: newEmail })
       toastEmitter.success('Usuário criado. Email com senha provisória enviado.')
       setCreateOpen(false)
+      setNewName('')
       setNewEmail('')
       void loadUsers(page)
     } finally {
@@ -154,27 +156,44 @@ export function AdminPage() {
       )}
 
       {/* Create user dialog */}
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600 }}>Novo usuário</DialogTitle>
-        <DialogContent sx={{ pt: '8px !important' }}>
+      <Dialog
+        open={createOpen}
+        onClose={() => { setCreateOpen(false); setNewName(''); setNewEmail('') }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 500, fontSize: '1rem' }}>Novo usuário</DialogTitle>
+        <DialogContent sx={{ pt: '8px !important', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <FormField
+            label="Nome"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            required
+            autoFocus
+            autoComplete="name"
+          />
           <FormField
             label="Email"
             type="email"
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
             required
-            autoFocus
+            autoComplete="email"
             helperText="Uma senha provisória será enviada para este email."
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button variant="outlined" onClick={() => setCreateOpen(false)} disabled={createLoading}>
+          <Button
+            variant="outlined"
+            onClick={() => { setCreateOpen(false); setNewName(''); setNewEmail('') }}
+            disabled={createLoading}
+          >
             Cancelar
           </Button>
           <Button
             variant="contained"
             onClick={handleCreate}
-            disabled={createLoading || !newEmail}
+            disabled={createLoading || !newName.trim() || !newEmail.trim()}
             startIcon={createLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
             Criar
