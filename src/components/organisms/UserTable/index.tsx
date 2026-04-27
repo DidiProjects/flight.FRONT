@@ -26,9 +26,10 @@ interface UserTableProps {
   onApprove: (user: User) => void
   onSuspend: (user: User) => void
   onDelete: (user: User) => void
+  onClickUser: (user: User) => void
 }
 
-export function UserTable({ users, onApprove, onSuspend, onDelete }: UserTableProps) {
+export function UserTable({ users, onApprove, onSuspend, onDelete, onClickUser }: UserTableProps) {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
@@ -96,10 +97,19 @@ export function UserTable({ users, onApprove, onSuspend, onDelete }: UserTablePr
               gap: 1,
             }}
           >
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box
+              sx={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+              onClick={() => onClickUser(user)}
+            >
+              {user.name && (
+                <Typography variant="body2" fontWeight={500}>
+                  {user.name}
+                </Typography>
+              )}
               <Typography
                 variant="body2"
-                fontWeight={500}
+                color={user.name ? 'text.secondary' : undefined}
+                fontWeight={user.name ? 400 : 500}
                 sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               >
                 {user.email}
@@ -121,7 +131,7 @@ export function UserTable({ users, onApprove, onSuspend, onDelete }: UserTablePr
                 {new Date(user.createdAt).toLocaleDateString('pt-BR')}
               </Typography>
             </Box>
-            <Box sx={{ flexShrink: 0 }}>
+            <Box sx={{ flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
               {user.status === 'pending' ? (
                 <Tooltip title="Aprovar">
                   <IconButton
@@ -152,7 +162,7 @@ export function UserTable({ users, onApprove, onSuspend, onDelete }: UserTablePr
         <Table size="small" aria-label="Tabela de usuários">
           <TableHead>
             <TableRow>
-              <TableCell>Email</TableCell>
+              <TableCell>Usuário</TableCell>
               <TableCell>Role</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Criado em</TableCell>
@@ -161,10 +171,24 @@ export function UserTable({ users, onApprove, onSuspend, onDelete }: UserTablePr
           </TableHead>
           <TableBody>
             {users.map((user) => (
-              <TableRow key={user.id}>
+              <TableRow
+                key={user.id}
+                hover
+                sx={{ cursor: 'pointer' }}
+                onClick={() => onClickUser(user)}
+              >
                 <TableCell>
                   <Box>
-                    <Typography variant="body2" fontWeight={500}>
+                    {user.name && (
+                      <Typography variant="body2" fontWeight={500}>
+                        {user.name}
+                      </Typography>
+                    )}
+                    <Typography
+                      variant="body2"
+                      color={user.name ? 'text.secondary' : undefined}
+                      fontWeight={user.name ? 400 : 500}
+                    >
                       {user.email}
                     </Typography>
                     {user.mustChangePassword && (
@@ -187,7 +211,7 @@ export function UserTable({ users, onApprove, onSuspend, onDelete }: UserTablePr
                     {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                   </Typography>
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                   {user.status === 'pending' ? (
                     <Tooltip title="Aprovar">
                       <IconButton

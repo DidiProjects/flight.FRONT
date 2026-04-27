@@ -13,6 +13,7 @@ import type { MessageResponse } from '@app-types/auth'
 
 interface RawUser {
   id: string
+  name?: string | null
   email: string
   role: UserRole
   status: UserStatus
@@ -25,6 +26,7 @@ interface RawUser {
 function fromApi(raw: RawUser): User {
   return {
     id: raw.id,
+    name: raw.name ?? null,
     email: raw.email,
     role: raw.role,
     status: raw.status,

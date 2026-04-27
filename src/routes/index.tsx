@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from './ProtectedRoute'
+import { AdminRoute } from './AdminRoute'
 import { LoginPage } from '@pages/Login'
 import { ForgotPasswordPage } from '@pages/ForgotPassword'
 import { ResetPasswordPage } from '@pages/ResetPassword'
@@ -8,6 +9,7 @@ import { RegisterPage } from '@pages/Register'
 import { ChangePasswordPage } from '@pages/ChangePassword'
 import { DashboardPage } from '@pages/Dashboard'
 import { AdminPage } from '@pages/Admin'
+import { AdminUserRoutinesPage } from '@pages/AdminUserRoutines'
 
 export function AppRoutes() {
   return (
@@ -23,7 +25,12 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+
+        {/* admin only */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/user-routines" element={<AdminUserRoutinesPage />} />
+        </Route>
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -76,6 +76,15 @@ class RoutinesServiceClass extends ApiService {
   deactivate(id: string): Promise<Routine> {
     return this.patch<RawRoutine>(`/routines/${id}/deactivate`).then(fromApi)
   }
+
+  async listByUser(userId: string): Promise<Routine[]> {
+    const raw = await this.get<RawRoutine[]>(`/routines/admin/users/${userId}`)
+    return raw.map(fromApi)
+  }
+
+  dispatch(id: string): Promise<void> {
+    return this.post<void>(`/routines/${id}/dispatch`)
+  }
 }
 
 export const RoutinesService = new RoutinesServiceClass()

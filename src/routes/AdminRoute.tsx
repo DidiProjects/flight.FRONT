@@ -1,12 +1,13 @@
 import { Navigate, Outlet } from 'react-router-dom'
+import { useAuth } from '@hooks/useAuth'
+import { AdminUserProvider } from '@contexts/AdminUserContext'
 
-interface AdminRouteProps {
-  role?: string
-}
-
-export function AdminRoute({ role }: AdminRouteProps) {
-  if (role !== 'admin') {
-    return <Navigate to="/dashboard" replace />
-  }
-  return <Outlet />
+export function AdminRoute() {
+  const { isAdmin } = useAuth()
+  if (!isAdmin) return <Navigate to="/dashboard" replace />
+  return (
+    <AdminUserProvider>
+      <Outlet />
+    </AdminUserProvider>
+  )
 }

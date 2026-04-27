@@ -15,6 +15,8 @@ import {
 import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt'
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAdminUser } from '@contexts/AdminUserContext'
 import { AppLayout } from '@atomic-components/templates/AppLayout'
 import { UserTable } from '@atomic-components/organisms/UserTable'
 import { EmptyState } from '@atomic-components/molecules/EmptyState'
@@ -28,6 +30,8 @@ import { pageStyles } from './style'
 const LIMIT = 20
 
 export function AdminPage() {
+  const navigate = useNavigate()
+  const { setSelectedUser } = useAdminUser()
   const [users, setUsers] = useState<User[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -139,6 +143,7 @@ export function AdminPage() {
             onApprove={(user) => { setApproveTarget(user); setApproveRole('user') }}
             onSuspend={handleSuspend}
             onDelete={(user) => setDeleteTarget(user)}
+            onClickUser={(user) => { setSelectedUser(user); navigate('/admin/user-routines') }}
           />
         </Paper>
       )}
