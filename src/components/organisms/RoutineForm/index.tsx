@@ -22,6 +22,8 @@ import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNone
 import { useState, useEffect, useRef, type ChangeEvent, type ReactNode } from 'react'
 import { FormField } from '@atomic-components/molecules/FormField'
 import { useAuth } from '@hooks/useAuth'
+import { useZodForm } from '@hooks/useZodForm'
+import { routineSchema } from '@utils/schemas'
 import type { TextFieldProps } from '@mui/material'
 
 function DebouncedField({ value, onChange, delay = 300, ...props }: TextFieldProps & { delay?: number }) {
@@ -101,8 +103,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   const [form, setForm] = useState<CreateRoutineRequest>(EMPTY)
   const [loading, setLoading] = useState(false)
   const [ccEmailInput, setCcEmailInput] = useState('')
+  const { errors, validate, touchField, reset } = useZodForm<CreateRoutineRequest>(routineSchema, 0)
 
   useEffect(() => {
+    reset()
     if (routine) {
       setForm({
         name: routine.name,
@@ -131,6 +135,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
       setForm({ ...EMPTY, airline: firstAirline })
     }
     setCcEmailInput('')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routine, open, airlines])
 
   // When airlines load after the drawer opens and airline is still unset, pick the first
@@ -143,7 +148,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   }, [airlines])
 
   function set<K extends keyof CreateRoutineRequest>(key: K, value: CreateRoutineRequest[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }))
+    const updated = { ...form, [key]: value }
+    setForm(updated)
+    touchField(key, updated)
   }
 
   function handleChange(key: keyof CreateRoutineRequest) {
@@ -159,9 +166,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
-    if (!form.name || !form.airline || !form.origin || !form.destination || !form.outboundStart || !form.outboundEnd) {
-      return
-    }
+    if (!validate(form)) return
     setLoading(true)
     try {
       await onSubmit(form)
@@ -204,10 +209,11 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               label="Nome da rotina"
               value={form.name}
               onChange={handleChange('name')}
+              error={!!errors.name}
+              helperText={errors.name ?? 'Um nome para identificar esta rotina'}
               required
               size="medium"
               placeholder="Ex: Lisboa ida e volta"
-              helperText="Um nome para identificar esta rotina"
             />
 
             <FormField
@@ -230,6 +236,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 label="Origem"
                 value={form.origin}
                 onChange={handleChange('origin')}
+                error={!!errors.origin}
+                helperText={errors.origin ?? 'Código IATA (ex: GRU)'}
                 required
                 size="medium"
                 sx={{ flex: 1 }}
@@ -237,7 +245,6 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   maxLength: 3,
                   style: { textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600, fontSize: '1rem' },
                 }}
-                helperText="Código IATA (ex: GRU)"
               />
               <Box sx={formStyles.routeArrow}>
                 <FlightIcon sx={{ fontSize: 20, transform: 'rotate(0deg)' }} />
@@ -246,6 +253,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 label="Destino"
                 value={form.destination}
                 onChange={handleChange('destination')}
+                error={!!errors.destination}
+                helperText={errors.destination ?? 'Código IATA (ex: LIS)'}
                 required
                 size="medium"
                 sx={{ flex: 1 }}
@@ -253,7 +262,6 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   maxLength: 3,
                   style: { textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600, fontSize: '1rem' },
                 }}
-                helperText="Código IATA (ex: LIS)"
               />
             </Box>
           </Section>
@@ -273,6 +281,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   type="date"
                   value={form.outboundStart}
                   onChange={handleChange('outboundStart')}
+                  error={!!errors.outboundStart}
+                  helperText={errors.outboundStart}
                   required
                   size="medium"
                   sx={{ flex: 1 }}
@@ -283,6 +293,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   type="date"
                   value={form.outboundEnd}
                   onChange={handleChange('outboundEnd')}
+                  error={!!errors.outboundEnd}
+                  helperText={errors.outboundEnd}
                   required
                   size="medium"
                   sx={{ flex: 1 }}
@@ -311,6 +323,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   type="date"
                   value={form.returnEnd ?? ''}
                   onChange={(e) => set('returnEnd', e.target.value || null)}
+                  error={!!errors.returnEnd}
+                  helperText={errors.returnEnd}
                   size="medium"
                   sx={{ flex: 1 }}
                   InputLabelProps={{ shrink: true }}
@@ -330,11 +344,12 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 type="number"
                 value={form.passengers}
                 onChange={(e) => set('passengers', Number(e.target.value))}
+                error={!!errors.passengers}
+                helperText={errors.passengers ?? 'De 1 a 9'}
                 required
                 size="medium"
                 sx={{ flex: 1, minWidth: 120 }}
                 inputProps={{ min: 1, max: 9 }}
-                helperText="De 1 a 9"
               />
               <FormField
                 label="Margem de tolerância"

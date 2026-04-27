@@ -50,3 +50,41 @@ export const changePasswordSchema = z
     message: 'As senhas não coincidem',
     path: ['confirm'],
   })
+
+export const routineSchema = z
+  .object({
+    name: z.string().min(1, 'Nome obrigatório'),
+    airline: z.string().min(1, 'Companhia obrigatória'),
+    origin: z
+      .string()
+      .min(1, 'Origem obrigatória')
+      .refine((v) => v.length === 3, 'Deve ter 3 letras (ex: GRU)'),
+    destination: z
+      .string()
+      .min(1, 'Destino obrigatório')
+      .refine((v) => v.length === 3, 'Deve ter 3 letras (ex: LIS)'),
+    outboundStart: z.string().min(1, 'Data obrigatória'),
+    outboundEnd: z.string().min(1, 'Data obrigatória'),
+    returnStart: z.string().nullable(),
+    returnEnd: z.string().nullable(),
+    passengers: z.number().min(1, 'Mínimo 1').max(9, 'Máximo 9'),
+    targetBrl: z.number().nullable(),
+    targetPts: z.number().nullable(),
+    targetHybPts: z.number().nullable(),
+    targetHybBrl: z.number().nullable(),
+    margin: z.number().min(0).max(1),
+    priority: z.enum(['brl', 'pts', 'hyb']),
+    notificationMode: z.enum(['alert_only', 'daily_best_and_alert', 'end_of_period']),
+    notificationFrequency: z.enum(['hourly', 'daily', 'monthly']),
+    endOfPeriodTime: z.string().nullable(),
+    ccEmails: z.array(z.string()),
+    isActive: z.boolean(),
+  })
+  .refine(
+    (d) => !d.outboundStart || !d.outboundEnd || d.outboundEnd >= d.outboundStart,
+    { message: 'Deve ser após a data de início', path: ['outboundEnd'] },
+  )
+  .refine(
+    (d) => !d.returnStart || !d.returnEnd || d.returnEnd >= d.returnStart,
+    { message: 'Deve ser após a data de início', path: ['returnEnd'] },
+  )

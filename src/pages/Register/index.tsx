@@ -12,7 +12,7 @@ export function RegisterPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-  const { errors, validate, revalidate } = useZodForm<{ name: string; email: string }>(registerSchema)
+  const { errors, validate, touchField } = useZodForm<{ name: string; email: string }>(registerSchema)
 
   const formData = { name, email }
 
@@ -50,7 +50,7 @@ export function RegisterPage() {
             <FormField
               label="Nome"
               value={name}
-              onChange={(e) => { setName(e.target.value); revalidate({ ...formData, name: e.target.value }) }}
+              onChange={(e) => { setName(e.target.value); touchField('name', { ...formData, name: e.target.value }) }}
               error={!!errors.name}
               helperText={errors.name}
               required
@@ -61,7 +61,7 @@ export function RegisterPage() {
               label="Email"
               type="email"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); revalidate({ ...formData, email: e.target.value }) }}
+              onChange={(e) => { setEmail(e.target.value); touchField('email', { ...formData, email: e.target.value }) }}
               error={!!errors.email}
               helperText={errors.email}
               required

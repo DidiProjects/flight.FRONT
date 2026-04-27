@@ -6,20 +6,47 @@ import type {
   ApproveUserRequest,
   UpdateUserRequest,
   UsersQueryParams,
+  UserRole,
+  UserStatus,
 } from '@app-types/users'
 import type { MessageResponse } from '@app-types/auth'
 
+interface RawUser {
+  id: string
+  email: string
+  role: UserRole
+  status: UserStatus
+  must_change_password: boolean
+  provisional_expires_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+function fromApi(raw: RawUser): User {
+  return {
+    id: raw.id,
+    email: raw.email,
+    role: raw.role,
+    status: raw.status,
+    mustChangePassword: raw.must_change_password,
+    provisionalExpiresAt: raw.provisional_expires_at,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+  }
+}
+
 class UsersServiceClass extends ApiService {
-  list(params: UsersQueryParams = {}): Promise<UsersListResponse> {
+  async list(params: UsersQueryParams = {}): Promise<UsersListResponse> {
     const query = new URLSearchParams()
     if (params.page) query.set('page', String(params.page))
     if (params.limit) query.set('limit', String(params.limit))
     const qs = query.toString()
-    return this.get<UsersListResponse>(`/users${qs ? `?${qs}` : ''}`)
+    const raw = await this.get<{ users: RawUser[]; total: number }>(`/users${qs ? `?${qs}` : ''}`)
+    return { users: raw.users.map(fromApi), total: raw.total }
   }
 
   getById(id: string): Promise<User> {
-    return this.get<User>(`/users/${id}`)
+    return this.get<RawUser>(`/users/${id}`).then(fromApi)
   }
 
   create(data: CreateUserRequest): Promise<MessageResponse> {

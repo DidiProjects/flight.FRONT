@@ -50,6 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) {
+        tokenStore.clear()
+        storage.clearRefreshToken()
+        setIsLoading(false)
+        controller.abort()
+      }
+    }, 10_000)
+
     fetch(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -77,11 +86,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         storage.clearRefreshToken()
       })
       .finally(() => {
+        clearTimeout(timeoutId)
         if (!cancelled) setIsLoading(false)
       })
 
     return () => {
       cancelled = true
+      clearTimeout(timeoutId)
       controller.abort()
     }
   }, [])

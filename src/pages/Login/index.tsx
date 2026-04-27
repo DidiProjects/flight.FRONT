@@ -18,7 +18,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const { errors, validate, revalidate } = useZodForm<{ email: string; password: string }>(loginSchema)
+  const { errors, validate, touchField } = useZodForm<{ email: string; password: string }>(loginSchema)
 
   const formData = { email, password }
 
@@ -54,7 +54,7 @@ export function LoginPage() {
           label="Email"
           type="email"
           value={email}
-          onChange={(e) => { setEmail(e.target.value); revalidate({ ...formData, email: e.target.value }) }}
+          onChange={(e) => { setEmail(e.target.value); touchField('email', { ...formData, email: e.target.value }) }}
           error={!!errors.email}
           helperText={errors.email}
           required
@@ -66,7 +66,7 @@ export function LoginPage() {
           label="Senha"
           type="password"
           value={password}
-          onChange={(e) => { setPassword(e.target.value); revalidate({ ...formData, password: e.target.value }) }}
+          onChange={(e) => { setPassword(e.target.value); touchField('password', { ...formData, password: e.target.value }) }}
           error={!!errors.password}
           helperText={errors.password}
           required

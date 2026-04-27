@@ -14,7 +14,7 @@ export function ForgotPasswordPage() {
   const [email, setEmail] = useState(prefilled)
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
-  const { errors, validate, revalidate } = useZodForm<{ email: string }>(forgotPasswordSchema)
+  const { errors, validate, touchField } = useZodForm<{ email: string }>(forgotPasswordSchema)
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault()
@@ -46,7 +46,7 @@ export function ForgotPasswordPage() {
               label="Email"
               type="email"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); revalidate({ email: e.target.value }) }}
+              onChange={(e) => { setEmail(e.target.value); touchField('email', { email: e.target.value }) }}
               error={!!errors.email}
               helperText={errors.email}
               required

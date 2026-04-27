@@ -15,7 +15,7 @@ export function ChangePasswordPage() {
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
-  const { errors, validate, revalidate } = useZodForm<{
+  const { errors, validate, touchField } = useZodForm<{
     currentPassword: string
     newPassword: string
     confirm: string
@@ -49,7 +49,7 @@ export function ChangePasswordPage() {
           label="Senha atual"
           type="password"
           value={current}
-          onChange={(e) => { setCurrent(e.target.value); revalidate({ ...formData, currentPassword: e.target.value }) }}
+          onChange={(e) => { setCurrent(e.target.value); touchField('currentPassword', { ...formData, currentPassword: e.target.value }) }}
           error={!!errors.currentPassword}
           helperText={errors.currentPassword}
           required
@@ -60,9 +60,9 @@ export function ChangePasswordPage() {
           label="Nova senha"
           type="password"
           value={next}
-          onChange={(e) => { setNext(e.target.value); revalidate({ ...formData, newPassword: e.target.value }) }}
+          onChange={(e) => { setNext(e.target.value); touchField('newPassword', { ...formData, newPassword: e.target.value }) }}
           error={!!errors.newPassword}
-          helperText={errors.newPassword ?? 'Mín. 8 caracteres, letras maiúsculas, minúsculas e números'}
+          helperText={errors.newPassword}
           required
           autoComplete="new-password"
         />
@@ -70,7 +70,7 @@ export function ChangePasswordPage() {
           label="Confirmar nova senha"
           type="password"
           value={confirm}
-          onChange={(e) => { setConfirm(e.target.value); revalidate({ ...formData, confirm: e.target.value }) }}
+          onChange={(e) => { setConfirm(e.target.value); touchField('confirm', { ...formData, confirm: e.target.value }) }}
           error={!!errors.confirm}
           helperText={errors.confirm}
           required

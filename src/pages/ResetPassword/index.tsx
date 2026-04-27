@@ -16,7 +16,7 @@ export function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-  const { errors, validate, revalidate } = useZodForm<{ password: string; confirm: string }>(resetPasswordSchema)
+  const { errors, validate, touchField } = useZodForm<{ password: string; confirm: string }>(resetPasswordSchema)
 
   const formData = { password, confirm }
 
@@ -58,9 +58,9 @@ export function ResetPasswordPage() {
               label="Nova senha"
               type="password"
               value={password}
-              onChange={(e) => { setPassword(e.target.value); revalidate({ ...formData, password: e.target.value }) }}
+              onChange={(e) => { setPassword(e.target.value); touchField('password', { ...formData, password: e.target.value }) }}
               error={!!errors.password}
-              helperText={errors.password ?? 'Mín. 8 caracteres, letras maiúsculas, minúsculas e números'}
+              helperText={errors.password}
               required
               autoFocus
               autoComplete="new-password"
@@ -69,7 +69,7 @@ export function ResetPasswordPage() {
               label="Confirmar senha"
               type="password"
               value={confirm}
-              onChange={(e) => { setConfirm(e.target.value); revalidate({ ...formData, confirm: e.target.value }) }}
+              onChange={(e) => { setConfirm(e.target.value); touchField('confirm', { ...formData, confirm: e.target.value }) }}
               error={!!errors.confirm}
               helperText={errors.confirm}
               required
