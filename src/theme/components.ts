@@ -232,6 +232,13 @@ export const components: Components<Omit<Theme, 'components'>> = {
       },
     },
   },
+  MuiInputLabel: {
+    styleOverrides: {
+      root: {
+        top: '-0.25rem',
+      },
+    },
+  },
   MuiFormHelperText: {
     styleOverrides: {
       root: {

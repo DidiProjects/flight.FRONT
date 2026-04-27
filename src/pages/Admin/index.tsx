@@ -22,6 +22,8 @@ import { UserTable } from '@atomic-components/organisms/UserTable'
 import { EmptyState } from '@atomic-components/molecules/EmptyState'
 import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
 import { FormField } from '@atomic-components/molecules/FormField'
+import { useZodForm } from '@hooks/useZodForm'
+import { createUserSchema } from '@utils/schemas'
 import { UsersService } from '@services/UsersService'
 import { toastEmitter } from '@utils/toast'
 import type { User, UserRole } from '@app-types/users'
@@ -36,6 +38,7 @@ export function AdminPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const { errors: createErrors, validate: validateCreate, touchField: touchCreate, reset: resetCreate } = useZodForm<{ name: string; email: string }>(createUserSchema)
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
@@ -59,14 +62,20 @@ export function AdminPage() {
 
   useEffect(() => { void loadUsers(page) }, [loadUsers, page])
 
+  function closeCreate() {
+    setCreateOpen(false)
+    setNewName('')
+    setNewEmail('')
+    resetCreate()
+  }
+
   async function handleCreate() {
+    if (!validateCreate({ name: newName, email: newEmail })) return
     setCreateLoading(true)
     try {
       await UsersService.create({ name: newName, email: newEmail })
       toastEmitter.success('Usuário criado. Email com senha provisória enviado.')
-      setCreateOpen(false)
-      setNewName('')
-      setNewEmail('')
+      closeCreate()
       void loadUsers(page)
     } finally {
       setCreateLoading(false)
@@ -161,18 +170,18 @@ export function AdminPage() {
       )}
 
       {/* Create user dialog */}
-      <Dialog
-        open={createOpen}
-        onClose={() => { setCreateOpen(false); setNewName(''); setNewEmail('') }}
-        maxWidth="xs"
-        fullWidth
-      >
+      <Dialog open={createOpen} onClose={closeCreate} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 500, fontSize: '1rem' }}>Novo usuário</DialogTitle>
         <DialogContent sx={{ pt: '8px !important', display: 'flex', flexDirection: 'column', gap: 2 }}>
           <FormField
             label="Nome"
             value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+            onChange={(e) => {
+              setNewName(e.target.value)
+              touchCreate('name', { name: e.target.value, email: newEmail })
+            }}
+            error={!!createErrors.name}
+            helperText={createErrors.name}
             required
             autoFocus
             autoComplete="name"
@@ -181,24 +190,24 @@ export function AdminPage() {
             label="Email"
             type="email"
             value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
+            onChange={(e) => {
+              setNewEmail(e.target.value)
+              touchCreate('email', { name: newName, email: e.target.value })
+            }}
+            error={!!createErrors.email}
+            helperText={createErrors.email ?? 'Uma senha provisória será enviada para este email.'}
             required
             autoComplete="email"
-            helperText="Uma senha provisória será enviada para este email."
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button
-            variant="outlined"
-            onClick={() => { setCreateOpen(false); setNewName(''); setNewEmail('') }}
-            disabled={createLoading}
-          >
+          <Button variant="outlined" onClick={closeCreate} disabled={createLoading}>
             Cancelar
           </Button>
           <Button
             variant="contained"
             onClick={handleCreate}
-            disabled={createLoading || !newName.trim() || !newEmail.trim()}
+            disabled={createLoading}
             startIcon={createLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
             Criar

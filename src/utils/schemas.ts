@@ -51,6 +51,11 @@ export const changePasswordSchema = z
     path: ['confirm'],
   })
 
+export const createUserSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres'),
+  email,
+})
+
 export const routineSchema = z
   .object({
     name: z.string().min(1, 'Nome obrigatório'),
