@@ -135,7 +135,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
       setForm({ ...EMPTY, airline: firstAirline })
     }
     setCcEmailInput('')
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routine, open, airlines])
 
   // When airlines load after the drawer opens and airline is still unset, pick the first
@@ -146,6 +146,18 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
       return first ? { ...prev, airline: first } : prev
     })
   }, [airlines])
+
+  // Reset priority if selected airline doesn't support the current fare type
+  useEffect(() => {
+    if (!selectedAirline) return
+    const supported = (
+      (selectedAirline.has_brl ? ['brl'] : []) as Array<'brl' | 'pts' | 'hyb'>
+    ).concat(selectedAirline.has_pts ? ['pts'] : []).concat(selectedAirline.has_hyb ? ['hyb'] : [])
+    if (supported.length > 0 && !supported.includes(form.priority as 'brl' | 'pts' | 'hyb')) {
+      set('priority', supported[0])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.airline])
 
   function set<K extends keyof CreateRoutineRequest>(key: K, value: CreateRoutineRequest[K]) {
     const updated = { ...form, [key]: value }
@@ -178,6 +190,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   const isEdit = !!routine
   const activeAirlines = airlines.filter((a) => a.active)
+  const selectedAirline = airlines.find((a) => a.code === form.airline)
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} sx={formStyles.drawer}>
@@ -373,9 +386,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               required
               size="medium"
             >
-              <MenuItem value="brl">R$ — Menor preço em reais</MenuItem>
-              <MenuItem value="pts">Pontos — Menor preço em pontos</MenuItem>
-              <MenuItem value="hyb">Híbrido — Menor em pontos + taxa</MenuItem>
+              {selectedAirline?.has_brl && <MenuItem value="brl">R$ — Menor preço em reais</MenuItem>}
+              {selectedAirline?.has_pts && <MenuItem value="pts">Pontos — Menor preço em pontos</MenuItem>}
+              {selectedAirline?.has_hyb && <MenuItem value="hyb">Híbrido — Menor em pontos + taxa</MenuItem>}
             </FormField>
 
             {form.priority === 'brl' && (
