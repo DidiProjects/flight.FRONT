@@ -1,5 +1,6 @@
-import { createContext, useCallback, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AuthService } from '@services/AuthService'
+import { proactiveRefresh } from '@services/ApiService'
 import { tokenStore } from '@utils/tokenStore'
 import { storage } from '@utils/storage'
 import { decodeJwtPayload } from '@utils/jwt'
@@ -36,9 +37,34 @@ function extractEmail(token: string): string | null {
   return decodeJwtPayload(token)?.email ?? null
 }
 
+const REFRESH_BUFFER_MS = 60_000
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  function scheduleProactiveRefresh(token: string) {
+    clearTimeout(refreshTimerRef.current)
+    const exp = decodeJwtPayload(token)?.exp
+    if (!exp) return
+    const delay = exp * 1000 - Date.now() - REFRESH_BUFFER_MS
+    if (delay <= 0) return
+    refreshTimerRef.current = setTimeout(async () => {
+      const newToken = await proactiveRefresh()
+      if (!newToken) return
+      setUser((prev) =>
+        prev
+          ? { ...prev, accessToken: newToken, role: extractRole(newToken), email: extractEmail(newToken) }
+          : null,
+      )
+      scheduleProactiveRefresh(newToken)
+    }, delay)
+  }
+
+  useEffect(() => {
+    return () => clearTimeout(refreshTimerRef.current)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -79,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: extractRole(data.accessToken),
           email: extractEmail(data.accessToken),
         })
+        scheduleProactiveRefresh(data.accessToken)
       })
       .catch((err: unknown) => {
         if (cancelled || (err instanceof Error && err.name === 'AbortError')) return
@@ -111,10 +138,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: extractRole(res.accessToken),
       email: extractEmail(res.accessToken),
     })
+    scheduleProactiveRefresh(res.accessToken)
     return { mustChangePassword: res.mustChangePassword }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const logout = useCallback(async () => {
+    clearTimeout(refreshTimerRef.current)
     const rt = storage.getRefreshToken()
     if (rt) {
       await AuthService.logout(rt).catch(() => null)
@@ -131,6 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? { ...prev, mustChangePassword: false, role: extractRole(res.accessToken), email: extractEmail(res.accessToken) }
         : null,
     )
+    scheduleProactiveRefresh(res.accessToken)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const clearMustChangePassword = useCallback(() => {

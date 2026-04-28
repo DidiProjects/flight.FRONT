@@ -61,6 +61,15 @@ function dispatchLogout() {
   window.dispatchEvent(new CustomEvent('auth:logout'))
 }
 
+export async function proactiveRefresh(): Promise<string | null> {
+  try {
+    return await queuedRefresh()
+  } catch {
+    dispatchLogout()
+    return null
+  }
+}
+
 export class ApiService {
   protected baseUrl = API_URL
 
