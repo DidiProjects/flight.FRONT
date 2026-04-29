@@ -23,13 +23,19 @@ jobs:
         run: npm ci
 
       - name: Create .env for build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_APP_URL: ${{ vars.VITE_APP_URL }}
+          VITE_AUTHOR_NAME: ${{ vars.VITE_AUTHOR_NAME }}
+          VITE_AUTHOR_GITHUB: ${{ vars.VITE_AUTHOR_GITHUB }}
+          VITE_FEEDBACK_EMAIL: ${{ vars.VITE_FEEDBACK_EMAIL }}
         run: |
           printf 'VITE_API_URL=%s\nVITE_APP_URL=%s\nVITE_AUTHOR_NAME=%s\nVITE_AUTHOR_GITHUB=%s\nVITE_FEEDBACK_EMAIL=%s\n' \
-            '${{ vars.VITE_API_URL }}' \
-            '${{ vars.VITE_APP_URL }}' \
-            '${{ vars.VITE_AUTHOR_NAME }}' \
-            '${{ vars.VITE_AUTHOR_GITHUB }}' \
-            '${{ vars.VITE_FEEDBACK_EMAIL }}' > .env
+            "$VITE_API_URL" \
+            "$VITE_APP_URL" \
+            "$VITE_AUTHOR_NAME" \
+            "$VITE_AUTHOR_GITHUB" \
+            "$VITE_FEEDBACK_EMAIL" > .env
 
       - name: Build project
         run: npm run build
