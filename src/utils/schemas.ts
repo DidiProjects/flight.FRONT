@@ -93,3 +93,19 @@ export const routineSchema = z
     (d) => !d.returnStart || !d.returnEnd || d.returnEnd >= d.returnStart,
     { message: 'Deve ser após a data de início', path: ['returnEnd'] },
   )
+  .refine(
+    (d) => d.priority !== 'brl' || d.targetBrl != null,
+    { message: 'Preço alvo obrigatório', path: ['targetBrl'] },
+  )
+  .refine(
+    (d) => d.priority !== 'pts' || d.targetPts != null,
+    { message: 'Pontos alvo obrigatórios', path: ['targetPts'] },
+  )
+  .refine(
+    (d) => d.priority !== 'hyb' || d.targetHybPts != null,
+    { message: 'Pontos alvo obrigatórios', path: ['targetHybPts'] },
+  )
+  .refine(
+    (d) => d.priority !== 'hyb' || d.targetHybBrl != null,
+    { message: 'Taxa alvo obrigatória', path: ['targetHybBrl'] },
+  )

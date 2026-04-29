@@ -398,7 +398,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 value={form.targetBrl ?? ''}
                 onChange={(e) => set('targetBrl', e.target.value ? Number(e.target.value) : null)}
                 size="medium"
-                helperText="Será notificado quando o preço atingir ou ficar abaixo deste valor"
+                required
+                error={!!errors.targetBrl}
+                helperText={errors.targetBrl ?? 'Será notificado quando o preço atingir ou ficar abaixo deste valor'}
                 InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
               />
             )}
@@ -410,7 +412,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 value={form.targetPts ?? ''}
                 onChange={(e) => set('targetPts', e.target.value ? Number(e.target.value) : null)}
                 size="medium"
-                helperText="Será notificado quando os pontos atingirem ou ficarem abaixo deste valor"
+                required
+                error={!!errors.targetPts}
+                helperText={errors.targetPts ?? 'Será notificado quando os pontos atingirem ou ficarem abaixo deste valor'}
                 InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
               />
             )}
@@ -424,7 +428,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   onChange={(e) => set('targetHybPts', e.target.value ? Number(e.target.value) : null)}
                   size="medium"
                   sx={{ flex: 1 }}
-                  helperText="Pontos do modo híbrido"
+                  required
+                  error={!!errors.targetHybPts}
+                  helperText={errors.targetHybPts ?? 'Pontos do modo híbrido'}
                   InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
                 />
                 <FormField
@@ -434,7 +440,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   onChange={(e) => set('targetHybBrl', e.target.value ? Number(e.target.value) : null)}
                   size="medium"
                   sx={{ flex: 1 }}
-                  helperText="Taxa em reais do modo híbrido"
+                  required
+                  error={!!errors.targetHybBrl}
+                  helperText={errors.targetHybBrl ?? 'Taxa em reais do modo híbrido'}
                   InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
                 />
               </Box>
