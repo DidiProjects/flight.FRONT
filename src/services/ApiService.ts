@@ -1,5 +1,6 @@
 import { tokenStore } from '@utils/tokenStore'
 import { storage } from '@utils/storage'
+import { toastEmitter } from '@utils/toast'
 import type { ApiError } from '@app-types/auth'
 
 const API_URL = import.meta.env.VITE_API_URL as string
@@ -106,6 +107,7 @@ export class ApiService {
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as Partial<ApiError>
       const message = body.error ?? `Erro ${res.status}`
+      if (body.error) toastEmitter.error(body.error)
       const err = Object.assign(new Error(message), { status: res.status, issues: body.issues })
       throw err
     }
