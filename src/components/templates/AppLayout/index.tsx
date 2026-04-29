@@ -1,6 +1,7 @@
 import { Box } from '@mui/material'
 import type { ReactNode } from 'react'
 import { AppHeader } from '@atomic-components/organisms/AppHeader'
+import { AppFooter } from '@atomic-components/organisms/AppFooter'
 import { layoutStyles } from './style'
 
 interface AppLayoutProps {
@@ -14,6 +15,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <Box component="main" sx={layoutStyles.main}>
         {children}
       </Box>
+      <AppFooter />
     </Box>
   )
 }
