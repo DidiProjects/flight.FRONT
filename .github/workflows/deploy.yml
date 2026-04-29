@@ -30,12 +30,7 @@ jobs:
           VITE_AUTHOR_GITHUB: ${{ vars.VITE_AUTHOR_GITHUB }}
           VITE_FEEDBACK_EMAIL: ${{ vars.VITE_FEEDBACK_EMAIL }}
         run: |
-          printf 'VITE_API_URL=%s\nVITE_APP_URL=%s\nVITE_AUTHOR_NAME=%s\nVITE_AUTHOR_GITHUB=%s\nVITE_FEEDBACK_EMAIL=%s\n' \
-            "$VITE_API_URL" \
-            "$VITE_APP_URL" \
-            "$VITE_AUTHOR_NAME" \
-            "$VITE_AUTHOR_GITHUB" \
-            "$VITE_FEEDBACK_EMAIL" > .env
+          printf 'VITE_API_URL=%s\nVITE_APP_URL=%s\nVITE_AUTHOR_NAME=%s\nVITE_AUTHOR_GITHUB=%s\nVITE_FEEDBACK_EMAIL=%s\n'
 
       - name: Build project
         run: npm run build
