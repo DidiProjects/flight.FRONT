@@ -18,6 +18,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminUser } from '@contexts/AdminUserContext'
 import { AppLayout } from '@atomic-components/templates/AppLayout'
+import { AdminNav } from '@atomic-components/molecules/AdminNav'
 import { UserTable } from '@atomic-components/organisms/UserTable'
 import { EmptyState } from '@atomic-components/molecules/EmptyState'
 import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
@@ -134,6 +135,8 @@ export function AdminPage() {
           Novo usuário
         </Button>
       </Box>
+
+      <AdminNav />
 
       {loading && <LinearProgress sx={{ borderRadius: '4px', mb: 3 }} />}
 

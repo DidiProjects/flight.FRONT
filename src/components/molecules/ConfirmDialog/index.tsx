@@ -6,12 +6,14 @@ import {
   DialogActions,
   Button,
   CircularProgress,
+  Alert,
 } from '@mui/material'
 
 interface ConfirmDialogProps {
   open: boolean
   title: string
   message: string
+  warningMessage?: string
   confirmLabel?: string
   cancelLabel?: string
   confirmColor?: 'error' | 'primary' | 'warning'
@@ -24,6 +26,7 @@ export function ConfirmDialog({
   open,
   title,
   message,
+  warningMessage,
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
   confirmColor = 'error',
@@ -34,10 +37,15 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ fontWeight: 500, fontSize: '1rem', pb: 1 }}>{title}</DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         <DialogContentText component="p" sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
           {message}
         </DialogContentText>
+        {warningMessage && (
+          <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
+            {warningMessage}
+          </Alert>
+        )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
         <Button variant="outlined" onClick={onCancel} disabled={loading}>

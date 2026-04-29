@@ -6,3 +6,14 @@ export interface Airline {
   has_pts: boolean
   has_hyb: boolean
 }
+
+export interface CreateAirlineRequest {
+  code: string
+  name: string
+}
+
+export interface UpdateFareTypesRequest {
+  hasBrl: boolean
+  hasPts: boolean
+  hasHyb: boolean
+}
