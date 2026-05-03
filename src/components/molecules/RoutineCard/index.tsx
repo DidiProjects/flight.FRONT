@@ -22,9 +22,9 @@ interface RoutineCardProps {
 }
 
 const priorityLabels: Record<string, string> = {
-  brl: 'Menor preço em R$',
+  cash: 'Menor preço em dinheiro',
   pts: 'Menor em pontos',
-  hyb: 'Híbrido (pts + taxa)',
+  hyb: 'Híbrido (pts + dinheiro)',
 }
 
 const modeLabels: Record<string, string> = {
@@ -107,11 +107,11 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
           <MetaItem label="Passageiros" value={`${routine.passengers} pax`} />
           <MetaItem label="Frequência" value={modeLabels[routine.notificationMode] ?? routine.notificationMode} />
 
-          {routine.targetBrl != null && (
+          {routine.targetCash != null && (
             <Box sx={{ ...cardStyles.metaItem, gridColumn: '1 / -1' }}>
               <Typography sx={cardStyles.metaLabel}>Target</Typography>
               <Typography sx={cardStyles.targetValue}>
-                {routine.targetBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: routine.currency }).format(routine.targetCash)}
               </Typography>
             </Box>
           )}
@@ -123,13 +123,13 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
               </Typography>
             </Box>
           )}
-          {routine.targetHybPts != null && routine.targetHybBrl != null && (
+          {routine.targetHybPts != null && routine.targetHybCash != null && (
             <Box sx={{ ...cardStyles.metaItem, gridColumn: '1 / -1' }}>
               <Typography sx={cardStyles.metaLabel}>Target híbrido</Typography>
               <Typography sx={cardStyles.targetValue}>
                 {routine.targetHybPts.toLocaleString('pt-BR')} pts
                 {' + '}
-                {routine.targetHybBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: routine.currency }).format(routine.targetHybCash)}
               </Typography>
             </Box>
           )}

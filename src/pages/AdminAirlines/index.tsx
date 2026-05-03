@@ -42,6 +42,7 @@ export function AdminAirlinesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [newCode, setNewCode] = useState('')
   const [newName, setNewName] = useState('')
+  const [newCurrency, setNewCurrency] = useState('BRL')
   const [createLoading, setCreateLoading] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<Airline | null>(null)
@@ -99,13 +100,14 @@ export function AdminAirlinesPage() {
     setCreateOpen(false)
     setNewCode('')
     setNewName('')
+    setNewCurrency('BRL')
   }
 
   async function handleCreate() {
-    if (!newCode.trim() || !newName.trim()) return
+    if (!newCode.trim() || !newName.trim() || !newCurrency.trim()) return
     setCreateLoading(true)
     try {
-      const created = await AirlinesService.create({ code: newCode.trim().toLowerCase(), name: newName.trim() })
+      const created = await AirlinesService.create({ code: newCode.trim().toLowerCase(), name: newName.trim(), currency: newCurrency.trim().toUpperCase() })
       setAirlines((prev) => [...prev, created])
       toastEmitter.success(`"${created.name}" criada.`)
       closeCreate()
@@ -257,6 +259,14 @@ export function AdminAirlinesPage() {
             required
             helperText='Nome de exibição (ex: "LATAM Airlines")'
           />
+          <FormField
+            label="Moeda"
+            value={newCurrency}
+            onChange={(e) => setNewCurrency(e.target.value)}
+            required
+            inputProps={{ maxLength: 3, style: { textTransform: 'uppercase' } }}
+            helperText='Código ISO 4217 (ex: "BRL", "USD", "EUR")'
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button variant="outlined" onClick={closeCreate} disabled={createLoading}>
@@ -265,7 +275,7 @@ export function AdminAirlinesPage() {
           <Button
             variant="contained"
             onClick={handleCreate}
-            disabled={createLoading || !newCode.trim() || !newName.trim()}
+            disabled={createLoading || !newCode.trim() || !newName.trim() || !newCurrency.trim()}
             startIcon={createLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
             Criar

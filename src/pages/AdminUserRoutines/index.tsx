@@ -45,15 +45,17 @@ function formatPeriod(r: Routine): string {
 }
 
 function formatTarget(r: Routine): string {
-  if (r.priority === 'brl') {
-    return r.targetBrl != null ? `R$ ${r.targetBrl.toLocaleString('pt-BR')}` : '—'
+  const fmtCash = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: r.currency }).format(val)
+  if (r.priority === 'cash') {
+    return r.targetCash != null ? fmtCash(r.targetCash) : '—'
   }
   if (r.priority === 'pts') {
     return r.targetPts != null ? `${r.targetPts.toLocaleString('pt-BR')} pts` : '—'
   }
   const pts = r.targetHybPts != null ? `${r.targetHybPts.toLocaleString('pt-BR')} pts` : ''
-  const brl = r.targetHybBrl != null ? `R$ ${r.targetHybBrl.toLocaleString('pt-BR')}` : ''
-  return [pts, brl].filter(Boolean).join(' + ') || '—'
+  const cash = r.targetHybCash != null ? fmtCash(r.targetHybCash) : ''
+  return [pts, cash].filter(Boolean).join(' + ') || '—'
 }
 
 export function AdminUserRoutinesPage() {

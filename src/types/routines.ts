@@ -1,4 +1,4 @@
-export type RoutinePriority = 'brl' | 'pts' | 'hyb'
+export type RoutinePriority = 'cash' | 'pts' | 'hyb'
 
 export type NotificationMode = 'alert_only' | 'daily_best_and_alert' | 'end_of_period'
 
@@ -16,10 +16,11 @@ export interface Routine {
   returnStart: string | null
   returnEnd: string | null
   passengers: number
-  targetBrl: number | null
+  currency: string
+  targetCash: number | null
   targetPts: number | null
   targetHybPts: number | null
-  targetHybBrl: number | null
+  targetHybCash: number | null
   margin: number
   priority: RoutinePriority
   notificationMode: NotificationMode

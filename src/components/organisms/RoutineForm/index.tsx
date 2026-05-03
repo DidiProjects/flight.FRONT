@@ -46,6 +46,7 @@ import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
 import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
 
+
 interface RoutineFormProps {
   open: boolean
   routine?: Routine | null
@@ -64,12 +65,13 @@ const EMPTY: CreateRoutineRequest = {
   returnStart: null,
   returnEnd: null,
   passengers: 1,
-  targetBrl: null,
+  currency: 'BRL',
+  targetCash: null,
   targetPts: null,
   targetHybPts: null,
-  targetHybBrl: null,
+  targetHybCash: null,
   margin: 0.1,
-  priority: 'brl',
+  priority: 'cash',
   notificationMode: 'alert_only',
   notificationFrequency: 'hourly',
   endOfPeriodTime: null,
@@ -118,10 +120,11 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         returnStart: routine.returnStart,
         returnEnd: routine.returnEnd,
         passengers: routine.passengers,
-        targetBrl: routine.targetBrl,
+        currency: routine.currency,
+        targetCash: routine.targetCash,
         targetPts: routine.targetPts,
         targetHybPts: routine.targetHybPts,
-        targetHybBrl: routine.targetHybBrl,
+        targetHybCash: routine.targetHybCash,
         margin: routine.margin,
         priority: routine.priority,
         notificationMode: routine.notificationMode,
@@ -147,15 +150,19 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     })
   }, [airlines])
 
-  // Reset priority if selected airline doesn't support the current fare type
+  // Sync currency and priority when airline changes
   useEffect(() => {
     if (!selectedAirline) return
     const supported = (
-      (selectedAirline.has_brl ? ['brl'] : []) as Array<'brl' | 'pts' | 'hyb'>
+      (selectedAirline.has_brl ? ['cash'] : []) as Array<'cash' | 'pts' | 'hyb'>
     ).concat(selectedAirline.has_pts ? ['pts'] : []).concat(selectedAirline.has_hyb ? ['hyb'] : [])
-    if (supported.length > 0 && !supported.includes(form.priority as 'brl' | 'pts' | 'hyb')) {
-      set('priority', supported[0])
-    }
+    setForm((prev) => ({
+      ...prev,
+      currency: selectedAirline.currency,
+      priority: supported.length > 0 && !supported.includes(prev.priority as 'cash' | 'pts' | 'hyb')
+        ? supported[0]
+        : prev.priority,
+    }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.airline])
 
@@ -386,22 +393,22 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               required
               size="medium"
             >
-              {selectedAirline?.has_brl && <MenuItem value="brl">R$ — Menor preço em reais</MenuItem>}
+              {selectedAirline?.has_brl && <MenuItem value="cash">Dinheiro — Menor preço em moeda</MenuItem>}
               {selectedAirline?.has_pts && <MenuItem value="pts">Pontos — Menor preço em pontos</MenuItem>}
-              {selectedAirline?.has_hyb && <MenuItem value="hyb">Híbrido — Menor em pontos + taxa</MenuItem>}
+              {selectedAirline?.has_hyb && <MenuItem value="hyb">Híbrido — Menor em pontos + dinheiro</MenuItem>}
             </FormField>
 
-            {form.priority === 'brl' && (
+            {form.priority === 'cash' && (
               <FormField
                 label="Preço alvo"
                 type="number"
-                value={form.targetBrl ?? ''}
-                onChange={(e) => set('targetBrl', e.target.value ? Number(e.target.value) : null)}
+                value={form.targetCash ?? ''}
+                onChange={(e) => set('targetCash', e.target.value ? Number(e.target.value) : null)}
                 size="medium"
                 required
-                error={!!errors.targetBrl}
-                helperText={errors.targetBrl ?? 'Será notificado quando o preço atingir ou ficar abaixo deste valor'}
-                InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
+                error={!!errors.targetCash}
+                helperText={errors.targetCash ?? 'Será notificado quando o preço atingir ou ficar abaixo deste valor'}
+                InputProps={{ startAdornment: <InputAdornment position="start">{form.currency}</InputAdornment> }}
               />
             )}
 
@@ -420,32 +427,34 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
             )}
 
             {form.priority === 'hyb' && (
-              <Box sx={formStyles.row}>
-                <FormField
-                  label="Pontos alvo"
-                  type="number"
-                  value={form.targetHybPts ?? ''}
-                  onChange={(e) => set('targetHybPts', e.target.value ? Number(e.target.value) : null)}
-                  size="medium"
-                  sx={{ flex: 1 }}
-                  required
-                  error={!!errors.targetHybPts}
-                  helperText={errors.targetHybPts ?? 'Pontos do modo híbrido'}
-                  InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
-                />
-                <FormField
-                  label="Taxa alvo"
-                  type="number"
-                  value={form.targetHybBrl ?? ''}
-                  onChange={(e) => set('targetHybBrl', e.target.value ? Number(e.target.value) : null)}
-                  size="medium"
-                  sx={{ flex: 1 }}
-                  required
-                  error={!!errors.targetHybBrl}
-                  helperText={errors.targetHybBrl ?? 'Taxa em reais do modo híbrido'}
-                  InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
-                />
-              </Box>
+              <>
+                <Box sx={formStyles.row}>
+                  <FormField
+                    label="Pontos alvo"
+                    type="number"
+                    value={form.targetHybPts ?? ''}
+                    onChange={(e) => set('targetHybPts', e.target.value ? Number(e.target.value) : null)}
+                    size="medium"
+                    sx={{ flex: 1 }}
+                    required
+                    error={!!errors.targetHybPts}
+                    helperText={errors.targetHybPts ?? 'Pontos do modo híbrido'}
+                    InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
+                  />
+                  <FormField
+                    label="Taxa alvo"
+                    type="number"
+                    value={form.targetHybCash ?? ''}
+                    onChange={(e) => set('targetHybCash', e.target.value ? Number(e.target.value) : null)}
+                    size="medium"
+                    sx={{ flex: 1 }}
+                    required
+                    error={!!errors.targetHybCash}
+                    helperText={errors.targetHybCash ?? `Taxa em ${form.currency} do modo híbrido`}
+                    InputProps={{ startAdornment: <InputAdornment position="start">{form.currency}</InputAdornment> }}
+                  />
+                </Box>
+              </>
             )}
           </Section>
 

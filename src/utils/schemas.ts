@@ -73,12 +73,13 @@ export const routineSchema = z
     returnStart: z.string().nullable(),
     returnEnd: z.string().nullable(),
     passengers: z.number().min(1, 'Mínimo 1').max(9, 'Máximo 9'),
-    targetBrl: z.number().nullable(),
+    currency: z.string().min(1, 'Moeda obrigatória'),
+    targetCash: z.number().nullable(),
     targetPts: z.number().nullable(),
     targetHybPts: z.number().nullable(),
-    targetHybBrl: z.number().nullable(),
+    targetHybCash: z.number().nullable(),
     margin: z.number().min(0).max(1),
-    priority: z.enum(['brl', 'pts', 'hyb']),
+    priority: z.enum(['cash', 'pts', 'hyb']),
     notificationMode: z.enum(['alert_only', 'daily_best_and_alert', 'end_of_period']),
     notificationFrequency: z.enum(['hourly', 'daily', 'monthly']),
     endOfPeriodTime: z.string().nullable(),
@@ -94,8 +95,8 @@ export const routineSchema = z
     { message: 'Deve ser após a data de início', path: ['returnEnd'] },
   )
   .refine(
-    (d) => d.priority !== 'brl' || d.targetBrl != null,
-    { message: 'Preço alvo obrigatório', path: ['targetBrl'] },
+    (d) => d.priority !== 'cash' || d.targetCash != null,
+    { message: 'Preço alvo obrigatório', path: ['targetCash'] },
   )
   .refine(
     (d) => d.priority !== 'pts' || d.targetPts != null,
@@ -106,6 +107,6 @@ export const routineSchema = z
     { message: 'Pontos alvo obrigatórios', path: ['targetHybPts'] },
   )
   .refine(
-    (d) => d.priority !== 'hyb' || d.targetHybBrl != null,
-    { message: 'Taxa alvo obrigatória', path: ['targetHybBrl'] },
+    (d) => d.priority !== 'hyb' || d.targetHybCash != null,
+    { message: 'Taxa alvo obrigatória', path: ['targetHybCash'] },
   )
