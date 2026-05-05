@@ -3,7 +3,7 @@ export interface Airline {
   name: string
   active: boolean
   currency: string
-  has_brl: boolean
+  has_cash: boolean
   has_pts: boolean
   has_hyb: boolean
 }
@@ -15,7 +15,7 @@ export interface CreateAirlineRequest {
 }
 
 export interface UpdateFareTypesRequest {
-  hasBrl: boolean
+  hasCash: boolean
   hasPts: boolean
   hasHyb: boolean
 }

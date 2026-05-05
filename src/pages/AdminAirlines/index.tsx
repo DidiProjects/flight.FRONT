@@ -82,11 +82,11 @@ export function AdminAirlinesPage() {
     }
   }
 
-  async function handleToggleFare(airline: Airline, fare: 'hasBrl' | 'hasPts' | 'hasHyb') {
+  async function handleToggleFare(airline: Airline, fare: 'hasCash' | 'hasPts' | 'hasHyb') {
     startAction(airline.code)
     try {
       const updated = await AirlinesService.updateFareTypes(airline.code, {
-        hasBrl: fare === 'hasBrl' ? !airline.has_brl : airline.has_brl,
+        hasCash: fare === 'hasCash' ? !airline.has_cash : airline.has_cash,
         hasPts: fare === 'hasPts' ? !airline.has_pts : airline.has_pts,
         hasHyb: fare === 'hasHyb' ? !airline.has_hyb : airline.has_hyb,
       })
@@ -183,7 +183,7 @@ export function AdminAirlinesPage() {
                         <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                           {(
                             [
-                              { key: 'hasBrl', label: 'BRL', active: airline.has_brl },
+                              { key: 'hasCash', label: 'CASH', active: airline.has_cash },
                               { key: 'hasPts', label: 'PTS', active: airline.has_pts },
                               { key: 'hasHyb', label: 'HYB', active: airline.has_hyb },
                             ] as const

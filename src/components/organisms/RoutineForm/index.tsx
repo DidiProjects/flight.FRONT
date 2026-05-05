@@ -154,7 +154,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   useEffect(() => {
     if (!selectedAirline) return
     const supported = (
-      (selectedAirline.has_brl ? ['cash'] : []) as Array<'cash' | 'pts' | 'hyb'>
+      (selectedAirline.has_cash ? ['cash'] : []) as Array<'cash' | 'pts' | 'hyb'>
     ).concat(selectedAirline.has_pts ? ['pts'] : []).concat(selectedAirline.has_hyb ? ['hyb'] : [])
     setForm((prev) => ({
       ...prev,
@@ -393,7 +393,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               required
               size="medium"
             >
-              {selectedAirline?.has_brl && <MenuItem value="cash">Dinheiro — Menor preço em moeda</MenuItem>}
+              {selectedAirline?.has_cash && <MenuItem value="cash">Dinheiro — Menor preço em moeda</MenuItem>}
               {selectedAirline?.has_pts && <MenuItem value="pts">Pontos — Menor preço em pontos</MenuItem>}
               {selectedAirline?.has_hyb && <MenuItem value="hyb">Híbrido — Menor em pontos + dinheiro</MenuItem>}
             </FormField>

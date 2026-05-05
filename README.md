@@ -19,7 +19,7 @@ Frontend for the Flight Price Monitor — a web application that lets users crea
 
 - **Authentication** — Login, registration, forgot/reset password, forced password change on first access
 - **Monitoring routines** — Create, edit, activate/deactivate and delete flight price monitoring routines
-- **Fare types** — Monitor by BRL price, points, or hybrid (points + airport fee), dynamically filtered per airline
+- **Fare types** — Monitor by price, points, or hybrid (points + airport fee), dynamically filtered per airline
 - **Notifications** — Configure notification mode (on target, daily best, scheduled) and frequency (hourly, daily, monthly), with CC email support
 - **Admin panel** — User management: approve pending registrations, assign roles, suspend and delete accounts
 - **Admin user routines** — Admins can inspect the routines of any user
