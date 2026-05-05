@@ -19,7 +19,9 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Autocomplete,
 } from '@mui/material'
+import { CURRENCIES } from '@/constants/currencies'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import FlightIcon from '@mui/icons-material/Flight'
@@ -104,10 +106,14 @@ export function AdminAirlinesPage() {
   }
 
   async function handleCreate() {
-    if (!newCode.trim() || !newName.trim() || !newCurrency.trim()) return
+    if (!newCode.trim() || !newName.trim()) return
     setCreateLoading(true)
     try {
-      const created = await AirlinesService.create({ code: newCode.trim().toLowerCase(), name: newName.trim(), currency: newCurrency.trim().toUpperCase() })
+      const created = await AirlinesService.create({
+        code: newCode.trim().toLowerCase(),
+        name: newName.trim(),
+        ...(newCurrency ? { currency: newCurrency } : {}),
+      })
       setAirlines((prev) => [...prev, created])
       toastEmitter.success(`"${created.name}" criada.`)
       closeCreate()
@@ -259,13 +265,17 @@ export function AdminAirlinesPage() {
             required
             helperText='Nome de exibição (ex: "LATAM Airlines")'
           />
-          <FormField
-            label="Moeda"
-            value={newCurrency}
-            onChange={(e) => setNewCurrency(e.target.value)}
-            required
-            inputProps={{ maxLength: 3, style: { textTransform: 'uppercase' } }}
-            helperText='Código ISO 4217 (ex: "BRL", "USD", "EUR")'
+          <Autocomplete
+            options={CURRENCIES}
+            value={newCurrency || null}
+            onChange={(_, value) => setNewCurrency(value ?? '')}
+            renderInput={(params) => (
+              <FormField
+                {...params}
+                label="Moeda"
+                helperText="Código ISO 4217 — opcional"
+              />
+            )}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
@@ -275,7 +285,7 @@ export function AdminAirlinesPage() {
           <Button
             variant="contained"
             onClick={handleCreate}
-            disabled={createLoading || !newCode.trim() || !newName.trim() || !newCurrency.trim()}
+            disabled={createLoading || !newCode.trim() || !newName.trim()}
             startIcon={createLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
             Criar

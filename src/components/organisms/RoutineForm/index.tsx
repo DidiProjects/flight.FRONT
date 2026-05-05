@@ -11,6 +11,7 @@ import {
   Switch,
   Chip,
   InputAdornment,
+  Select,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
@@ -42,6 +43,7 @@ function DebouncedField({ value, onChange, delay = 300, ...props }: TextFieldPro
 
   return <FormField {...props} value={local} onChange={handleChange} />
 }
+import { CURRENCIES } from '@/constants/currencies'
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
 import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
@@ -408,7 +410,27 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 required
                 error={!!errors.targetCash}
                 helperText={errors.targetCash ?? 'Será notificado quando o preço atingir ou ficar abaixo deste valor'}
-                InputProps={{ startAdornment: <InputAdornment position="start">{form.currency}</InputAdornment> }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Select
+                        value={form.currency}
+                        onChange={(e) => set('currency', e.target.value as string)}
+                        variant="standard"
+                        disableUnderline
+                        sx={{
+                          fontSize: 'inherit',
+                          fontWeight: 500,
+                          mr: 0.5,
+                          '& .MuiSelect-select': { py: 0, pl: 0, pr: '20px !important' },
+                          '& .MuiSelect-icon': { fontSize: '1rem', top: 'calc(50% - 8px)' },
+                        }}
+                      >
+                        {CURRENCIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                      </Select>
+                    </InputAdornment>
+                  ),
+                }}
               />
             )}
 
@@ -451,7 +473,27 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                     required
                     error={!!errors.targetHybCash}
                     helperText={errors.targetHybCash ?? `Taxa em ${form.currency} do modo híbrido`}
-                    InputProps={{ startAdornment: <InputAdornment position="start">{form.currency}</InputAdornment> }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Select
+                            value={form.currency}
+                            onChange={(e) => set('currency', e.target.value as string)}
+                            variant="standard"
+                            disableUnderline
+                            sx={{
+                              fontSize: 'inherit',
+                              fontWeight: 500,
+                              mr: 0.5,
+                              '& .MuiSelect-select': { py: 0, pl: 0, pr: '20px !important' },
+                              '& .MuiSelect-icon': { fontSize: '1rem', top: 'calc(50% - 8px)' },
+                            }}
+                          >
+                            {CURRENCIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                          </Select>
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                 </Box>
               </>

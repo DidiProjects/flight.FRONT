@@ -11,7 +11,7 @@ export interface Airline {
 export interface CreateAirlineRequest {
   code: string
   name: string
-  currency: string
+  currency?: string
 }
 
 export interface UpdateFareTypesRequest {
