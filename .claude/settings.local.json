@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(Get-Content \"C:\\\\Users\\\\diego\\\\Documents\\\\projects\\\\flight.FRONT\\\\node_modules\\\\react-day-picker\\\\style.css\")",
+      "Bash(Select-Object -First 120)"
+    ]
+  }
+}

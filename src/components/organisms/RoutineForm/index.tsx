@@ -43,6 +43,7 @@ function DebouncedField({ value, onChange, delay = 300, ...props }: TextFieldPro
 
   return <FormField {...props} value={local} onChange={handleChange} />
 }
+import { DateRangePickerField } from '@atomic-components/molecules/DateRangePickerField'
 import { CURRENCIES } from '@/constants/currencies'
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
@@ -294,65 +295,47 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
           <Section icon={<CalendarTodayOutlinedIcon sx={formStyles.sectionIcon} />} title="Períodos">
 
             <Box sx={formStyles.dateGroup}>
-              <Typography sx={formStyles.dateGroupLabel} style={{ marginBottom: '0.5rem' }}>
-                Disponibilidade para ida <span style={{ fontWeight: 400, opacity: 0.6, fontSize: '0.7rem' }}>obrigatório</span>
+              <Typography sx={formStyles.dateGroupLabel}>
+                Ida{' '}
+                <span style={{ fontWeight: 400, opacity: 0.6, fontSize: '0.7rem' }}>obrigatório</span>
               </Typography>
-              <Box sx={formStyles.row}>
-                <FormField
-                  label="Data de início"
-                  type="date"
-                  value={form.outboundStart}
-                  onChange={handleChange('outboundStart')}
-                  error={!!errors.outboundStart}
-                  helperText={errors.outboundStart}
-                  required
-                  size="medium"
-                  sx={{ flex: 1 }}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <FormField
-                  label="Data de fim"
-                  type="date"
-                  value={form.outboundEnd}
-                  onChange={handleChange('outboundEnd')}
-                  error={!!errors.outboundEnd}
-                  helperText={errors.outboundEnd}
-                  required
-                  size="medium"
-                  sx={{ flex: 1 }}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Box>
+              <DateRangePickerField
+                label="Período de ida"
+                startDate={form.outboundStart}
+                endDate={form.outboundEnd}
+                onChange={(start, end) => {
+                  const updated = { ...form, outboundStart: start, outboundEnd: end }
+                  setForm(updated)
+                  touchField('outboundStart', updated)
+                  touchField('outboundEnd', updated)
+                }}
+                required
+                error={!!(errors.outboundStart || errors.outboundEnd)}
+                helperText={errors.outboundStart || errors.outboundEnd}
+              />
             </Box>
 
             <Box sx={formStyles.dateGroup}>
-              <Typography sx={formStyles.dateGroupLabel} style={{ marginBottom: '0.5rem' }}>
-                Disponibilidade para volta
+              <Typography sx={formStyles.dateGroupLabel}>
+                Volta
                 <Typography component="span" sx={formStyles.optionalTag}>opcional</Typography>
               </Typography>
-              <Box sx={formStyles.row}>
-                <FormField
-                  label="Data de início"
-                  type="date"
-                  value={form.returnStart ?? ''}
-                  onChange={(e) => set('returnStart', e.target.value || null)}
-                  size="medium"
-                  sx={{ flex: 1 }}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <FormField
-                  label="Data de fim"
-                  type="date"
-                  value={form.returnEnd ?? ''}
-                  onChange={(e) => set('returnEnd', e.target.value || null)}
-                  error={!!errors.returnEnd}
-                  helperText={errors.returnEnd}
-                  size="medium"
-                  sx={{ flex: 1 }}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Box>
+              <DateRangePickerField
+                label="Período de volta"
+                startDate={form.returnStart}
+                endDate={form.returnEnd}
+                onChange={(start, end) => {
+                  const updated = { ...form, returnStart: start || null, returnEnd: end || null }
+                  setForm(updated)
+                  touchField('returnStart', updated)
+                  touchField('returnEnd', updated)
+                }}
+                clearable
+                error={!!errors.returnEnd}
+                helperText={errors.returnEnd}
+              />
             </Box>
+
           </Section>
 
           <Divider />
@@ -515,7 +498,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 size="medium"
                 sx={{ flex: 3 }}
               >
-                <MenuItem value="alert_only">Melhor preço alcançado ou superado</MenuItem>
+                <MenuItem value="alert_only">Melhor preço superado</MenuItem>
                 <MenuItem value="daily_best_and_alert">Melhor do dia + melhor preço</MenuItem>
                 <MenuItem value="end_of_period">Em horário agendado</MenuItem>
               </FormField>

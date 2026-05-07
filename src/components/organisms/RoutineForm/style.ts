@@ -85,7 +85,7 @@ export const formStyles = {
   dateGroup: {
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: 1,
+    gap: 1.5,
   } as SxProps,
 
   dateGroupLabel: {

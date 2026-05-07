@@ -90,7 +90,7 @@ VITE_API_URL=http://localhost:8000
 
 ```bash
 npm install
-npm start          # dev server at http://localhost:3001
+npm start          # dev server at http://localhost:3000
 npm run build      # production build
 npm run preview    # preview production build locally
 ```
