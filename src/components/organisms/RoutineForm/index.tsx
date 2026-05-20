@@ -59,6 +59,28 @@ function Section({ icon, title, children }: { icon: ReactNode; title: string; ch
   )
 }
 
+function FareBadge({ label }: { label: string }) {
+  return (
+    <Box
+      component="span"
+      sx={{
+        fontSize: '0.6rem',
+        fontWeight: 600,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        px: 0.75,
+        py: 0.2,
+        borderRadius: 0.75,
+        backgroundColor: 'action.selected',
+        color: 'text.secondary',
+        lineHeight: 1.5,
+      }}
+    >
+      {label}
+    </Box>
+  )
+}
+
 interface RoutineFormProps {
   open: boolean
   routine?: Routine | null
@@ -132,17 +154,16 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   useEffect(() => {
     const currentAirlines = airlines.filter((a) => form.airlines.includes(a.code))
-    const firstSelected = currentAirlines[0]
-    if (!firstSelected) return
-    const supported = (
-      (firstSelected.has_cash ? ['cash'] : []) as Array<'cash' | 'pts' | 'hyb'>
-    ).concat(firstSelected.has_pts ? ['pts'] : []).concat(firstSelected.has_hyb ? ['hyb'] : [])
-    setForm((prev) => ({
-      ...prev,
-      priority: supported.length > 0 && !supported.includes(prev.priority as 'cash' | 'pts' | 'hyb')
-        ? supported[0]
-        : prev.priority,
-    }))
+    if (currentAirlines.length === 0) return
+    const supportsCash = currentAirlines.some((a) => a.has_cash)
+    const supportsPts  = currentAirlines.some((a) => a.has_pts)
+    const supportsHyb  = currentAirlines.some((a) => a.has_hyb)
+    const isSupported = (p: 'cash' | 'pts' | 'hyb') =>
+      (p === 'cash' && supportsCash) || (p === 'pts' && supportsPts) || (p === 'hyb' && supportsHyb)
+    if (!isSupported(form.priority as 'cash' | 'pts' | 'hyb')) {
+      const fallback: 'cash' | 'pts' | 'hyb' = supportsCash ? 'cash' : supportsPts ? 'pts' : 'hyb'
+      setForm((prev) => ({ ...prev, priority: fallback }))
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.airlines])
 
@@ -241,7 +262,16 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               }}
             >
               {activeAirlines.map((a) => (
-                <MenuItem key={a.code} value={a.code}>{a.name}</MenuItem>
+                <MenuItem key={a.code} value={a.code}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
+                    <Typography variant="body2">{a.name}</Typography>
+                    <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                      {a.has_cash && <FareBadge label="cash" />}
+                      {a.has_pts  && <FareBadge label="pts" />}
+                      {a.has_hyb  && <FareBadge label="hyb" />}
+                    </Box>
+                  </Box>
+                </MenuItem>
               ))}
             </FormField>
 
