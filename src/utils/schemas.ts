@@ -73,7 +73,6 @@ export const routineSchema = z
     returnStart: z.string().nullable(),
     returnEnd: z.string().nullable(),
     passengers: z.number().min(1, 'Mínimo 1').max(9, 'Máximo 9'),
-    currency: z.string().min(1, 'Moeda obrigatória'),
     targetCash: z.number().nullable(),
     targetPts: z.number().nullable(),
     targetHybPts: z.number().nullable(),

@@ -34,7 +34,7 @@ export interface Routine {
 
 export type CreateRoutineRequest = Omit<
   Routine,
-  'id' | 'userId' | 'createdAt' | 'updatedAt'
+  'id' | 'userId' | 'currency' | 'createdAt' | 'updatedAt'
 >
 
 export type UpdateRoutineRequest = Partial<CreateRoutineRequest>
