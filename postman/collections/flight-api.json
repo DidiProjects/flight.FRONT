@@ -444,7 +444,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"\",\n  \"airline\": \"azul\",\n  \"origin\": \"\",\n  \"destination\": \"\",\n  \"outboundStart\": \"2026-01-01\",\n  \"outboundEnd\": \"2026-01-07\",\n  \"passengers\": 1,\n  \"currency\": \"BRL\",\n  \"targetCash\": null,\n  \"targetPts\": null,\n  \"targetHybPts\": null,\n  \"targetHybCash\": null,\n  \"margin\": 0.1,\n  \"priority\": \"cash\",\n  \"notificationMode\": \"alert_only\",\n  \"notificationFrequency\": \"hourly\",\n  \"ccEmails\": [],\n  \"isActive\": true\n}",
+              "raw": "{\n  \"name\": \"\",\n  \"airlines\": [\"azul\"],\n  \"origin\": \"\",\n  \"destination\": \"\",\n  \"outboundStart\": \"2026-01-01\",\n  \"outboundEnd\": \"2026-01-07\",\n  \"returnStart\": null,\n  \"returnEnd\": null,\n  \"passengers\": 1,\n  \"targetCash\": null,\n  \"targetPts\": null,\n  \"targetHybPts\": null,\n  \"targetHybCash\": null,\n  \"margin\": 0.1,\n  \"priority\": \"cash\",\n  \"notificationMode\": \"alert_only\",\n  \"notificationFrequency\": \"hourly\",\n  \"endOfPeriodTime\": null,\n  \"ccEmails\": [],\n  \"isActive\": true\n}",
               "options": { "raw": { "language": "json" } }
             }
           }
@@ -523,6 +523,18 @@
               "raw": "{{baseUrl}}/routines/admin/users/:userId",
               "host": ["{{baseUrl}}"],
               "path": ["routines", "admin", "users", ":userId"],
+              "variable": [{ "key": "userId", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "GET /routines/admin/users/:userId/best-fares",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/routines/admin/users/:userId/best-fares",
+              "host": ["{{baseUrl}}"],
+              "path": ["routines", "admin", "users", ":userId", "best-fares"],
               "variable": [{ "key": "userId", "value": "" }]
             }
           }
