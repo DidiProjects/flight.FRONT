@@ -367,7 +367,7 @@ export function AdminUserRoutinesPage() {
                           {routine.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                          {routine.airline} · {routine.passengers} pax
+                          {routine.airlines.map(a => a.toUpperCase()).join(' · ')} · {routine.passengers} pax
                         </Typography>
                       </TableCell>
 

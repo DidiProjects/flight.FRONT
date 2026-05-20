@@ -61,7 +61,7 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
         {/* Airline + status */}
         <Box sx={cardStyles.topRow}>
           <Box sx={{ ...cardStyles.airlineBadge, filter: routine.isActive ? 'none' : 'grayscale(1)' }}>
-            {routine.airline.toUpperCase()}
+            {routine.airlines.map(a => a.toUpperCase()).join(' · ')}
           </Box>
           <StatusChip
             status={routine.isActive ? 'active' : 'paused'}

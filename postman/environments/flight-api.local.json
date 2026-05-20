@@ -1,7 +1,0 @@
-{
-  "name": "flight.API — local",
-  "values": [
-    { "key": "baseUrl", "value": "http://localhost:3011/flight", "enabled": true }
-  ],
-  "_postman_variable_scope": "environment"
-}
