@@ -60,7 +60,7 @@ interface RoutineFormProps {
 
 const EMPTY: CreateRoutineRequest = {
   name: '',
-  airline: '',
+  airlines: [],
   origin: '',
   destination: '',
   outboundStart: '',
@@ -115,7 +115,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     if (routine) {
       setForm({
         name: routine.name,
-        airline: routine.airline,
+        airlines: routine.airlines,
         origin: routine.origin,
         destination: routine.destination,
         outboundStart: routine.outboundStart,
@@ -137,37 +137,29 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         isActive: routine.isActive,
       })
     } else {
-      const firstAirline = airlines.find((a) => a.active)?.code ?? ''
-      setForm({ ...EMPTY, airline: firstAirline })
+      setForm({ ...EMPTY })
     }
     setCcEmailInput('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routine, open, airlines])
 
-  // When airlines load after the drawer opens and airline is still unset, pick the first
+  // Sync currency and priority when airlines selection changes
   useEffect(() => {
-    setForm((prev) => {
-      if (prev.airline) return prev
-      const first = airlines.find((a) => a.active)?.code
-      return first ? { ...prev, airline: first } : prev
-    })
-  }, [airlines])
-
-  // Sync currency and priority when airline changes
-  useEffect(() => {
-    if (!selectedAirline) return
+    const selectedAirlines = airlines.filter(a => form.airlines.includes(a.code))
+    const firstSelected = selectedAirlines[0]
+    if (!firstSelected) return
     const supported = (
-      (selectedAirline.has_cash ? ['cash'] : []) as Array<'cash' | 'pts' | 'hyb'>
-    ).concat(selectedAirline.has_pts ? ['pts'] : []).concat(selectedAirline.has_hyb ? ['hyb'] : [])
+      (firstSelected.has_cash ? ['cash'] : []) as Array<'cash' | 'pts' | 'hyb'>
+    ).concat(firstSelected.has_pts ? ['pts'] : []).concat(firstSelected.has_hyb ? ['hyb'] : [])
     setForm((prev) => ({
       ...prev,
-      currency: selectedAirline.currency,
+      currency: firstSelected.currency,
       priority: supported.length > 0 && !supported.includes(prev.priority as 'cash' | 'pts' | 'hyb')
         ? supported[0]
         : prev.priority,
     }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.airline])
+  }, [form.airlines])
 
   function set<K extends keyof CreateRoutineRequest>(key: K, value: CreateRoutineRequest[K]) {
     const updated = { ...form, [key]: value }
@@ -200,7 +192,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   const isEdit = !!routine
   const activeAirlines = airlines.filter((a) => a.active)
-  const selectedAirline = airlines.find((a) => a.code === form.airline)
+  const selectedAirlines = airlines.filter(a => form.airlines.includes(a.code))
+  const hasCash = selectedAirlines.some(a => a.has_cash)
+  const hasPts = selectedAirlines.some(a => a.has_pts)
+  const hasHyb = selectedAirlines.some(a => a.has_hyb)
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} sx={formStyles.drawer}>
@@ -241,11 +236,26 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
             <FormField
               select
-              label="Companhia aérea"
-              value={form.airline}
-              onChange={handleChange('airline')}
+              label="Companhia(s) aérea(s)"
+              value={form.airlines}
+              onChange={(e) => {
+                const val = e.target.value
+                set('airlines', typeof val === 'string' ? val.split(',') : val as string[])
+              }}
               required
               size="medium"
+              error={!!errors.airlines}
+              helperText={errors.airlines ?? 'Selecione uma ou mais companhias'}
+              SelectProps={{
+                multiple: true,
+                renderValue: (selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {(selected as string[]).map((code) => (
+                      <Chip key={code} label={code.toUpperCase()} size="small" />
+                    ))}
+                  </Box>
+                ),
+              }}
             >
               {activeAirlines.map((a) => (
                 <MenuItem key={a.code} value={a.code}>
@@ -378,9 +388,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               required
               size="medium"
             >
-              {selectedAirline?.has_cash && <MenuItem value="cash">Dinheiro — Menor preço em moeda</MenuItem>}
-              {selectedAirline?.has_pts && <MenuItem value="pts">Pontos — Menor preço em pontos</MenuItem>}
-              {selectedAirline?.has_hyb && <MenuItem value="hyb">Híbrido — Menor em pontos + dinheiro</MenuItem>}
+              {hasCash && <MenuItem value="cash">Dinheiro — Menor preço em moeda</MenuItem>}
+              {hasPts && <MenuItem value="pts">Pontos — Menor preço em pontos</MenuItem>}
+              {hasHyb && <MenuItem value="hyb">Híbrido — Menor em pontos + dinheiro</MenuItem>}
             </FormField>
 
             {form.priority === 'cash' && (
@@ -511,10 +521,11 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 required
                 size="medium"
                 sx={{ flex: 2 }}
+                helperText="Máx. alertas por período"
               >
-                <MenuItem value="hourly">Horária</MenuItem>
-                <MenuItem value="daily">Diária</MenuItem>
-                <MenuItem value="monthly">Mensal</MenuItem>
+                <MenuItem value="hourly">Horária — sem limite</MenuItem>
+                <MenuItem value="daily">Diária — 1 por dia</MenuItem>
+                <MenuItem value="monthly">Mensal — 1 por mês</MenuItem>
               </FormField>
             </Box>
 
