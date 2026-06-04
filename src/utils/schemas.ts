@@ -59,7 +59,7 @@ export const createUserSchema = z.object({
 export const routineSchema = z
   .object({
     name: z.string().min(1, 'Nome obrigatório'),
-    airline: z.string().min(1, 'Companhia obrigatória'),
+    airlines: z.array(z.string()).min(1, 'Selecione ao menos uma companhia'),
     origin: z
       .string()
       .min(1, 'Origem obrigatória')
@@ -73,7 +73,6 @@ export const routineSchema = z
     returnStart: z.string().nullable(),
     returnEnd: z.string().nullable(),
     passengers: z.number().min(1, 'Mínimo 1').max(9, 'Máximo 9'),
-    currency: z.string().min(1, 'Moeda obrigatória'),
     targetCash: z.number().nullable(),
     targetPts: z.number().nullable(),
     targetHybPts: z.number().nullable(),

@@ -8,7 +8,7 @@ export interface Routine {
   id: string
   userId: string
   name: string
-  airline: string
+  airlines: string[]
   origin: string
   destination: string
   outboundStart: string
@@ -27,8 +27,6 @@ export interface Routine {
   notificationFrequency: NotificationFrequency
   endOfPeriodTime: string | null
   ccEmails: string[]
-  pendingRequestId: string | null
-  pendingRequestAt: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -36,7 +34,7 @@ export interface Routine {
 
 export type CreateRoutineRequest = Omit<
   Routine,
-  'id' | 'userId' | 'pendingRequestId' | 'pendingRequestAt' | 'createdAt' | 'updatedAt'
+  'id' | 'userId' | 'currency' | 'createdAt' | 'updatedAt'
 >
 
 export type UpdateRoutineRequest = Partial<CreateRoutineRequest>

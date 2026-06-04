@@ -11,7 +11,6 @@ import {
   Switch,
   Chip,
   InputAdornment,
-  Select,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
@@ -21,11 +20,15 @@ import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined
 import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
 import { useState, useEffect, useRef, type ChangeEvent, type ReactNode } from 'react'
+import type { TextFieldProps } from '@mui/material'
 import { FormField } from '@atomic-components/molecules/FormField'
+import { DateRangePickerField } from '@atomic-components/molecules/DateRangePickerField'
 import { useAuth } from '@hooks/useAuth'
 import { useZodForm } from '@hooks/useZodForm'
 import { routineSchema } from '@utils/schemas'
-import type { TextFieldProps } from '@mui/material'
+import { formStyles } from './style'
+import type { Airline } from '@app-types/airlines'
+import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
 
 function DebouncedField({ value, onChange, delay = 300, ...props }: TextFieldProps & { delay?: number }) {
   const [local, setLocal] = useState(value ?? '')
@@ -43,12 +46,40 @@ function DebouncedField({ value, onChange, delay = 300, ...props }: TextFieldPro
 
   return <FormField {...props} value={local} onChange={handleChange} />
 }
-import { DateRangePickerField } from '@atomic-components/molecules/DateRangePickerField'
-import { CURRENCIES } from '@/constants/currencies'
-import { formStyles } from './style'
-import type { Airline } from '@app-types/airlines'
-import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
 
+function Section({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <Box sx={formStyles.section}>
+      <Box sx={formStyles.sectionHeader}>
+        <Box sx={formStyles.sectionIcon}>{icon}</Box>
+        <Typography sx={formStyles.sectionTitle}>{title}</Typography>
+      </Box>
+      {children}
+    </Box>
+  )
+}
+
+function FareBadge({ label }: { label: string }) {
+  return (
+    <Box
+      component="span"
+      sx={{
+        fontSize: '0.6rem',
+        fontWeight: 600,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        px: 0.75,
+        py: 0.2,
+        borderRadius: 0.75,
+        backgroundColor: 'action.selected',
+        color: 'text.secondary',
+        lineHeight: 1.5,
+      }}
+    >
+      {label}
+    </Box>
+  )
+}
 
 interface RoutineFormProps {
   open: boolean
@@ -60,7 +91,7 @@ interface RoutineFormProps {
 
 const EMPTY: CreateRoutineRequest = {
   name: '',
-  airline: '',
+  airlines: [],
   origin: '',
   destination: '',
   outboundStart: '',
@@ -68,7 +99,6 @@ const EMPTY: CreateRoutineRequest = {
   returnStart: null,
   returnEnd: null,
   passengers: 1,
-  currency: 'BRL',
   targetCash: null,
   targetPts: null,
   targetHybPts: null,
@@ -80,26 +110,6 @@ const EMPTY: CreateRoutineRequest = {
   endOfPeriodTime: null,
   ccEmails: [],
   isActive: true,
-}
-
-function Section({
-  icon,
-  title,
-  children,
-}: {
-  icon: ReactNode
-  title: string
-  children: ReactNode
-}) {
-  return (
-    <Box sx={formStyles.section}>
-      <Box sx={formStyles.sectionHeader}>
-        <Box sx={formStyles.sectionIcon}>{icon}</Box>
-        <Typography sx={formStyles.sectionTitle}>{title}</Typography>
-      </Box>
-      {children}
-    </Box>
-  )
 }
 
 export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: RoutineFormProps) {
@@ -115,7 +125,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     if (routine) {
       setForm({
         name: routine.name,
-        airline: routine.airline,
+        airlines: routine.airlines,
         origin: routine.origin,
         destination: routine.destination,
         outboundStart: routine.outboundStart,
@@ -123,7 +133,6 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         returnStart: routine.returnStart,
         returnEnd: routine.returnEnd,
         passengers: routine.passengers,
-        currency: routine.currency,
         targetCash: routine.targetCash,
         targetPts: routine.targetPts,
         targetHybPts: routine.targetHybPts,
@@ -137,37 +146,26 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         isActive: routine.isActive,
       })
     } else {
-      const firstAirline = airlines.find((a) => a.active)?.code ?? ''
-      setForm({ ...EMPTY, airline: firstAirline })
+      setForm({ ...EMPTY })
     }
     setCcEmailInput('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routine, open, airlines])
 
-  // When airlines load after the drawer opens and airline is still unset, pick the first
   useEffect(() => {
-    setForm((prev) => {
-      if (prev.airline) return prev
-      const first = airlines.find((a) => a.active)?.code
-      return first ? { ...prev, airline: first } : prev
-    })
-  }, [airlines])
-
-  // Sync currency and priority when airline changes
-  useEffect(() => {
-    if (!selectedAirline) return
-    const supported = (
-      (selectedAirline.has_cash ? ['cash'] : []) as Array<'cash' | 'pts' | 'hyb'>
-    ).concat(selectedAirline.has_pts ? ['pts'] : []).concat(selectedAirline.has_hyb ? ['hyb'] : [])
-    setForm((prev) => ({
-      ...prev,
-      currency: selectedAirline.currency,
-      priority: supported.length > 0 && !supported.includes(prev.priority as 'cash' | 'pts' | 'hyb')
-        ? supported[0]
-        : prev.priority,
-    }))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.airline])
+    const currentAirlines = airlines.filter((a) => form.airlines.includes(a.code))
+    if (currentAirlines.length === 0) return
+    const supportsCash = currentAirlines.some((a) => a.has_cash)
+    const supportsPts  = currentAirlines.some((a) => a.has_pts)
+    const supportsHyb  = currentAirlines.some((a) => a.has_hyb)
+    const isSupported = (p: 'cash' | 'pts' | 'hyb') =>
+      (p === 'cash' && supportsCash) || (p === 'pts' && supportsPts) || (p === 'hyb' && supportsHyb)
+    if (!isSupported(form.priority as 'cash' | 'pts' | 'hyb')) {
+      const fallback: 'cash' | 'pts' | 'hyb' = supportsCash ? 'cash' : supportsPts ? 'pts' : 'hyb'
+      setForm((prev) => ({ ...prev, priority: fallback }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.airlines])
 
   function set<K extends keyof CreateRoutineRequest>(key: K, value: CreateRoutineRequest[K]) {
     const updated = { ...form, [key]: value }
@@ -200,13 +198,16 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   const isEdit = !!routine
   const activeAirlines = airlines.filter((a) => a.active)
-  const selectedAirline = airlines.find((a) => a.code === form.airline)
+  const selectedAirlines = airlines.filter((a) => form.airlines.includes(a.code))
+  const derivedCurrency = selectedAirlines[0]?.currency ?? 'BRL'
+  const hasCash = selectedAirlines.some((a) => a.has_cash)
+  const hasPts  = selectedAirlines.some((a) => a.has_pts)
+  const hasHyb  = selectedAirlines.some((a) => a.has_hyb)
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} sx={formStyles.drawer}>
       <Box component="form" onSubmit={handleSubmit} sx={formStyles.container} noValidate>
 
-        {/* ── Header ── */}
         <Box sx={formStyles.header}>
           <Box>
             <Typography variant="h5" fontWeight={600} lineHeight={1.2}>
@@ -223,10 +224,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
         <Divider />
 
-        {/* ── Body ── */}
         <Box sx={formStyles.body}>
 
-          {/* Rota */}
           <Section icon={<RouteOutlinedIcon sx={formStyles.sectionIcon} />} title="Rota">
             <DebouncedField
               label="Nome da rotina"
@@ -241,15 +240,37 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
             <FormField
               select
-              label="Companhia aérea"
-              value={form.airline}
-              onChange={handleChange('airline')}
+              label="Companhia(s) aérea(s)"
+              value={form.airlines}
+              onChange={(e) => {
+                const val = e.target.value
+                set('airlines', typeof val === 'string' ? val.split(',') : val as string[])
+              }}
               required
               size="medium"
+              error={!!errors.airlines}
+              helperText={errors.airlines ?? 'Selecione uma ou mais companhias'}
+              SelectProps={{
+                multiple: true,
+                renderValue: (selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {(selected as string[]).map((code) => (
+                      <Chip key={code} label={code.toUpperCase()} size="small" />
+                    ))}
+                  </Box>
+                ),
+              }}
             >
               {activeAirlines.map((a) => (
                 <MenuItem key={a.code} value={a.code}>
-                  {a.name}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
+                    <Typography variant="body2">{a.name}</Typography>
+                    <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                      {a.has_cash && <FareBadge label="cash" />}
+                      {a.has_pts  && <FareBadge label="pts" />}
+                      {a.has_hyb  && <FareBadge label="hyb" />}
+                    </Box>
+                  </Box>
                 </MenuItem>
               ))}
             </FormField>
@@ -291,9 +312,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
           <Divider />
 
-          {/* Datas */}
           <Section icon={<CalendarTodayOutlinedIcon sx={formStyles.sectionIcon} />} title="Períodos">
-
             <Box sx={formStyles.dateGroup}>
               <Typography sx={formStyles.dateGroupLabel}>
                 Ida{' '}
@@ -335,14 +354,11 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 helperText={errors.returnEnd}
               />
             </Box>
-
           </Section>
 
           <Divider />
 
-          {/* Target */}
           <Section icon={<TrendingDownOutlinedIcon sx={formStyles.sectionIcon} />} title="Target de preço">
-
             <Box sx={formStyles.row}>
               <FormField
                 label="Passageiros"
@@ -378,9 +394,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               required
               size="medium"
             >
-              {selectedAirline?.has_cash && <MenuItem value="cash">Dinheiro — Menor preço em moeda</MenuItem>}
-              {selectedAirline?.has_pts && <MenuItem value="pts">Pontos — Menor preço em pontos</MenuItem>}
-              {selectedAirline?.has_hyb && <MenuItem value="hyb">Híbrido — Menor em pontos + dinheiro</MenuItem>}
+              {hasCash && <MenuItem value="cash">Dinheiro — Menor preço em moeda</MenuItem>}
+              {hasPts  && <MenuItem value="pts">Pontos — Menor preço em pontos</MenuItem>}
+              {hasHyb  && <MenuItem value="hyb">Híbrido — Menor em pontos + dinheiro</MenuItem>}
             </FormField>
 
             {form.priority === 'cash' && (
@@ -396,21 +412,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Select
-                        value={form.currency}
-                        onChange={(e) => set('currency', e.target.value as string)}
-                        variant="standard"
-                        disableUnderline
-                        sx={{
-                          fontSize: 'inherit',
-                          fontWeight: 500,
-                          mr: 0.5,
-                          '& .MuiSelect-select': { py: 0, pl: 0, pr: '20px !important' },
-                          '& .MuiSelect-icon': { fontSize: '1rem', top: 'calc(50% - 8px)' },
-                        }}
-                      >
-                        {CURRENCIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                      </Select>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
+                        {derivedCurrency}
+                      </Typography>
                     </InputAdornment>
                   ),
                 }}
@@ -432,62 +436,46 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
             )}
 
             {form.priority === 'hyb' && (
-              <>
-                <Box sx={formStyles.row}>
-                  <FormField
-                    label="Pontos alvo"
-                    type="number"
-                    value={form.targetHybPts ?? ''}
-                    onChange={(e) => set('targetHybPts', e.target.value ? Number(e.target.value) : null)}
-                    size="medium"
-                    sx={{ flex: 1 }}
-                    required
-                    error={!!errors.targetHybPts}
-                    helperText={errors.targetHybPts ?? 'Pontos do modo híbrido'}
-                    InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
-                  />
-                  <FormField
-                    label="Taxa alvo"
-                    type="number"
-                    value={form.targetHybCash ?? ''}
-                    onChange={(e) => set('targetHybCash', e.target.value ? Number(e.target.value) : null)}
-                    size="medium"
-                    sx={{ flex: 1 }}
-                    required
-                    error={!!errors.targetHybCash}
-                    helperText={errors.targetHybCash ?? `Taxa em ${form.currency} do modo híbrido`}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Select
-                            value={form.currency}
-                            onChange={(e) => set('currency', e.target.value as string)}
-                            variant="standard"
-                            disableUnderline
-                            sx={{
-                              fontSize: 'inherit',
-                              fontWeight: 500,
-                              mr: 0.5,
-                              '& .MuiSelect-select': { py: 0, pl: 0, pr: '20px !important' },
-                              '& .MuiSelect-icon': { fontSize: '1rem', top: 'calc(50% - 8px)' },
-                            }}
-                          >
-                            {CURRENCIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                          </Select>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
-              </>
+              <Box sx={formStyles.row}>
+                <FormField
+                  label="Pontos alvo"
+                  type="number"
+                  value={form.targetHybPts ?? ''}
+                  onChange={(e) => set('targetHybPts', e.target.value ? Number(e.target.value) : null)}
+                  size="medium"
+                  sx={{ flex: 1 }}
+                  required
+                  error={!!errors.targetHybPts}
+                  helperText={errors.targetHybPts ?? 'Pontos do modo híbrido'}
+                  InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
+                />
+                <FormField
+                  label="Taxa alvo"
+                  type="number"
+                  value={form.targetHybCash ?? ''}
+                  onChange={(e) => set('targetHybCash', e.target.value ? Number(e.target.value) : null)}
+                  size="medium"
+                  sx={{ flex: 1 }}
+                  required
+                  error={!!errors.targetHybCash}
+                  helperText={errors.targetHybCash ?? `Taxa em ${derivedCurrency} do modo híbrido`}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
+                          {derivedCurrency}
+                        </Typography>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
             )}
           </Section>
 
           <Divider />
 
-          {/* Notificações */}
           <Section icon={<NotificationsNoneOutlinedIcon sx={formStyles.sectionIcon} />} title="Notificações">
-
             <Box sx={formStyles.row}>
               <FormField
                 select
@@ -511,10 +499,11 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 required
                 size="medium"
                 sx={{ flex: 2 }}
+                helperText="Máx. alertas por período"
               >
-                <MenuItem value="hourly">Horária</MenuItem>
-                <MenuItem value="daily">Diária</MenuItem>
-                <MenuItem value="monthly">Mensal</MenuItem>
+                <MenuItem value="hourly">Horária — sem limite</MenuItem>
+                <MenuItem value="daily">Diária — 1 por dia</MenuItem>
+                <MenuItem value="monthly">Mensal — 1 por mês</MenuItem>
               </FormField>
             </Box>
 
@@ -603,20 +592,13 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               }}
             >
               <Box>
-                <Typography variant="body2" fontWeight={500}>
-                  Rotina ativa
-                </Typography>
+                <Typography variant="body2" fontWeight={500}>Rotina ativa</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {form.isActive ? 'Monitoramento em execução' : 'Monitoramento pausado'}
                 </Typography>
               </Box>
               <FormControlLabel
-                control={
-                  <Switch
-                    checked={form.isActive}
-                    onChange={(e) => set('isActive', e.target.checked)}
-                  />
-                }
+                control={<Switch checked={form.isActive} onChange={(e) => set('isActive', e.target.checked)} />}
                 label=""
                 sx={{ mr: 0 }}
               />
@@ -627,7 +609,6 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
         <Divider />
 
-        {/* ── Footer ── */}
         <Box sx={formStyles.footer}>
           <Button
             variant="outlined"

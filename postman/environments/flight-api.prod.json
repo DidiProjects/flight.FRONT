@@ -1,7 +1,0 @@
-{
-  "name": "flight.API — prod",
-  "values": [
-    { "key": "baseUrl", "value": "https://api.didilv93.com/flight", "enabled": true }
-  ],
-  "_postman_variable_scope": "environment"
-}
