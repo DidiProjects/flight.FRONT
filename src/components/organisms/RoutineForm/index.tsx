@@ -9,6 +9,7 @@ import {
   MenuItem,
   FormControlLabel,
   FormHelperText,
+  Collapse,
   Switch,
   Chip,
   InputAdornment,
@@ -21,6 +22,7 @@ import FlightIcon from '@mui/icons-material/Flight'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
+import { keyframes } from '@mui/system'
 import { useState, useEffect, useRef, type ChangeEvent, type ReactNode } from 'react'
 import type { TextFieldProps } from '@mui/material'
 import { FormField } from '@atomic-components/molecules/FormField'
@@ -31,6 +33,15 @@ import { routineSchema } from '@utils/schemas'
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
 import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
+
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+`
+const anim = (delay: number) => ({
+  animation: `${fadeIn} 1s ease both`,
+  animationDelay: `${delay}ms`,
+})
 
 function DebouncedField({ value, onChange, delay = 300, ...props }: TextFieldProps & { delay?: number }) {
   const [local, setLocal] = useState(value ?? '')
@@ -385,66 +396,75 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   </Typography>
                 }
               />
-              {form.notificationModes.includes('target') && (
+              <Collapse in={form.notificationModes.includes('target')} unmountOnExit>
                 <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2, pb: 1 }}>
-                  <FormField
-                    label="Passageiros"
-                    type="number"
-                    value={form.passengers}
-                    onChange={(e) => set('passengers', Number(e.target.value))}
-                    error={!!errors.passengers}
-                    helperText={errors.passengers ?? 'De 1 a 9'}
-                    required
-                    size="medium"
-                    inputProps={{ min: 1, max: 9 }}
-                  />
-                  <FormField
-                    select
-                    label="Prioridade de monitoramento"
-                    value={form.priority}
-                    onChange={handleChange('priority')}
-                    required
-                    size="medium"
-                  >
-                    {hasCash && <MenuItem value="cash">Dinheiro - Menor preço em moeda</MenuItem>}
-                    {hasPts  && <MenuItem value="pts">Pontos - Menor preço em pontos</MenuItem>}
-                    {hasHyb  && <MenuItem value="hyb">Híbrido - Menor em pontos + dinheiro</MenuItem>}
-                  </FormField>
-                  {form.priority === 'cash' && (
+                  <Box sx={anim(0)}>
                     <FormField
-                      label="Preço alvo"
+                      label="Passageiros"
                       type="number"
-                      value={form.targetCash ?? ''}
-                      onChange={(e) => set('targetCash', e.target.value ? Number(e.target.value) : null)}
-                      size="medium"
+                      value={form.passengers}
+                      onChange={(e) => set('passengers', Number(e.target.value))}
+                      error={!!errors.passengers}
+                      helperText={errors.passengers ?? 'De 1 a 9'}
                       required
-                      error={!!errors.targetCash}
-                      helperText={errors.targetCash ?? 'Notifica quando o preço atingir ou ficar abaixo deste valor'}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
-                              {derivedCurrency}
-                            </Typography>
-                          </InputAdornment>
-                        ),
-                      }}
+                      size="medium"
+                      inputProps={{ min: 1, max: 9 }}
                     />
+                  </Box>
+                  <Box sx={anim(70)}>
+                    <FormField
+                      select
+                      label="Prioridade de monitoramento"
+                      value={form.priority}
+                      onChange={handleChange('priority')}
+                      required
+                      size="medium"
+                    >
+                      {(hasCash || !selectedAirlines.length) && <MenuItem value="cash">Dinheiro - Menor preço em moeda</MenuItem>}
+                      {(hasPts  || !selectedAirlines.length) && <MenuItem value="pts">Pontos - Menor preço em pontos</MenuItem>}
+                      {(hasHyb  || !selectedAirlines.length) && <MenuItem value="hyb">Híbrido - Menor em pontos + dinheiro</MenuItem>}
+                    </FormField>
+                  </Box>
+                  {form.priority === 'cash' && (
+                    <Box sx={anim(140)}>
+                      <FormField
+                        label="Preço alvo"
+                        type="number"
+                        value={form.targetCash ?? ''}
+                        onChange={(e) => set('targetCash', e.target.value ? Number(e.target.value) : null)}
+                        size="medium"
+                        required
+                        error={!!errors.targetCash}
+                        helperText={errors.targetCash ?? 'Notifica quando o preço atingir ou ficar abaixo deste valor'}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
+                                {derivedCurrency}
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Box>
                   )}
                   {form.priority === 'pts' && (
-                    <FormField
-                      label="Pontos alvo"
-                      type="number"
-                      value={form.targetPts ?? ''}
-                      onChange={(e) => set('targetPts', e.target.value ? Number(e.target.value) : null)}
-                      size="medium"
-                      required
-                      error={!!errors.targetPts}
-                      helperText={errors.targetPts ?? 'Notifica quando os pontos atingirem ou ficarem abaixo deste valor'}
-                      InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
-                    />
+                    <Box sx={anim(140)}>
+                      <FormField
+                        label="Pontos alvo"
+                        type="number"
+                        value={form.targetPts ?? ''}
+                        onChange={(e) => set('targetPts', e.target.value ? Number(e.target.value) : null)}
+                        size="medium"
+                        required
+                        error={!!errors.targetPts}
+                        helperText={errors.targetPts ?? 'Notifica quando os pontos atingirem ou ficarem abaixo deste valor'}
+                        InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
+                      />
+                    </Box>
                   )}
                   {form.priority === 'hyb' && (
+                    <Box sx={anim(140)}>
                     <Box sx={formStyles.row}>
                       <FormField
                         label="Pontos alvo"
@@ -479,22 +499,25 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                         }}
                       />
                     </Box>
+                    </Box>
                   )}
-                  <FormField
-                    select
-                    label="Frequência de alerta"
-                    value={form.notificationFrequency}
-                    onChange={handleChange('notificationFrequency')}
-                    required
-                    size="medium"
-                    helperText="Máximo de alertas por período"
-                  >
-                    <MenuItem value="hourly">Horária - sem limite</MenuItem>
-                    <MenuItem value="daily">Diária - 1 por dia</MenuItem>
-                    <MenuItem value="monthly">Mensal - 1 por mês</MenuItem>
-                  </FormField>
+                  <Box sx={anim(210)}>
+                    <FormField
+                      select
+                      label="Frequência de alerta"
+                      value={form.notificationFrequency}
+                      onChange={handleChange('notificationFrequency')}
+                      required
+                      size="medium"
+                      helperText="Máximo de alertas por período"
+                    >
+                      <MenuItem value="hourly">Horária - sem limite</MenuItem>
+                      <MenuItem value="daily">Diária - 1 por dia</MenuItem>
+                      <MenuItem value="monthly">Mensal - 1 por mês</MenuItem>
+                    </FormField>
+                  </Box>
                 </Box>
-              )}
+              </Collapse>
             </Box>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -520,21 +543,23 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   </Typography>
                 }
               />
-              {form.notificationModes.includes('scheduled') && (
+              <Collapse in={form.notificationModes.includes('scheduled')} unmountOnExit>
                 <Box sx={{ pt: 1, pb: 1 }}>
-                  <FormField
-                    label="Horário"
-                    type="time"
-                    value={form.scheduledTime ?? '20:00'}
-                    onChange={(e) => set('scheduledTime', e.target.value || '20:00')}
-                    required
-                    size="medium"
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Resumo diário enviado neste horário"
-                    sx={{ maxWidth: 180 }}
-                  />
+                  <Box sx={anim(0)}>
+                    <FormField
+                      label="Horário"
+                      type="time"
+                      value={form.scheduledTime ?? '20:00'}
+                      onChange={(e) => set('scheduledTime', e.target.value || '20:00')}
+                      required
+                      size="medium"
+                      InputLabelProps={{ shrink: true }}
+                      helperText="Resumo diário enviado neste horário"
+                      sx={{ maxWidth: 180 }}
+                    />
+                  </Box>
                 </Box>
-              )}
+              </Collapse>
             </Box>
 
             {errors.notificationModes && (
