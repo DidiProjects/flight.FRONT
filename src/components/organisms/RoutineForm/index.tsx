@@ -498,8 +498,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 size="medium"
                 sx={{ flex: 3 }}
               >
-                <MenuItem value="alert_only">Melhor preço superado</MenuItem>
-                <MenuItem value="daily_best_and_alert">Melhor do dia + melhor preço</MenuItem>
+                <MenuItem value="alert_only">Preço alvo</MenuItem>
+                <MenuItem value="daily_best_and_alert">Preço alvo</MenuItem>
                 <MenuItem value="end_of_period">Em horário agendado</MenuItem>
               </FormField>
 
