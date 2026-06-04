@@ -28,9 +28,8 @@ const priorityLabels: Record<string, string> = {
 }
 
 const modeLabels: Record<string, string> = {
-  alert_only: 'Somente alertas',
-  daily_best_and_alert: 'Melhor do dia',
-  end_of_period: 'Fim do período',
+  target: 'Preço alvo',
+  scheduled: 'Horário agendado',
 }
 
 function MetaItem({ label, value }: { label: string; value: string }) {
@@ -105,7 +104,7 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
           )}
 
           <MetaItem label="Passageiros" value={`${routine.passengers} pax`} />
-          <MetaItem label="Frequência" value={modeLabels[routine.notificationMode] ?? routine.notificationMode} />
+          <MetaItem label="Notificações" value={routine.notificationModes.map((m) => modeLabels[m] ?? m).join(', ')} />
 
           {routine.targetCash != null && (
             <Box sx={{ ...cardStyles.metaItem, gridColumn: '1 / -1' }}>
