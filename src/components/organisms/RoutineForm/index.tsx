@@ -23,12 +23,14 @@ import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
 import { keyframes } from '@mui/system'
-import { useState, useEffect, useRef, type ChangeEvent, type ReactNode } from 'react'
+import { useState, useEffect, useRef, useMemo, type ChangeEvent, type ReactNode } from 'react'
 import type { TextFieldProps } from '@mui/material'
 import { FormField } from '@atomic-components/molecules/FormField'
 import { DateRangePickerField } from '@atomic-components/molecules/DateRangePickerField'
+import { AirportAutocomplete } from '@atomic-components/molecules/AirportAutocomplete'
 import { useAuth } from '@hooks/useAuth'
 import { useZodForm } from '@hooks/useZodForm'
+import { useCoverage } from '@hooks/useCoverage'
 import { routineSchema } from '@utils/schemas'
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
@@ -94,6 +96,24 @@ function FareBadge({ label }: { label: string }) {
   )
 }
 
+type CoverageStatus = 'full' | 'partial' | 'none'
+
+function getAirlineCoverageStatus(
+  airlineCode: string,
+  origin: string,
+  destination: string,
+  coverageIndex: Map<string, Set<string>>,
+): CoverageStatus {
+  if (!origin && !destination) return 'full'
+  const covered = coverageIndex.get(airlineCode) ?? new Set<string>()
+  const hasOrigin = !origin || covered.has(origin.toUpperCase())
+  const hasDest   = !destination || covered.has(destination.toUpperCase())
+  if (hasOrigin && hasDest) return 'full'
+  if (hasOrigin || hasDest) return 'partial'
+  return 'none'
+}
+
+const coverageOrder: Record<CoverageStatus, number> = { full: 0, partial: 1, none: 2 }
 
 interface RoutineFormProps {
   open: boolean
@@ -133,6 +153,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   const [loading, setLoading] = useState(false)
   const [ccEmailInput, setCcEmailInput] = useState('')
   const { errors, validate, touchField, reset } = useZodForm<CreateRoutineRequest>(routineSchema, 0)
+
+  const activeAirlines = airlines.filter((a) => a.active)
+  const airlineCodes = useMemo(() => activeAirlines.map((a) => a.code), [activeAirlines])
+  const { airports, coverageIndex, loading: coverageLoading } = useCoverage(airlineCodes)
 
   useEffect(() => {
     reset()
@@ -210,8 +234,17 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     }
   }
 
+  // Sorted airlines for the Select — full coverage first, then partial, then none
+  const sortedAirlines = useMemo(() => {
+    if (!form.origin && !form.destination) return activeAirlines
+    return [...activeAirlines].sort((a, b) => {
+      const statusA = getAirlineCoverageStatus(a.code, form.origin, form.destination, coverageIndex)
+      const statusB = getAirlineCoverageStatus(b.code, form.origin, form.destination, coverageIndex)
+      return coverageOrder[statusA] - coverageOrder[statusB]
+    })
+  }, [activeAirlines, form.origin, form.destination, coverageIndex])
+
   const isEdit = !!routine
-  const activeAirlines = airlines.filter((a) => a.active)
   const selectedAirlines = airlines.filter((a) => form.airlines.includes(a.code))
   const derivedCurrency = selectedAirlines[0]?.currency ?? 'BRL'
   const hasCash = selectedAirlines.some((a) => a.has_cash)
@@ -252,6 +285,36 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               placeholder="Ex: Lisboa ida e volta"
             />
 
+            <Box sx={formStyles.routeRow}>
+              <Box sx={{ flex: 1 }}>
+                <AirportAutocomplete
+                  label="Origem"
+                  value={form.origin}
+                  airports={airports}
+                  onChange={(code) => set('origin', code.toUpperCase())}
+                  error={!!errors.origin}
+                  helperText={coverageLoading ? 'Carregando aeroportos…' : (errors.origin ?? 'Código IATA (ex: GRU)')}
+                  required
+                  size="medium"
+                />
+              </Box>
+              <Box sx={formStyles.routeArrow}>
+                <FlightIcon sx={{ fontSize: 20, transform: 'rotate(0deg)' }} />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <AirportAutocomplete
+                  label="Destino"
+                  value={form.destination}
+                  airports={airports}
+                  onChange={(code) => set('destination', code.toUpperCase())}
+                  error={!!errors.destination}
+                  helperText={coverageLoading ? 'Carregando aeroportos…' : (errors.destination ?? 'Código IATA (ex: LIS)')}
+                  required
+                  size="medium"
+                />
+              </Box>
+            </Box>
+
             <FormField
               select
               label="Companhia(s) aérea(s)"
@@ -275,53 +338,32 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 ),
               }}
             >
-              {activeAirlines.map((a) => (
-                <MenuItem key={a.code} value={a.code}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
-                    <Typography variant="body2">{a.name}</Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-                      {a.has_cash && <FareBadge label="cash" />}
-                      {a.has_pts  && <FareBadge label="pts" />}
-                      {a.has_hyb  && <FareBadge label="hyb" />}
+              {sortedAirlines.map((a) => {
+                const status = getAirlineCoverageStatus(a.code, form.origin, form.destination, coverageIndex)
+                return (
+                  <MenuItem
+                    key={a.code}
+                    value={a.code}
+                    sx={
+                      status === 'none'
+                        ? { opacity: 0.4 }
+                        : status === 'partial'
+                          ? { opacity: 0.7 }
+                          : {}
+                    }
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
+                      <Typography variant="body2">{a.name}</Typography>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                        {a.has_cash && <FareBadge label="cash" />}
+                        {a.has_pts  && <FareBadge label="pts" />}
+                        {a.has_hyb  && <FareBadge label="hyb" />}
+                      </Box>
                     </Box>
-                  </Box>
-                </MenuItem>
-              ))}
+                  </MenuItem>
+                )
+              })}
             </FormField>
-
-            <Box sx={formStyles.routeRow}>
-              <DebouncedField
-                label="Origem"
-                value={form.origin}
-                onChange={handleChange('origin')}
-                error={!!errors.origin}
-                helperText={errors.origin ?? 'Código IATA (ex: GRU)'}
-                required
-                size="medium"
-                sx={{ flex: 1 }}
-                inputProps={{
-                  maxLength: 3,
-                  style: { textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600, fontSize: '1rem' },
-                }}
-              />
-              <Box sx={formStyles.routeArrow}>
-                <FlightIcon sx={{ fontSize: 20, transform: 'rotate(0deg)' }} />
-              </Box>
-              <DebouncedField
-                label="Destino"
-                value={form.destination}
-                onChange={handleChange('destination')}
-                error={!!errors.destination}
-                helperText={errors.destination ?? 'Código IATA (ex: LIS)'}
-                required
-                size="medium"
-                sx={{ flex: 1 }}
-                inputProps={{
-                  maxLength: 3,
-                  style: { textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600, fontSize: '1rem' },
-                }}
-              />
-            </Box>
           </Section>
 
           <Divider />
