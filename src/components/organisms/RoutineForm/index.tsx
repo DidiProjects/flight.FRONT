@@ -96,7 +96,7 @@ function FareBadge({ label }: { label: string }) {
   )
 }
 
-type CoverageStatus = 'full' | 'partial' | 'none'
+type CoverageStatus = 'covered' | 'uncovered'
 
 function getAirlineCoverageStatus(
   airlineCode: string,
@@ -104,16 +104,14 @@ function getAirlineCoverageStatus(
   destination: string,
   coverageIndex: Map<string, Set<string>>,
 ): CoverageStatus {
-  if (!origin && !destination) return 'full'
+  if (!origin && !destination) return 'covered'
   const covered = coverageIndex.get(airlineCode) ?? new Set<string>()
   const hasOrigin = !origin || covered.has(origin.toUpperCase())
   const hasDest   = !destination || covered.has(destination.toUpperCase())
-  if (hasOrigin && hasDest) return 'full'
-  if (hasOrigin || hasDest) return 'partial'
-  return 'none'
+  return hasOrigin && hasDest ? 'covered' : 'uncovered'
 }
 
-const coverageOrder: Record<CoverageStatus, number> = { full: 0, partial: 1, none: 2 }
+const coverageOrder: Record<CoverageStatus, number> = { covered: 0, uncovered: 1 }
 
 interface RoutineFormProps {
   open: boolean
@@ -344,13 +342,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   <MenuItem
                     key={a.code}
                     value={a.code}
-                    sx={
-                      status === 'none'
-                        ? { opacity: 0.4 }
-                        : status === 'partial'
-                          ? { opacity: 0.7 }
-                          : {}
-                    }
+                    sx={status === 'uncovered' ? { opacity: 0.4 } : {}}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
                       <Typography variant="body2">{a.name}</Typography>
