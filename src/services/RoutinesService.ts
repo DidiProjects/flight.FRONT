@@ -84,6 +84,10 @@ class RoutinesServiceClass extends ApiService {
   dispatch(id: string): Promise<void> {
     return this.post<void>(`/routines/${id}/dispatch`)
   }
+
+  adminUpdateRoutine(id: string, data: UpdateRoutineRequest): Promise<Routine> {
+    return this.patch<RawRoutine>(`/routines/admin/${id}`, data).then(fromApi)
+  }
 }
 
 export const RoutinesService = new RoutinesServiceClass()
