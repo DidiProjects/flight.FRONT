@@ -377,6 +377,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   touchField('outboundEnd', updated)
                 }}
                 required
+                maxRangeDays={30}
                 error={!!(errors.outboundStart || errors.outboundEnd)}
                 helperText={errors.outboundStart || errors.outboundEnd}
               />
@@ -398,6 +399,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   touchField('returnEnd', updated)
                 }}
                 clearable
+                maxRangeDays={30}
                 error={!!errors.returnEnd}
                 helperText={errors.returnEnd}
               />

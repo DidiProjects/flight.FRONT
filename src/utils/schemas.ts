@@ -90,8 +90,28 @@ export const routineSchema = z
     { message: 'Deve ser após a data de início', path: ['outboundEnd'] },
   )
   .refine(
+    (d) => {
+      if (!d.outboundStart || !d.outboundEnd) return true
+      const start = new Date(d.outboundStart)
+      const end = new Date(d.outboundEnd)
+      const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      return diffDays <= 30
+    },
+    { message: 'O range de datas de ida não pode exceder 30 dias', path: ['outboundEnd'] },
+  )
+  .refine(
     (d) => !d.returnStart || !d.returnEnd || d.returnEnd >= d.returnStart,
     { message: 'Deve ser após a data de início', path: ['returnEnd'] },
+  )
+  .refine(
+    (d) => {
+      if (!d.returnStart || !d.returnEnd) return true
+      const start = new Date(d.returnStart)
+      const end = new Date(d.returnEnd)
+      const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      return diffDays <= 30
+    },
+    { message: 'O range de datas de volta não pode exceder 30 dias', path: ['returnEnd'] },
   )
   .refine(
     (d) => !d.notificationModes.includes('target') || d.priority !== 'cash' || d.targetCash != null,
