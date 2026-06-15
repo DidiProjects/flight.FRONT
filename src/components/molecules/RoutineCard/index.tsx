@@ -11,6 +11,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import FlightIcon from '@mui/icons-material/Flight'
 import { StatusChip } from '@atomic-components/atoms/StatusChip'
+import { PriceHistoryPanel } from '@atomic-components/molecules/PriceHistoryPanel'
 import { cardStyles } from './style'
 import type { Routine } from '@app-types/routines'
 
@@ -138,6 +139,13 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
             <Typography sx={cardStyles.metaValue}>{priorityLabels[routine.priority] ?? routine.priority}</Typography>
           </Box>
         </Box>
+
+        <PriceHistoryPanel
+          airline={routine.airlines[0] ?? ''}
+          origin={routine.origin}
+          destination={routine.destination}
+          flightDate={routine.outboundStart}
+        />
 
       </CardContent>
 
