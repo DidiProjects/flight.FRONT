@@ -44,7 +44,7 @@ describe('FlightFaresService', () => {
 
     expect(mockFetch).toHaveBeenCalledOnce()
     const calledUrl: string = mockFetch.mock.calls[0][0] as string
-    expect(calledUrl).toContain('/flight/fares/history')
+    expect(calledUrl).toContain('/fares/history')
     expect(calledUrl).toContain('airline=azul')
     expect(calledUrl).toContain('origin=VCP')
     expect(calledUrl).toContain('destination=GRU')

@@ -35,7 +35,7 @@ class FlightFaresServiceClass extends ApiService {
       flight_date: params.flightDate,
     }).toString()
 
-    const raw = await this.get<RawPriceHistory>(`/flight/fares/history?${qs}`)
+    const raw = await this.get<RawPriceHistory>(`/fares/history?${qs}`)
     return fromApi(raw)
   }
 }
