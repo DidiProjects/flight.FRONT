@@ -8,6 +8,14 @@ interface PriceHistoryParams {
   flightDate: string
 }
 
+interface RoutineSummaryParams {
+  airlines: string[]
+  origin: string
+  destination: string
+  dateFrom: string
+  dateTo: string
+}
+
 type RawPriceHistory = {
   avg_cash_30d: number | null
   min_cash_30d: number | null
@@ -29,13 +37,26 @@ function fromApi(raw: RawPriceHistory): PriceHistorySummary {
 class FlightFaresServiceClass extends ApiService {
   async getPriceHistory(params: PriceHistoryParams): Promise<PriceHistorySummary> {
     const qs = new URLSearchParams({
-      airline: params.airline,
-      origin: params.origin,
+      airline:     params.airline,
+      origin:      params.origin,
       destination: params.destination,
       flight_date: params.flightDate,
     }).toString()
 
     const raw = await this.get<RawPriceHistory>(`/fares/history?${qs}`)
+    return fromApi(raw)
+  }
+
+  async getRoutineSummary(params: RoutineSummaryParams): Promise<PriceHistorySummary> {
+    const qs = new URLSearchParams({
+      airlines:    params.airlines.join(','),
+      origin:      params.origin,
+      destination: params.destination,
+      date_from:   params.dateFrom,
+      date_to:     params.dateTo,
+    }).toString()
+
+    const raw = await this.get<RawPriceHistory>(`/fares/summary?${qs}`)
     return fromApi(raw)
   }
 }

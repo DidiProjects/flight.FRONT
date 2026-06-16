@@ -141,10 +141,11 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
         </Box>
 
         <PriceHistoryPanel
-          airline={routine.airlines[0] ?? ''}
+          airlines={routine.airlines}
           origin={routine.origin}
           destination={routine.destination}
-          flightDate={routine.outboundStart}
+          dateFrom={routine.outboundStart}
+          dateTo={routine.outboundEnd}
         />
 
       </CardContent>

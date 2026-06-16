@@ -13,10 +13,11 @@ import type { PriceSparklinePoint } from '@atomic-components/atoms/PriceSparklin
 import type { PriceHistorySummary } from '@app-types/flightFares'
 
 interface PriceHistoryPanelProps {
-  airline: string
+  airlines: string[]
   origin: string
   destination: string
-  flightDate: string
+  dateFrom: string
+  dateTo: string
 }
 
 function formatBRL(value: number): string {
@@ -31,7 +32,7 @@ function buildSparklineData(summary: PriceHistorySummary): PriceSparklinePoint[]
   return points
 }
 
-export function PriceHistoryPanel({ airline, origin, destination, flightDate }: PriceHistoryPanelProps) {
+export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dateTo }: PriceHistoryPanelProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [summary, setSummary] = useState<PriceHistorySummary | null>(null)
@@ -44,7 +45,7 @@ export function PriceHistoryPanel({ airline, origin, destination, flightDate }: 
     setLoading(true)
     setError(false)
 
-    FlightFaresService.getPriceHistory({ airline, origin, destination, flightDate })
+    FlightFaresService.getRoutineSummary({ airlines, origin, destination, dateFrom, dateTo })
       .then((data) => {
         setSummary(data)
         setFetched(true)
@@ -54,7 +55,7 @@ export function PriceHistoryPanel({ airline, origin, destination, flightDate }: 
         setFetched(true)
       })
       .finally(() => setLoading(false))
-  }, [open, fetched, airline, origin, destination, flightDate])
+  }, [open, fetched, airlines, origin, destination, dateFrom, dateTo])
 
   const hasData =
     summary != null &&

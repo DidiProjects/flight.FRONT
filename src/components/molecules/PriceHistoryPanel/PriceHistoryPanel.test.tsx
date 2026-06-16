@@ -5,7 +5,7 @@ import type { PriceHistorySummary } from '@app-types/flightFares'
 
 vi.mock('@services/FlightFaresService', () => ({
   FlightFaresService: {
-    getPriceHistory: vi.fn(),
+    getRoutineSummary: vi.fn(),
   },
 }))
 
@@ -20,10 +20,11 @@ vi.mock('@utils/toast', () => ({
 }))
 
 const defaultProps = {
-  airline: 'azul',
+  airlines: ['azul', 'latam'],
   origin: 'VCP',
   destination: 'GRU',
-  flightDate: '2026-08-15',
+  dateFrom: '2026-08-01',
+  dateTo: '2026-08-31',
 }
 
 const summaryWithData: PriceHistorySummary = {
@@ -51,12 +52,12 @@ describe('PriceHistoryPanel', () => {
     const { FlightFaresService } = await renderPanel()
     expect(screen.getByRole('button', { name: /ver histórico de preços/i })).toBeInTheDocument()
     expect(screen.queryByText('Carregando...')).not.toBeInTheDocument()
-    expect(FlightFaresService.getPriceHistory).not.toHaveBeenCalled()
+    expect(FlightFaresService.getRoutineSummary).not.toHaveBeenCalled()
   })
 
   it('shows loading state while the API promise is pending', async () => {
     const { FlightFaresService } = await import('@services/FlightFaresService')
-    vi.mocked(FlightFaresService.getPriceHistory).mockReturnValue(new Promise(() => {}))
+    vi.mocked(FlightFaresService.getRoutineSummary).mockReturnValue(new Promise(() => {}))
 
     const { PriceHistoryPanel } = await import(
       '@atomic-components/molecules/PriceHistoryPanel'
@@ -70,7 +71,7 @@ describe('PriceHistoryPanel', () => {
 
   it('displays sparkline and price data after API resolves with data', async () => {
     const { FlightFaresService } = await import('@services/FlightFaresService')
-    vi.mocked(FlightFaresService.getPriceHistory).mockResolvedValue(summaryWithData)
+    vi.mocked(FlightFaresService.getRoutineSummary).mockResolvedValue(summaryWithData)
 
     const { PriceHistoryPanel } = await import(
       '@atomic-components/molecules/PriceHistoryPanel'
@@ -96,7 +97,7 @@ describe('PriceHistoryPanel', () => {
     }
 
     const { FlightFaresService } = await import('@services/FlightFaresService')
-    vi.mocked(FlightFaresService.getPriceHistory).mockResolvedValue(emptySummary)
+    vi.mocked(FlightFaresService.getRoutineSummary).mockResolvedValue(emptySummary)
 
     const { PriceHistoryPanel } = await import(
       '@atomic-components/molecules/PriceHistoryPanel'
@@ -110,7 +111,7 @@ describe('PriceHistoryPanel', () => {
 
   it('shows error message when the API call throws', async () => {
     const { FlightFaresService } = await import('@services/FlightFaresService')
-    vi.mocked(FlightFaresService.getPriceHistory).mockRejectedValue(new Error('network error'))
+    vi.mocked(FlightFaresService.getRoutineSummary).mockRejectedValue(new Error('network error'))
 
     const { PriceHistoryPanel } = await import(
       '@atomic-components/molecules/PriceHistoryPanel'
