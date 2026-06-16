@@ -1,6 +1,6 @@
 export type RoutinePriority = 'cash' | 'pts' | 'hyb'
 
-export type NotificationMode = 'alert_only' | 'daily_best_and_alert' | 'end_of_period'
+export type NotificationMode = 'target' | 'scheduled'
 
 export type NotificationFrequency = 'hourly' | 'daily' | 'monthly'
 
@@ -23,9 +23,9 @@ export interface Routine {
   targetHybCash: number | null
   margin: number
   priority: RoutinePriority
-  notificationMode: NotificationMode
+  notificationModes: NotificationMode[]
   notificationFrequency: NotificationFrequency
-  endOfPeriodTime: string | null
+  scheduledTime: string | null
   ccEmails: string[]
   isActive: boolean
   createdAt: string

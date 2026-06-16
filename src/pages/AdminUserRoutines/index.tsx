@@ -19,6 +19,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
@@ -26,10 +27,13 @@ import { AppLayout } from '@atomic-components/templates/AppLayout'
 import { StatusChip } from '@atomic-components/atoms/StatusChip'
 import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
 import { EmptyState } from '@atomic-components/molecules/EmptyState'
+import { RoutineForm } from '@atomic-components/organisms/RoutineForm'
 import { RoutinesService } from '@services/RoutinesService'
+import { AirlinesService } from '@services/AirlinesService'
 import { useAdminUser } from '@contexts/AdminUserContext'
 import { toastEmitter } from '@utils/toast'
-import type { Routine } from '@app-types/routines'
+import type { Routine, UpdateRoutineRequest } from '@app-types/routines'
+import type { Airline } from '@app-types/airlines'
 
 function fmtDate(d: string): string {
   const [y, m, day] = d.split('-')
@@ -70,6 +74,8 @@ export function AdminUserRoutinesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Routine | null>(null)
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [editTarget, setEditTarget] = useState<Routine | null>(null)
+  const [airlines, setAirlines] = useState<Airline[]>([])
 
   const loadRoutines = useCallback(async () => {
     if (!selectedUser) return
@@ -84,6 +90,18 @@ export function AdminUserRoutinesPage() {
 
   useEffect(() => { void loadRoutines() }, [loadRoutines])
 
+  useEffect(() => {
+    AirlinesService.list().then(setAirlines).catch(() => { /* non-critical */ })
+  }, [])
+
+  async function handleAdminEdit(data: UpdateRoutineRequest) {
+    if (!editTarget) return
+    await RoutinesService.adminUpdateRoutine(editTarget.id, data)
+    toastEmitter.success(`"${editTarget.name}" atualizada.`)
+    setEditTarget(null)
+    void loadRoutines()
+  }
+
   // ── Selection ──────────────────────────────────────────────────────────────
   const allSelected = routines.length > 0 && selected.size === routines.length
   const someSelected = selected.size > 0 && selected.size < routines.length
@@ -95,7 +113,11 @@ export function AdminUserRoutinesPage() {
   function toggleOne(id: string) {
     setSelected((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }
@@ -427,6 +449,19 @@ export function AdminUserRoutinesPage() {
                             </IconButton>
                           </span>
                         </Tooltip>
+                        <Tooltip title="Editar">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="default"
+                              onClick={() => setEditTarget(routine)}
+                              disabled={isActing}
+                              aria-label="Editar"
+                            >
+                              <EditOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                         <Tooltip title="Excluir">
                           <span>
                             <IconButton
@@ -470,6 +505,15 @@ export function AdminUserRoutinesPage() {
         loading={deleteLoading}
         onConfirm={handleBulkDelete}
         onCancel={() => setBulkDeleteOpen(false)}
+      />
+
+      {/* ── Edit routine drawer ── */}
+      <RoutineForm
+        open={!!editTarget}
+        routine={editTarget}
+        airlines={airlines}
+        onClose={() => setEditTarget(null)}
+        onSubmit={handleAdminEdit}
       />
     </AppLayout>
   )

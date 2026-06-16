@@ -79,9 +79,9 @@ export const routineSchema = z
     targetHybCash: z.number().nullable(),
     margin: z.number().min(0).max(1),
     priority: z.enum(['cash', 'pts', 'hyb']),
-    notificationMode: z.enum(['alert_only', 'daily_best_and_alert', 'end_of_period']),
+    notificationModes: z.array(z.enum(['target', 'scheduled'])).min(1, 'Selecione ao menos uma opção'),
     notificationFrequency: z.enum(['hourly', 'daily', 'monthly']),
-    endOfPeriodTime: z.string().nullable(),
+    scheduledTime: z.string().nullable(),
     ccEmails: z.array(z.string()),
     isActive: z.boolean(),
   })
@@ -90,22 +90,52 @@ export const routineSchema = z
     { message: 'Deve ser após a data de início', path: ['outboundEnd'] },
   )
   .refine(
+    (d) => {
+      if (!d.outboundStart || !d.outboundEnd) return true
+      const start = new Date(d.outboundStart)
+      const end = new Date(d.outboundEnd)
+      const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      return diffDays <= 30
+    },
+    { message: 'O range de datas de ida não pode exceder 30 dias', path: ['outboundEnd'] },
+  )
+  .refine(
     (d) => !d.returnStart || !d.returnEnd || d.returnEnd >= d.returnStart,
     { message: 'Deve ser após a data de início', path: ['returnEnd'] },
   )
   .refine(
-    (d) => d.priority !== 'cash' || d.targetCash != null,
+    (d) => {
+      if (!d.returnStart || !d.returnEnd) return true
+      const start = new Date(d.returnStart)
+      const end = new Date(d.returnEnd)
+      const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      return diffDays <= 30
+    },
+    { message: 'O range de datas de volta não pode exceder 30 dias', path: ['returnEnd'] },
+  )
+  .refine(
+    (d) => !d.notificationModes.includes('target') || d.priority !== 'cash' || d.targetCash != null,
     { message: 'Preço alvo obrigatório', path: ['targetCash'] },
   )
   .refine(
-    (d) => d.priority !== 'pts' || d.targetPts != null,
+    (d) => !d.notificationModes.includes('target') || d.priority !== 'pts' || d.targetPts != null,
     { message: 'Pontos alvo obrigatórios', path: ['targetPts'] },
   )
   .refine(
-    (d) => d.priority !== 'hyb' || d.targetHybPts != null,
+    (d) => !d.notificationModes.includes('target') || d.priority !== 'hyb' || d.targetHybPts != null,
     { message: 'Pontos alvo obrigatórios', path: ['targetHybPts'] },
   )
   .refine(
-    (d) => d.priority !== 'hyb' || d.targetHybCash != null,
+    (d) => !d.notificationModes.includes('target') || d.priority !== 'hyb' || d.targetHybCash != null,
     { message: 'Taxa alvo obrigatória', path: ['targetHybCash'] },
+  )
+  .refine(
+    (d) =>
+      !d.notificationModes.includes('target') ||
+      d.targetCash != null || d.targetPts != null || d.targetHybPts != null || d.targetHybCash != null,
+    { message: 'Defina ao menos um valor de target para usar este modo', path: ['targetCash'] },
+  )
+  .refine(
+    (d) => !d.notificationModes.includes('scheduled') || (!!d.scheduledTime && d.scheduledTime.length > 0),
+    { message: 'Horário agendado obrigatório', path: ['scheduledTime'] },
   )

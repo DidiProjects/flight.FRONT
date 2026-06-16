@@ -66,6 +66,7 @@ export interface DateRangePickerFieldProps {
   clearable?: boolean
   error?: boolean
   helperText?: string
+  maxRangeDays?: number
 }
 
 export function DateRangePickerField({
@@ -77,6 +78,7 @@ export function DateRangePickerField({
   clearable,
   error,
   helperText,
+  maxRangeDays,
 }: DateRangePickerFieldProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [selecting, setSelecting] = useState(false)
@@ -86,6 +88,15 @@ export function DateRangePickerField({
     from: parseISO(startDate),
     to: parseISO(endDate),
   }
+
+  // When a start date is selected and the user is picking the end date,
+  // disable dates that would exceed maxRangeDays from the start.
+  const rangeDisabled: { after: Date } | undefined = (() => {
+    if (!maxRangeDays || !selecting || !range.from) return undefined
+    const limit = new Date(range.from)
+    limit.setDate(limit.getDate() + maxRangeDays)
+    return { after: limit }
+  })()
 
   const hasValue = !!(startDate || endDate)
   const displayValue = hasValue
@@ -162,7 +173,9 @@ export function DateRangePickerField({
             captionLayout="dropdown"
             startMonth={today}
             endMonth={maxDate}
-            disabled={[{ before: today }, { after: maxDate }]}
+            disabled={rangeDisabled
+              ? [{ before: today }, { after: maxDate }, rangeDisabled]
+              : [{ before: today }, { after: maxDate }]}
             style={calendarStyle}
           />
         </Box>

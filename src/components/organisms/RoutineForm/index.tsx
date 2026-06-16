@@ -8,27 +8,42 @@ import {
   Divider,
   MenuItem,
   FormControlLabel,
+  FormHelperText,
+  Collapse,
   Switch,
   Chip,
   InputAdornment,
+  Checkbox,
 } from '@mui/material'
+
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 import FlightIcon from '@mui/icons-material/Flight'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
-import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined'
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined'
-import { useState, useEffect, useRef, type ChangeEvent, type ReactNode } from 'react'
+import { keyframes } from '@mui/system'
+import { useState, useEffect, useRef, useMemo, type ChangeEvent, type ReactNode } from 'react'
 import type { TextFieldProps } from '@mui/material'
 import { FormField } from '@atomic-components/molecules/FormField'
 import { DateRangePickerField } from '@atomic-components/molecules/DateRangePickerField'
+import { AirportAutocomplete } from '@atomic-components/molecules/AirportAutocomplete'
 import { useAuth } from '@hooks/useAuth'
 import { useZodForm } from '@hooks/useZodForm'
+import { useCoverage } from '@hooks/useCoverage'
 import { routineSchema } from '@utils/schemas'
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
 import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
+
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+`
+const anim = (delay: number) => ({
+  animation: `${fadeIn} 1s ease both`,
+  animationDelay: `${delay}ms`,
+})
 
 function DebouncedField({ value, onChange, delay = 300, ...props }: TextFieldProps & { delay?: number }) {
   const [local, setLocal] = useState(value ?? '')
@@ -81,6 +96,23 @@ function FareBadge({ label }: { label: string }) {
   )
 }
 
+type CoverageStatus = 'covered' | 'uncovered'
+
+function getAirlineCoverageStatus(
+  airlineCode: string,
+  origin: string,
+  destination: string,
+  coverageIndex: Map<string, Set<string>>,
+): CoverageStatus {
+  if (!origin && !destination) return 'covered'
+  const covered = coverageIndex.get(airlineCode) ?? new Set<string>()
+  const hasOrigin = !origin || covered.has(origin.toUpperCase())
+  const hasDest   = !destination || covered.has(destination.toUpperCase())
+  return hasOrigin && hasDest ? 'covered' : 'uncovered'
+}
+
+const coverageOrder: Record<CoverageStatus, number> = { covered: 0, uncovered: 1 }
+
 interface RoutineFormProps {
   open: boolean
   routine?: Routine | null
@@ -105,9 +137,9 @@ const EMPTY: CreateRoutineRequest = {
   targetHybCash: null,
   margin: 0.1,
   priority: 'cash',
-  notificationMode: 'alert_only',
+  notificationModes: ['scheduled'],
   notificationFrequency: 'hourly',
-  endOfPeriodTime: null,
+  scheduledTime: '20:00',
   ccEmails: [],
   isActive: true,
 }
@@ -119,6 +151,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   const [loading, setLoading] = useState(false)
   const [ccEmailInput, setCcEmailInput] = useState('')
   const { errors, validate, touchField, reset } = useZodForm<CreateRoutineRequest>(routineSchema, 0)
+
+  const activeAirlines = airlines.filter((a) => a.active)
+  const airlineCodes = useMemo(() => activeAirlines.map((a) => a.code), [activeAirlines])
+  const { airports, coverageIndex, loading: coverageLoading } = useCoverage(airlineCodes)
 
   useEffect(() => {
     reset()
@@ -139,9 +175,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         targetHybCash: routine.targetHybCash,
         margin: routine.margin,
         priority: routine.priority,
-        notificationMode: routine.notificationMode,
+        notificationModes: routine.notificationModes,
         notificationFrequency: routine.notificationFrequency,
-        endOfPeriodTime: routine.endOfPeriodTime,
+        scheduledTime: routine.scheduledTime ?? '20:00',
         ccEmails: routine.ccEmails,
         isActive: routine.isActive,
       })
@@ -173,7 +209,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     touchField(key, updated)
   }
 
-  function handleChange(key: keyof CreateRoutineRequest) {
+  function handleChange(key: Exclude<keyof CreateRoutineRequest, 'notificationModes'>) {
     return (e: ChangeEvent<HTMLInputElement>) => set(key, e.target.value as never)
   }
 
@@ -196,8 +232,17 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     }
   }
 
+  // Sorted airlines for the Select — full coverage first, then partial, then none
+  const sortedAirlines = useMemo(() => {
+    if (!form.origin && !form.destination) return activeAirlines
+    return [...activeAirlines].sort((a, b) => {
+      const statusA = getAirlineCoverageStatus(a.code, form.origin, form.destination, coverageIndex)
+      const statusB = getAirlineCoverageStatus(b.code, form.origin, form.destination, coverageIndex)
+      return coverageOrder[statusA] - coverageOrder[statusB]
+    })
+  }, [activeAirlines, form.origin, form.destination, coverageIndex])
+
   const isEdit = !!routine
-  const activeAirlines = airlines.filter((a) => a.active)
   const selectedAirlines = airlines.filter((a) => form.airlines.includes(a.code))
   const derivedCurrency = selectedAirlines[0]?.currency ?? 'BRL'
   const hasCash = selectedAirlines.some((a) => a.has_cash)
@@ -238,6 +283,36 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               placeholder="Ex: Lisboa ida e volta"
             />
 
+            <Box sx={formStyles.routeRow}>
+              <Box sx={{ flex: 1 }}>
+                <AirportAutocomplete
+                  label="Origem"
+                  value={form.origin}
+                  airports={airports}
+                  onChange={(code) => set('origin', code.toUpperCase())}
+                  error={!!errors.origin}
+                  helperText={coverageLoading ? 'Carregando aeroportos…' : (errors.origin ?? 'Código IATA (ex: GRU)')}
+                  required
+                  size="medium"
+                />
+              </Box>
+              <Box sx={formStyles.routeArrow}>
+                <FlightIcon sx={{ fontSize: 20, transform: 'rotate(0deg)' }} />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <AirportAutocomplete
+                  label="Destino"
+                  value={form.destination}
+                  airports={airports}
+                  onChange={(code) => set('destination', code.toUpperCase())}
+                  error={!!errors.destination}
+                  helperText={coverageLoading ? 'Carregando aeroportos…' : (errors.destination ?? 'Código IATA (ex: LIS)')}
+                  required
+                  size="medium"
+                />
+              </Box>
+            </Box>
+
             <FormField
               select
               label="Companhia(s) aérea(s)"
@@ -261,53 +336,26 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 ),
               }}
             >
-              {activeAirlines.map((a) => (
-                <MenuItem key={a.code} value={a.code}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
-                    <Typography variant="body2">{a.name}</Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-                      {a.has_cash && <FareBadge label="cash" />}
-                      {a.has_pts  && <FareBadge label="pts" />}
-                      {a.has_hyb  && <FareBadge label="hyb" />}
+              {sortedAirlines.map((a) => {
+                const status = getAirlineCoverageStatus(a.code, form.origin, form.destination, coverageIndex)
+                return (
+                  <MenuItem
+                    key={a.code}
+                    value={a.code}
+                    sx={status === 'uncovered' ? { opacity: 0.4 } : {}}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
+                      <Typography variant="body2">{a.name}</Typography>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                        {a.has_cash && <FareBadge label="cash" />}
+                        {a.has_pts  && <FareBadge label="pts" />}
+                        {a.has_hyb  && <FareBadge label="hyb" />}
+                      </Box>
                     </Box>
-                  </Box>
-                </MenuItem>
-              ))}
+                  </MenuItem>
+                )
+              })}
             </FormField>
-
-            <Box sx={formStyles.routeRow}>
-              <DebouncedField
-                label="Origem"
-                value={form.origin}
-                onChange={handleChange('origin')}
-                error={!!errors.origin}
-                helperText={errors.origin ?? 'Código IATA (ex: GRU)'}
-                required
-                size="medium"
-                sx={{ flex: 1 }}
-                inputProps={{
-                  maxLength: 3,
-                  style: { textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600, fontSize: '1rem' },
-                }}
-              />
-              <Box sx={formStyles.routeArrow}>
-                <FlightIcon sx={{ fontSize: 20, transform: 'rotate(0deg)' }} />
-              </Box>
-              <DebouncedField
-                label="Destino"
-                value={form.destination}
-                onChange={handleChange('destination')}
-                error={!!errors.destination}
-                helperText={errors.destination ?? 'Código IATA (ex: LIS)'}
-                required
-                size="medium"
-                sx={{ flex: 1 }}
-                inputProps={{
-                  maxLength: 3,
-                  style: { textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600, fontSize: '1rem' },
-                }}
-              />
-            </Box>
           </Section>
 
           <Divider />
@@ -323,12 +371,13 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 startDate={form.outboundStart}
                 endDate={form.outboundEnd}
                 onChange={(start, end) => {
-                  const updated = { ...form, outboundStart: start, outboundEnd: end }
+                  const updated: CreateRoutineRequest = { ...form, outboundStart: start, outboundEnd: end }
                   setForm(updated)
                   touchField('outboundStart', updated)
                   touchField('outboundEnd', updated)
                 }}
                 required
+                maxRangeDays={30}
                 error={!!(errors.outboundStart || errors.outboundEnd)}
                 helperText={errors.outboundStart || errors.outboundEnd}
               />
@@ -344,12 +393,13 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 startDate={form.returnStart}
                 endDate={form.returnEnd}
                 onChange={(start, end) => {
-                  const updated = { ...form, returnStart: start || null, returnEnd: end || null }
+                  const updated: CreateRoutineRequest = { ...form, returnStart: start || null, returnEnd: end || null }
                   setForm(updated)
                   touchField('returnStart', updated)
                   touchField('returnEnd', updated)
                 }}
                 clearable
+                maxRangeDays={30}
                 error={!!errors.returnEnd}
                 helperText={errors.returnEnd}
               />
@@ -358,167 +408,200 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
           <Divider />
 
-          <Section icon={<TrendingDownOutlinedIcon sx={formStyles.sectionIcon} />} title="Target de preço">
-            <Box sx={formStyles.row}>
-              <FormField
-                label="Passageiros"
-                type="number"
-                value={form.passengers}
-                onChange={(e) => set('passengers', Number(e.target.value))}
-                error={!!errors.passengers}
-                helperText={errors.passengers ?? 'De 1 a 9'}
-                required
-                size="medium"
-                sx={{ flex: 1, minWidth: 120 }}
-                inputProps={{ min: 1, max: 9 }}
-              />
-              <FormField
-                label="Margem de tolerância"
-                type="number"
-                value={form.margin * 100}
-                onChange={(e) => set('margin', Number(e.target.value) / 100)}
-                required
-                size="medium"
-                sx={{ flex: 1.5 }}
-                inputProps={{ min: 0, max: 100, step: 1 }}
-                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-                helperText="Notifica até X% acima do target"
-              />
-            </Box>
-
-            <FormField
-              select
-              label="Prioridade de monitoramento"
-              value={form.priority}
-              onChange={handleChange('priority')}
-              required
-              size="medium"
-            >
-              {hasCash && <MenuItem value="cash">Dinheiro — Menor preço em moeda</MenuItem>}
-              {hasPts  && <MenuItem value="pts">Pontos — Menor preço em pontos</MenuItem>}
-              {hasHyb  && <MenuItem value="hyb">Híbrido — Menor em pontos + dinheiro</MenuItem>}
-            </FormField>
-
-            {form.priority === 'cash' && (
-              <FormField
-                label="Preço alvo"
-                type="number"
-                value={form.targetCash ?? ''}
-                onChange={(e) => set('targetCash', e.target.value ? Number(e.target.value) : null)}
-                size="medium"
-                required
-                error={!!errors.targetCash}
-                helperText={errors.targetCash ?? 'Será notificado quando o preço atingir ou ficar abaixo deste valor'}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
-                        {derivedCurrency}
-                      </Typography>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            )}
-
-            {form.priority === 'pts' && (
-              <FormField
-                label="Pontos alvo"
-                type="number"
-                value={form.targetPts ?? ''}
-                onChange={(e) => set('targetPts', e.target.value ? Number(e.target.value) : null)}
-                size="medium"
-                required
-                error={!!errors.targetPts}
-                helperText={errors.targetPts ?? 'Será notificado quando os pontos atingirem ou ficarem abaixo deste valor'}
-                InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
-              />
-            )}
-
-            {form.priority === 'hyb' && (
-              <Box sx={formStyles.row}>
-                <FormField
-                  label="Pontos alvo"
-                  type="number"
-                  value={form.targetHybPts ?? ''}
-                  onChange={(e) => set('targetHybPts', e.target.value ? Number(e.target.value) : null)}
-                  size="medium"
-                  sx={{ flex: 1 }}
-                  required
-                  error={!!errors.targetHybPts}
-                  helperText={errors.targetHybPts ?? 'Pontos do modo híbrido'}
-                  InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
-                />
-                <FormField
-                  label="Taxa alvo"
-                  type="number"
-                  value={form.targetHybCash ?? ''}
-                  onChange={(e) => set('targetHybCash', e.target.value ? Number(e.target.value) : null)}
-                  size="medium"
-                  sx={{ flex: 1 }}
-                  required
-                  error={!!errors.targetHybCash}
-                  helperText={errors.targetHybCash ?? `Taxa em ${derivedCurrency} do modo híbrido`}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
-                          {derivedCurrency}
-                        </Typography>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-            )}
-          </Section>
-
-          <Divider />
-
           <Section icon={<NotificationsNoneOutlinedIcon sx={formStyles.sectionIcon} />} title="Notificações">
-            <Box sx={formStyles.row}>
-              <FormField
-                select
-                label="Modo de notificação"
-                value={form.notificationMode}
-                onChange={handleChange('notificationMode')}
-                required
-                size="medium"
-                sx={{ flex: 3 }}
-              >
-                <MenuItem value="alert_only">Melhor preço superado</MenuItem>
-                <MenuItem value="daily_best_and_alert">Melhor do dia + melhor preço</MenuItem>
-                <MenuItem value="end_of_period">Em horário agendado</MenuItem>
-              </FormField>
-
-              <FormField
-                select
-                label="Frequência"
-                value={form.notificationFrequency}
-                onChange={handleChange('notificationFrequency')}
-                required
-                size="medium"
-                sx={{ flex: 2 }}
-                helperText="Máx. alertas por período"
-              >
-                <MenuItem value="hourly">Horária — sem limite</MenuItem>
-                <MenuItem value="daily">Diária — 1 por dia</MenuItem>
-                <MenuItem value="monthly">Mensal — 1 por mês</MenuItem>
-              </FormField>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <FormControlLabel
+                sx={{ alignItems: 'flex-start' }}
+                control={
+                  <Checkbox
+                    sx={{ pt: 0.5, color: errors.notificationModes ? 'error.main' : undefined }}
+                    color={errors.notificationModes ? 'error' : 'primary'}
+                    checked={form.notificationModes.includes('target')}
+                    onChange={() => {
+                      const has = form.notificationModes.includes('target')
+                      const next = has
+                        ? form.notificationModes.filter((m) => m !== 'target') as CreateRoutineRequest['notificationModes']
+                        : [...form.notificationModes, 'target'] as CreateRoutineRequest['notificationModes']
+                      set('notificationModes', next)
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" fontWeight={500} color={errors.notificationModes ? 'error' : 'text.primary'}>
+                    Preço alvo: Sempre que uma passagem com um valor próximo ao alvo for encontrada ou atualizada, você será notificado
+                  </Typography>
+                }
+              />
+              <Collapse in={form.notificationModes.includes('target')} unmountOnExit>
+                <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2, pb: 1 }}>
+                  <Box sx={anim(0)}>
+                    <FormField
+                      label="Passageiros"
+                      type="number"
+                      value={form.passengers}
+                      onChange={(e) => set('passengers', Number(e.target.value))}
+                      error={!!errors.passengers}
+                      helperText={errors.passengers ?? 'De 1 a 9'}
+                      required
+                      size="medium"
+                      inputProps={{ min: 1, max: 9 }}
+                    />
+                  </Box>
+                  <Box sx={anim(70)}>
+                    <FormField
+                      select
+                      label="Prioridade de monitoramento"
+                      value={form.priority}
+                      onChange={handleChange('priority')}
+                      required
+                      size="medium"
+                    >
+                      {(hasCash || !selectedAirlines.length) && <MenuItem value="cash">Dinheiro - Menor preço em moeda</MenuItem>}
+                      {(hasPts  || !selectedAirlines.length) && <MenuItem value="pts">Pontos - Menor preço em pontos</MenuItem>}
+                      {(hasHyb  || !selectedAirlines.length) && <MenuItem value="hyb">Híbrido - Menor em pontos + dinheiro</MenuItem>}
+                    </FormField>
+                  </Box>
+                  {form.priority === 'cash' && (
+                    <Box sx={anim(140)}>
+                      <FormField
+                        label="Preço alvo"
+                        type="number"
+                        value={form.targetCash ?? ''}
+                        onChange={(e) => set('targetCash', e.target.value ? Number(e.target.value) : null)}
+                        size="medium"
+                        required
+                        error={!!errors.targetCash}
+                        helperText={errors.targetCash ?? 'Notifica quando o preço atingir ou ficar abaixo deste valor'}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
+                                {derivedCurrency}
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Box>
+                  )}
+                  {form.priority === 'pts' && (
+                    <Box sx={anim(140)}>
+                      <FormField
+                        label="Pontos alvo"
+                        type="number"
+                        value={form.targetPts ?? ''}
+                        onChange={(e) => set('targetPts', e.target.value ? Number(e.target.value) : null)}
+                        size="medium"
+                        required
+                        error={!!errors.targetPts}
+                        helperText={errors.targetPts ?? 'Notifica quando os pontos atingirem ou ficarem abaixo deste valor'}
+                        InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
+                      />
+                    </Box>
+                  )}
+                  {form.priority === 'hyb' && (
+                    <Box sx={anim(140)}>
+                    <Box sx={formStyles.row}>
+                      <FormField
+                        label="Pontos alvo"
+                        type="number"
+                        value={form.targetHybPts ?? ''}
+                        onChange={(e) => set('targetHybPts', e.target.value ? Number(e.target.value) : null)}
+                        size="medium"
+                        sx={{ flex: 1 }}
+                        required
+                        error={!!errors.targetHybPts}
+                        helperText={errors.targetHybPts ?? 'Pontos do modo híbrido'}
+                        InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
+                      />
+                      <FormField
+                        label="Taxa alvo"
+                        type="number"
+                        value={form.targetHybCash ?? ''}
+                        onChange={(e) => set('targetHybCash', e.target.value ? Number(e.target.value) : null)}
+                        size="medium"
+                        sx={{ flex: 1 }}
+                        required
+                        error={!!errors.targetHybCash}
+                        helperText={errors.targetHybCash ?? `Taxa em ${derivedCurrency} do modo híbrido`}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
+                                {derivedCurrency}
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Box>
+                    </Box>
+                  )}
+                  <Box sx={anim(210)}>
+                    <FormField
+                      select
+                      label="Frequência de alerta"
+                      value={form.notificationFrequency}
+                      onChange={handleChange('notificationFrequency')}
+                      required
+                      size="medium"
+                      helperText="Máximo de alertas por período"
+                    >
+                      <MenuItem value="hourly">Horária - sem limite</MenuItem>
+                      <MenuItem value="daily">Diária - 1 por dia</MenuItem>
+                      <MenuItem value="monthly">Mensal - 1 por mês</MenuItem>
+                    </FormField>
+                  </Box>
+                </Box>
+              </Collapse>
             </Box>
 
-            {form.notificationMode === 'end_of_period' && (
-              <FormField
-                label="Horário do período"
-                type="time"
-                value={form.endOfPeriodTime ?? ''}
-                onChange={(e) => set('endOfPeriodTime', e.target.value || null)}
-                required
-                size="medium"
-                InputLabelProps={{ shrink: true }}
-                helperText="Horário em que a notificação será enviada"
-                sx={{ maxWidth: 220 }}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <FormControlLabel
+                sx={{ alignItems: 'flex-start' }}
+                control={
+                  <Checkbox
+                    sx={{ pt: 0.5, color: errors.notificationModes ? 'error.main' : undefined }}
+                    color={errors.notificationModes ? 'error' : 'primary'}
+                    checked={form.notificationModes.includes('scheduled')}
+                    onChange={() => {
+                      const has = form.notificationModes.includes('scheduled')
+                      const next = has
+                        ? form.notificationModes.filter((m) => m !== 'scheduled') as CreateRoutineRequest['notificationModes']
+                        : [...form.notificationModes, 'scheduled'] as CreateRoutineRequest['notificationModes']
+                      set('notificationModes', next)
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" fontWeight={500} color={errors.notificationModes ? 'error' : 'text.primary'}>
+                    Horário agendado: Você receberá um resumo diário no horário definido
+                  </Typography>
+                }
               />
+              <Collapse in={form.notificationModes.includes('scheduled')} unmountOnExit>
+                <Box sx={{ pt: 1, pb: 1 }}>
+                  <Box sx={anim(0)}>
+                    <FormField
+                      label="Horário"
+                      type="time"
+                      value={form.scheduledTime ?? '20:00'}
+                      onChange={(e) => set('scheduledTime', e.target.value || '20:00')}
+                      required
+                      size="medium"
+                      InputLabelProps={{ shrink: true }}
+                      helperText="Resumo diário enviado neste horário"
+                      sx={{ maxWidth: 180 }}
+                    />
+                  </Box>
+                </Box>
+              </Collapse>
+            </Box>
+
+            {errors.notificationModes && (
+              <FormHelperText error sx={{ mt: -1 }}>
+                {errors.notificationModes}
+              </FormHelperText>
             )}
 
             {userEmail && (
