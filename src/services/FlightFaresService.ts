@@ -17,20 +17,26 @@ interface RoutineSummaryParams {
 }
 
 type RawPriceHistory = {
-  avg_cash_30d: number | null
-  min_cash_30d: number | null
-  p20_cash_30d: number | null
-  avg_pts_30d: number | null
-  min_pts_30d: number | null
+  avg_cash_30d: number | string | null
+  min_cash_30d: number | string | null
+  p20_cash_30d: number | string | null
+  avg_pts_30d:  number | string | null
+  min_pts_30d:  number | string | null
+}
+
+function toNum(v: number | string | null): number | null {
+  if (v == null) return null
+  const n = Number(v)
+  return isNaN(n) ? null : n
 }
 
 function fromApi(raw: RawPriceHistory): PriceHistorySummary {
   return {
-    avgCash30d: raw.avg_cash_30d,
-    minCash30d: raw.min_cash_30d,
-    p20Cash30d: raw.p20_cash_30d,
-    avgPts30d: raw.avg_pts_30d,
-    minPts30d: raw.min_pts_30d,
+    avgCash30d: toNum(raw.avg_cash_30d),
+    minCash30d: toNum(raw.min_cash_30d),
+    p20Cash30d: toNum(raw.p20_cash_30d),
+    avgPts30d:  toNum(raw.avg_pts_30d),
+    minPts30d:  toNum(raw.min_pts_30d),
   }
 }
 

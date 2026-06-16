@@ -42,7 +42,7 @@ export function PriceSparkline({ data, width = 200, height = 48, color = '#1E3A5
     .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
     .join(' ')
 
-  const minIdx = values.indexOf(minVal)
+  const minIdx = values.findIndex((v) => v === minVal)
   const lastIdx = data.length - 1
 
   return (
@@ -63,7 +63,7 @@ export function PriceSparkline({ data, width = 200, height = 48, color = '#1E3A5
         opacity={0.7}
       />
 
-      {minIdx !== lastIdx && (
+      {minIdx !== -1 && minIdx !== lastIdx && (
         <circle
           cx={points[minIdx].x}
           cy={points[minIdx].y}
