@@ -29,7 +29,7 @@ interface UserTableProps {
   onClickUser: (user: User) => void
 }
 
-export function UserTable({ users, onApprove, onSuspend, onDelete, onClickUser }: UserTableProps) {
+export function UserTable({ users, onApprove, onSuspend, onClickUser }: UserTableProps) {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
@@ -43,6 +43,13 @@ export function UserTable({ users, onApprove, onSuspend, onDelete, onClickUser }
     setSelectedUser(null)
   }
 
+  const handlerClickMenuItem = (selectedUser: User | null) => {
+    if (selectedUser) {
+      return onSuspend(selectedUser);
+    }
+    closeMenu();
+  }
+
   const actionsMenu = (
     <Menu
       anchorEl={menuAnchor}
@@ -53,7 +60,7 @@ export function UserTable({ users, onApprove, onSuspend, onDelete, onClickUser }
     >
       {selectedUser?.status === 'active' && (
         <MenuItem
-          onClick={() => { selectedUser && onSuspend(selectedUser); closeMenu() }}
+          onClick={() => handlerClickMenuItem(selectedUser)}
           sx={{ color: 'warning.main' }}
         >
           <BlockIcon fontSize="small" sx={{ mr: 1 }} />
@@ -62,7 +69,7 @@ export function UserTable({ users, onApprove, onSuspend, onDelete, onClickUser }
       )}
       {selectedUser?.status === 'suspended' && (
         <MenuItem
-          onClick={() => { selectedUser && onApprove(selectedUser); closeMenu() }}
+          onClick={() => handlerClickMenuItem(selectedUser)}
           sx={{ color: 'success.main' }}
         >
           <CheckCircleOutlineIcon fontSize="small" sx={{ mr: 1 }} />
@@ -70,7 +77,7 @@ export function UserTable({ users, onApprove, onSuspend, onDelete, onClickUser }
         </MenuItem>
       )}
       <MenuItem
-        onClick={() => { selectedUser && onDelete(selectedUser); closeMenu() }}
+        onClick={() => handlerClickMenuItem(selectedUser)}
         sx={{ color: 'error.main' }}
       >
         <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} />
