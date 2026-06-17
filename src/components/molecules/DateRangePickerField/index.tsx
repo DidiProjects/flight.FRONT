@@ -171,6 +171,7 @@ export function DateRangePickerField({
             onSelect={handleSelect}
             locale={ptBR}
             captionLayout="dropdown"
+            defaultMonth={range.from ?? today}
             startMonth={today}
             endMonth={maxDate}
             disabled={rangeDisabled
