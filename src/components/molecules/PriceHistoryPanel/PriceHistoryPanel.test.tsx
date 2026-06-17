@@ -91,6 +91,7 @@ describe('PriceHistoryPanel', () => {
 
   it('shows empty state when API returns null for all price fields', async () => {
     const emptySummary: PriceHistorySummary = {
+      currency: 'BRL',
       avgCash30d: null,
       minCash30d: null,
       p20Cash30d: null,
