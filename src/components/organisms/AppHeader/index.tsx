@@ -32,7 +32,7 @@ export function AppHeader() {
 
   return (
     <AppBar position="sticky" sx={headerStyles.appBar} elevation={0}>
-      <Toolbar sx={headerStyles.toolbar}>
+      <Toolbar sx={headerStyles.toolbar} >
         <Box
           component="button"
           onClick={() => navigate('/dashboard')}
@@ -61,7 +61,7 @@ export function AppHeader() {
           )}
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, marginLeft: 'auto' }}>
           {isAdmin && (
             <Tooltip title="Admin">
               <IconButton
