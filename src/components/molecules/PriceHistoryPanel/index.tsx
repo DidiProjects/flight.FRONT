@@ -18,10 +18,11 @@ interface PriceHistoryPanelProps {
   destination: string
   dateFrom: string
   dateTo: string
+  currencyFallback: string
 }
 
-function formatBRL(value: number): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+function formatCurrency(value: number, currency: string): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value)
 }
 
 function buildSparklineData(summary: PriceHistorySummary): PriceSparklinePoint[] {
@@ -32,7 +33,7 @@ function buildSparklineData(summary: PriceHistorySummary): PriceSparklinePoint[]
   return points
 }
 
-export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dateTo }: PriceHistoryPanelProps) {
+export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dateTo, currencyFallback }: PriceHistoryPanelProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [summary, setSummary] = useState<PriceHistorySummary | null>(null)
@@ -121,7 +122,7 @@ export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dat
               <Box>
                 {summary!.avgCash30d != null && (
                   <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }}>
-                    {formatBRL(summary!.avgCash30d)}
+                    {formatCurrency(summary!.avgCash30d, summary!.currency ?? currencyFallback)}
                   </Typography>
                 )}
                 <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
@@ -129,7 +130,7 @@ export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dat
                 </Typography>
                 {summary!.minCash30d != null && (
                   <Typography sx={{ fontSize: '0.6875rem', color: 'success.dark', mt: 0.25 }}>
-                    mín. {formatBRL(summary!.minCash30d)}
+                    mín. {formatCurrency(summary!.minCash30d, summary!.currency ?? currencyFallback)}
                   </Typography>
                 )}
               </Box>

@@ -14,6 +14,7 @@ vi.mock('@utils/toast', () => ({
 }))
 
 const rawResponse = {
+  currency: 'BRL',
   avg_cash_30d: 450,
   min_cash_30d: 300,
   p20_cash_30d: 360,
@@ -65,6 +66,7 @@ describe('FlightFaresService', () => {
       const result = await FlightFaresService.getPriceHistory(historyParams)
 
       expect(result).toEqual({
+        currency: 'BRL',
         avgCash30d: 450,
         minCash30d: 300,
         p20Cash30d: 360,
@@ -105,6 +107,7 @@ describe('FlightFaresService', () => {
       const result = await FlightFaresService.getRoutineSummary(summaryParams)
 
       expect(result).toEqual({
+        currency: 'BRL',
         avgCash30d: 450,
         minCash30d: 300,
         p20Cash30d: 360,

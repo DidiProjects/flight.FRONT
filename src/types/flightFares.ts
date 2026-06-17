@@ -8,6 +8,7 @@ export interface PriceHistoryEntry {
 }
 
 export interface PriceHistorySummary {
+  currency: string | null
   avgCash30d: number | null
   minCash30d: number | null
   p20Cash30d: number | null

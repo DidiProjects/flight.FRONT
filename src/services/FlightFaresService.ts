@@ -17,6 +17,7 @@ interface RoutineSummaryParams {
 }
 
 type RawPriceHistory = {
+  currency:    string | null
   avg_cash_30d: number | string | null
   min_cash_30d: number | string | null
   p20_cash_30d: number | string | null
@@ -32,6 +33,7 @@ function toNum(v: number | string | null): number | null {
 
 function fromApi(raw: RawPriceHistory): PriceHistorySummary {
   return {
+    currency:   raw.currency ?? null,
     avgCash30d: toNum(raw.avg_cash_30d),
     minCash30d: toNum(raw.min_cash_30d),
     p20Cash30d: toNum(raw.p20_cash_30d),

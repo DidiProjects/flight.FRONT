@@ -25,9 +25,11 @@ const defaultProps = {
   destination: 'GRU',
   dateFrom: '2026-08-01',
   dateTo: '2026-08-31',
+  currencyFallback: 'BRL',
 }
 
 const summaryWithData: PriceHistorySummary = {
+  currency: 'BRL',
   avgCash30d: 450,
   minCash30d: 300,
   p20Cash30d: 360,

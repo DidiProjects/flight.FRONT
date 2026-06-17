@@ -146,6 +146,7 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
           destination={routine.destination}
           dateFrom={routine.outboundStart}
           dateTo={routine.outboundEnd}
+          currencyFallback={routine.currency}
         />
 
       </CardContent>
