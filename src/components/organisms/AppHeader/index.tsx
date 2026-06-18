@@ -10,7 +10,8 @@ import {
   Typography,
 } from '@mui/material'
 import LogoutIcon from '@mui/icons-material/Logout'
-import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined'
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined'
+import LockResetIcon from '@mui/icons-material/LockReset'
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Logo } from '@atomic-components/atoms/Logo'
@@ -18,7 +19,7 @@ import { useAuth } from '@hooks/useAuth'
 import { headerStyles } from './style'
 
 export function AppHeader() {
-  const { logout, isAdmin } = useAuth()
+  const { logout, isAdmin, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -62,26 +63,15 @@ export function AppHeader() {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, marginLeft: 'auto' }}>
-          {isAdmin && (
-            <Tooltip title="Admin">
-              <IconButton
-                size="small"
-                onClick={() => navigate('/admin')}
-                sx={headerStyles.iconBtn(onAdminPage)}
-                aria-label="Painel de administração"
-              >
-                <AdminPanelSettingsOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          <Tooltip title="Sair">
+          <Tooltip title="Conta">
             <IconButton
               size="small"
               onClick={(e) => setAnchorEl(e.currentTarget)}
               sx={headerStyles.iconBtn(false)}
-              aria-label="Sair"
+              aria-label="Conta"
+              aria-haspopup="true"
             >
-              <LogoutIcon fontSize="small" />
+              <AccountCircleOutlinedIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
@@ -93,12 +83,26 @@ export function AppHeader() {
           transformOrigin={{ horizontal: 'right', vertical: 'top' }}
           anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         >
-          <Box sx={{ px: 2, py: 1 }}>
-            <Typography variant="caption" color="text.secondary">
-              Confirmar saída?
-            </Typography>
-          </Box>
+          {user?.email && (
+            <Box sx={{ px: 2, py: 1 }}>
+              <Typography variant="caption" color="text.secondary" display="block">
+                Conectado como
+              </Typography>
+              <Typography variant="body2" fontWeight={500} sx={{ wordBreak: 'break-all' }}>
+                {user.email}
+              </Typography>
+            </Box>
+          )}
           <Divider />
+          <MenuItem
+            onClick={() => {
+              setAnchorEl(null)
+              navigate('/change-password')
+            }}
+          >
+            <LockResetIcon fontSize="small" sx={{ mr: 1 }} />
+            Trocar senha
+          </MenuItem>
           <MenuItem
             onClick={() => {
               setAnchorEl(null)

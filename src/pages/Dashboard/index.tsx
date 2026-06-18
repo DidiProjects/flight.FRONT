@@ -3,15 +3,15 @@ import {
   Typography,
   Button,
   Grid2 as Grid,
-  Pagination,
   LinearProgress,
   Tooltip,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AppLayout } from '@atomic-components/templates/AppLayout'
 import { RoutineCard } from '@atomic-components/molecules/RoutineCard'
+import { useAirportNames } from '@hooks/useAirportNames'
 import { RoutineForm } from '@atomic-components/organisms/RoutineForm'
 import { EmptyState } from '@atomic-components/molecules/EmptyState'
 import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
@@ -22,13 +22,10 @@ import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-t
 import type { Airline } from '@app-types/airlines'
 import { pageStyles } from './style'
 
-const LIMIT = 10
-
 export function DashboardPage() {
   const [routines, setRoutines] = useState<Routine[]>([])
   const [airlines, setAirlines] = useState<Airline[]>([])
   const [loading, setLoading] = useState(true)
-  const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Routine | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -47,8 +44,9 @@ export function DashboardPage() {
 
   useEffect(() => { void loadData() }, [loadData])
 
-  const paginated = routines.slice((page - 1) * LIMIT, page * LIMIT)
-  const totalPages = Math.ceil(routines.length / LIMIT)
+  const deleteRoutine = routines.find((r) => r.id === deleteTarget) ?? null
+  const airlineCodes = useMemo(() => [...new Set(routines.flatMap((r) => r.airlines))], [routines])
+  const airportNames = useAirportNames(airlineCodes)
 
   function handleEdit(routine: Routine) {
     setEditTarget(routine)
@@ -131,32 +129,19 @@ export function DashboardPage() {
       )}
 
       {!loading && routines.length > 0 && (
-        <>
-          <Grid container spacing={2}>
-            {paginated.map((routine) => (
-              <Grid key={routine.id} size={{ xs: 12, sm: 6, xl: 4 }}>
-                <RoutineCard
-                  routine={routine}
-                  onEdit={handleEdit}
-                  onDelete={(id) => setDeleteTarget(id)}
-                  onToggleActive={handleToggleActive}
-                />
-              </Grid>
-            ))}
-          </Grid>
-
-          {totalPages > 1 && (
-            <Box sx={pageStyles.pagination}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(_, p) => setPage(p)}
-                color="primary"
-                shape="rounded"
+        <Grid container spacing={2}>
+          {routines.map((routine) => (
+            <Grid key={routine.id} size={{ xs: 12, sm: 6, xl: 4 }}>
+              <RoutineCard
+                routine={routine}
+                airportNames={airportNames}
+                onEdit={handleEdit}
+                onDelete={(id) => setDeleteTarget(id)}
+                onToggleActive={handleToggleActive}
               />
-            </Box>
-          )}
-        </>
+            </Grid>
+          ))}
+        </Grid>
       )}
 
       <RoutineForm
@@ -170,7 +155,7 @@ export function DashboardPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Excluir rotina"
-        message="Tem certeza que deseja excluir esta rotina? Esta ação não pode ser desfeita."
+        message={`Tem certeza que deseja excluir "${deleteRoutine?.name ?? 'esta rotina'}"? Esta ação não pode ser desfeita.`}
         confirmLabel="Excluir"
         loading={deleteLoading}
         onConfirm={handleDelete}

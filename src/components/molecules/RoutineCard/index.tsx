@@ -6,17 +6,67 @@ import {
   IconButton,
   Tooltip,
   Switch,
+  Chip,
+  Skeleton,
+  Button,
+  Menu,
+  MenuItem,
 } from '@mui/material'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import FlightIcon from '@mui/icons-material/Flight'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import { useState, useEffect } from 'react'
 import { StatusChip } from '@atomic-components/atoms/StatusChip'
 import { PriceHistoryPanel } from '@atomic-components/molecules/PriceHistoryPanel'
+import { FareCalendar } from '@atomic-components/molecules/FareCalendar'
+import { FlightFaresService } from '@services/FlightFaresService'
+import { timeAgo } from '@utils/timeAgo'
+import { buildBookingLink } from '@utils/bookingLink'
 import { cardStyles } from './style'
 import type { Routine } from '@app-types/routines'
+import type { CurrentPrice } from '@app-types/flightFares'
+
+type Verdict = 'low' | 'typical' | 'high'
+
+const verdictMeta: Record<Verdict, { label: string; color: 'success' | 'default' | 'warning' }> = {
+  low:     { label: 'Preço baixo', color: 'success' },
+  typical: { label: 'Preço típico', color: 'default' },
+  high:    { label: 'Preço alto', color: 'warning' },
+}
+
+function fmtCurrency(value: number, currency: string): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value)
+}
+
+function computeVerdict(value: number | null, avg: number | null, threshold: number | null): Verdict | null {
+  if (value == null || avg == null) return null
+  if (threshold != null && value <= threshold) return 'low'
+  if (value <= avg) return 'typical'
+  return 'high'
+}
+
+function currentForPriority(c: CurrentPrice, routine: Routine): { display: string | null; verdict: Verdict | null } {
+  const currency = c.currency ?? routine.currency
+  if (routine.priority === 'pts') {
+    const v = c.bestPts
+    return { display: v != null ? `${v.toLocaleString('pt-BR')} pts` : null, verdict: computeVerdict(v, c.avgPts30d, c.minPts30d) }
+  }
+  if (routine.priority === 'hyb') {
+    const pts = c.bestHybPts
+    const cash = c.bestHybCash
+    const display = pts != null
+      ? `${pts.toLocaleString('pt-BR')} pts${cash != null ? ` + ${fmtCurrency(cash, currency)}` : ''}`
+      : null
+    return { display, verdict: null }
+  }
+  const v = c.bestCash
+  return { display: v != null ? fmtCurrency(v, currency) : null, verdict: computeVerdict(v, c.avgCash30d, c.p20Cash30d) }
+}
 
 interface RoutineCardProps {
   routine: Routine
+  airportNames?: Map<string, string>
   onEdit: (routine: Routine) => void
   onDelete: (id: string) => void
   onToggleActive: (id: string, isActive: boolean) => void
@@ -42,8 +92,48 @@ function MetaItem({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: RoutineCardProps) {
+export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleActive }: RoutineCardProps) {
   const hasReturn = routine.returnStart && routine.returnEnd
+  const originCity = airportNames?.get(routine.origin)
+  const destinationCity = airportNames?.get(routine.destination)
+
+  const [current, setCurrent] = useState<CurrentPrice | null>(null)
+  const [currentLoading, setCurrentLoading] = useState(true)
+
+  const airlinesKey = routine.airlines.join(',')
+  useEffect(() => {
+    let cancelled = false
+    setCurrentLoading(true)
+    FlightFaresService.getCurrent({
+      airlines: routine.airlines,
+      origin: routine.origin,
+      destination: routine.destination,
+      dateFrom: routine.outboundStart,
+      dateTo: routine.outboundEnd,
+    })
+      .then((d) => { if (!cancelled) setCurrent(d) })
+      .catch(() => { if (!cancelled) setCurrent(null) })
+      .finally(() => { if (!cancelled) setCurrentLoading(false) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [airlinesKey, routine.origin, routine.destination, routine.outboundStart, routine.outboundEnd])
+
+  const currentInfo = current ? currentForPriority(current, routine) : null
+  const freshness = timeAgo(current?.scrapedAt ?? null)
+
+  const [buyAnchor, setBuyAnchor] = useState<null | HTMLElement>(null)
+  const bookingOptions = routine.airlines
+    .map((a) => ({
+      airline: a,
+      url: buildBookingLink(a, {
+        origin: routine.origin,
+        destination: routine.destination,
+        date: routine.outboundStart,
+        passengers: routine.passengers,
+        fareType: routine.priority,
+      }),
+    }))
+    .filter((o): o is { airline: string; url: string } => o.url != null)
 
   const formatDateRange = (start: string | null | undefined, end: string | null | undefined) => {
     const fmt = (d: string | null | undefined) => {
@@ -88,8 +178,93 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
               </>
             )}
           </Box>
+          {(originCity || destinationCity) && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+              {originCity ?? routine.origin} → {destinationCity ?? routine.destination}
+            </Typography>
+          )}
           <Typography sx={cardStyles.routineName}>{routine.name}</Typography>
         </Box>
+
+        {/* Preço atual + veredito + frescor */}
+        {currentLoading ? (
+          <Skeleton variant="rounded" height={56} sx={{ borderRadius: 1.5 }} />
+        ) : currentInfo?.display ? (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1,
+              py: 1,
+              px: 1.5,
+              borderRadius: 1.5,
+              backgroundColor: 'action.hover',
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.15 }}>
+                {currentInfo.display}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                preço atual{freshness ? ` · verificado ${freshness}` : ''}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
+              {currentInfo.verdict && (
+                <Chip
+                  size="small"
+                  color={verdictMeta[currentInfo.verdict].color}
+                  label={verdictMeta[currentInfo.verdict].label}
+                  sx={{ fontWeight: 600 }}
+                />
+              )}
+              {bookingOptions.length === 1 ? (
+                <Button
+                  size="small"
+                  variant="text"
+                  href={bookingOptions[0].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+                  sx={{ py: 0.25, px: 1.25, fontSize: '0.75rem' }}
+                >
+                  Comprar
+                </Button>
+              ) : bookingOptions.length > 1 ? (
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={(e) => setBuyAnchor(e.currentTarget)}
+                  endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+                  sx={{ py: 0.25, px: 1.25, fontSize: '0.75rem' }}
+                >
+                  Comprar
+                </Button>
+              ) : null}
+            </Box>
+          </Box>
+        ) : (
+          <Typography variant="caption" color="text.secondary">
+            Sem preço coletado ainda
+          </Typography>
+        )}
+
+        <Menu anchorEl={buyAnchor} open={Boolean(buyAnchor)} onClose={() => setBuyAnchor(null)}>
+          {bookingOptions.map((o) => (
+            <MenuItem
+              key={o.airline}
+              component="a"
+              href={o.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setBuyAnchor(null)}
+            >
+              <OpenInNewIcon sx={{ fontSize: 16, mr: 1 }} />
+              Comprar na {o.airline.charAt(0).toUpperCase() + o.airline.slice(1)}
+            </MenuItem>
+          ))}
+        </Menu>
 
         {/* Meta grid */}
         <Box sx={cardStyles.meta}>
@@ -146,6 +321,16 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
           destination={routine.destination}
           dateFrom={routine.outboundStart}
           dateTo={routine.outboundEnd}
+          currencyFallback={routine.currency}
+        />
+
+        <FareCalendar
+          airlines={routine.airlines}
+          origin={routine.origin}
+          destination={routine.destination}
+          dateFrom={routine.outboundStart}
+          dateTo={routine.outboundEnd}
+          priority={routine.priority}
           currencyFallback={routine.currency}
         />
 
