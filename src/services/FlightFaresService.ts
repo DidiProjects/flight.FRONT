@@ -11,7 +11,7 @@ type RawByDate = {
 
 function byDateFromApi(raw: RawByDate): PriceByDateEntry {
   return {
-    flightDate:  raw.flight_date,
+    flightDate:  String(raw.flight_date).slice(0, 10),
     bestCash:    toNum(raw.best_cash),
     bestPts:     toNum(raw.best_pts),
     bestHybPts:  toNum(raw.best_hyb_pts),

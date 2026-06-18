@@ -222,7 +222,7 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
               {bookingOptions.length === 1 ? (
                 <Button
                   size="small"
-                  variant="contained"
+                  variant="text"
                   href={bookingOptions[0].url}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -234,7 +234,7 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
               ) : bookingOptions.length > 1 ? (
                 <Button
                   size="small"
-                  variant="contained"
+                  variant="text"
                   onClick={(e) => setBuyAnchor(e.currentTarget)}
                   endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
                   sx={{ py: 0.25, px: 1.25, fontSize: '0.75rem' }}

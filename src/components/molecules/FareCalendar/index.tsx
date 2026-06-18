@@ -109,11 +109,11 @@ export function FareCalendar({ airlines, origin, destination, dateFrom, dateTo, 
           )}
 
           {!loading && !error && withValue.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(56px, 1fr))', gap: 0.75 }}>
               {withValue.map(({ e, v }) => {
                 const t = (v - min) / span
                 const isCheapest = v === min
-                const [, m, d] = e.flightDate.split('-')
+                const [, m, d] = e.flightDate.slice(0, 10).split('-')
                 return (
                   <Tooltip key={e.flightDate} title={isCheapest ? 'Data mais barata' : ''}>
                     <Box
@@ -121,8 +121,9 @@ export function FareCalendar({ airlines, origin, destination, dateFrom, dateTo, 
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        minWidth: 52,
-                        px: 0.75,
+                        justifyContent: 'center',
+                        minHeight: 44,
+                        px: 0.5,
                         py: 0.5,
                         borderRadius: 1,
                         backgroundColor: tintBg(t),
