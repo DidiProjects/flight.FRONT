@@ -15,3 +15,25 @@ export interface PriceHistorySummary {
   avgPts30d: number | null
   minPts30d: number | null
 }
+
+export interface PriceByDateEntry {
+  flightDate: string
+  bestCash: number | null
+  bestPts: number | null
+  bestHybPts: number | null
+  bestHybCash: number | null
+}
+
+export interface CurrentPrice {
+  currency: string | null
+  bestCash: number | null
+  bestPts: number | null
+  bestHybPts: number | null
+  bestHybCash: number | null
+  scrapedAt: string | null
+  avgCash30d: number | null
+  minCash30d: number | null
+  p20Cash30d: number | null
+  avgPts30d: number | null
+  minPts30d: number | null
+}

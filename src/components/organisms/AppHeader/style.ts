@@ -23,11 +23,11 @@ export const headerStyles = {
   } as SxProps,
 
   nav: {
-    display: { xs: 'none', sm: 'flex' },
+    display: 'flex',
     alignItems: 'center',
     gap: 0.5,
     flex: 1,
-    ml: 2,
+    ml: { xs: 0.5, sm: 2 },
   } as SxProps,
 
   navItem: (active: boolean): SxProps => ({
