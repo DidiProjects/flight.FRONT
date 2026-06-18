@@ -19,9 +19,7 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
-  Autocomplete,
 } from '@mui/material'
-import { CURRENCIES } from '@/constants/currencies'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import FlightIcon from '@mui/icons-material/Flight'
@@ -44,7 +42,6 @@ export function AdminAirlinesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [newCode, setNewCode] = useState('')
   const [newName, setNewName] = useState('')
-  const [newCurrency, setNewCurrency] = useState('BRL')
   const [createLoading, setCreateLoading] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<Airline | null>(null)
@@ -102,7 +99,6 @@ export function AdminAirlinesPage() {
     setCreateOpen(false)
     setNewCode('')
     setNewName('')
-    setNewCurrency('BRL')
   }
 
   async function handleCreate() {
@@ -112,7 +108,6 @@ export function AdminAirlinesPage() {
       const created = await AirlinesService.create({
         code: newCode.trim().toLowerCase(),
         name: newName.trim(),
-        ...(newCurrency ? { currency: newCurrency } : {}),
       })
       setAirlines((prev) => [...prev, created])
       toastEmitter.success(`"${created.name}" criada.`)
@@ -264,18 +259,6 @@ export function AdminAirlinesPage() {
             onChange={(e) => setNewName(e.target.value)}
             required
             helperText='Nome de exibição (ex: "LATAM Airlines")'
-          />
-          <Autocomplete
-            options={CURRENCIES}
-            value={newCurrency || null}
-            onChange={(_, value) => setNewCurrency(value ?? '')}
-            renderInput={(params) => (
-              <FormField
-                {...params}
-                label="Moeda"
-                helperText="Código ISO 4217 — opcional"
-              />
-            )}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>

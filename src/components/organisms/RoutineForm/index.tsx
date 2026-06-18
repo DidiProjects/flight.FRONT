@@ -244,7 +244,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   const isEdit = !!routine
   const selectedAirlines = airlines.filter((a) => form.airlines.includes(a.code))
-  const derivedCurrency = selectedAirlines[0]?.currency ?? 'BRL'
+  // Moeda do target = moeda do mercado da ORIGEM (resolvida no backend por airports.currency).
+  const derivedCurrency =
+    airports.find((a) => a.code === form.origin)?.currency ??
+    selectedAirlines[0]?.currency ?? 'BRL'
   const hasCash = selectedAirlines.some((a) => a.has_cash)
   const hasPts  = selectedAirlines.some((a) => a.has_pts)
   const hasHyb  = selectedAirlines.some((a) => a.has_hyb)
