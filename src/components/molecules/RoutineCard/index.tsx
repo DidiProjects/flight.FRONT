@@ -213,12 +213,13 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
             <Box
               sx={{
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-                gap: 0.5, flexShrink: 0, width: '100%',
+                gap: 0.5, flexShrink: 0,
               }}
             >
               {currentInfo.verdict && (
                 <Chip
                   size="small"
+                  style={{ width: '100%' }}
                   color={verdictMeta[currentInfo.verdict].color}
                   label={verdictMeta[currentInfo.verdict].label}
                   sx={{ fontWeight: 600 }}
