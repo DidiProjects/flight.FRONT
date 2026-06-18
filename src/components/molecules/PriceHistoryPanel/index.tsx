@@ -74,8 +74,8 @@ export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dat
           gap: 0.5,
           py: 0.25,
           borderRadius: 1,
-          color: 'text.disabled',
-          '&:hover': { color: 'text.secondary' },
+          color: 'text.secondary',
+          '&:hover': { color: 'text.primary' },
           transition: 'color 0.15s ease',
         }}
         aria-expanded={open}
@@ -105,13 +105,13 @@ export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dat
           )}
 
           {!loading && error && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
               Não foi possível carregar o histórico.
             </Typography>
           )}
 
           {!loading && !error && !hasData && fetched && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
               Histórico ainda sendo coletado.
             </Typography>
           )}

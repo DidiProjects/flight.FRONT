@@ -17,6 +17,7 @@ import type { Routine } from '@app-types/routines'
 
 interface RoutineCardProps {
   routine: Routine
+  airportNames?: Map<string, string>
   onEdit: (routine: Routine) => void
   onDelete: (id: string) => void
   onToggleActive: (id: string, isActive: boolean) => void
@@ -42,8 +43,10 @@ function MetaItem({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: RoutineCardProps) {
+export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleActive }: RoutineCardProps) {
   const hasReturn = routine.returnStart && routine.returnEnd
+  const originCity = airportNames?.get(routine.origin)
+  const destinationCity = airportNames?.get(routine.destination)
 
   const formatDateRange = (start: string | null | undefined, end: string | null | undefined) => {
     const fmt = (d: string | null | undefined) => {
@@ -88,6 +91,11 @@ export function RoutineCard({ routine, onEdit, onDelete, onToggleActive }: Routi
               </>
             )}
           </Box>
+          {(originCity || destinationCity) && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+              {originCity ?? routine.origin} → {destinationCity ?? routine.destination}
+            </Typography>
+          )}
           <Typography sx={cardStyles.routineName}>{routine.name}</Typography>
         </Box>
 
