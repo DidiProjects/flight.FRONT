@@ -1,5 +1,21 @@
 import { ApiService } from './ApiService'
 import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
+import type { AnalysisRun, AnalysisRunStatus } from '@app-types/analysisRuns'
+
+function analysisRunFromApi(raw: RawRoutine): AnalysisRun {
+  return {
+    id: raw.id as string,
+    airline: raw.airline as string,
+    origin: raw.origin as string,
+    destination: raw.destination as string,
+    flightDate: toDate(raw.flight_date ?? raw.flightDate),
+    status: (raw.status ?? 'running') as AnalysisRunStatus,
+    errorMessage: (raw.error_message ?? raw.errorMessage ?? null) as string | null,
+    faresFound: toNum(raw.fares_found ?? raw.faresFound),
+    startedAt: (raw.started_at ?? raw.startedAt) as string,
+    finishedAt: (raw.finished_at ?? raw.finishedAt ?? null) as string | null,
+  }
+}
 
 // The API returns snake_case with string numbers and ISO datetimes
 type RawRoutine = Record<string, unknown>
@@ -87,6 +103,11 @@ class RoutinesServiceClass extends ApiService {
 
   adminUpdateRoutine(id: string, data: UpdateRoutineRequest): Promise<Routine> {
     return this.patch<RawRoutine>(`/routines/admin/${id}`, data).then(fromApi)
+  }
+
+  async listAnalysisRuns(routineId: string): Promise<AnalysisRun[]> {
+    const raw = await this.get<RawRoutine[]>(`/routines/admin/${routineId}/analysis-runs`)
+    return raw.map(analysisRunFromApi)
   }
 }
 

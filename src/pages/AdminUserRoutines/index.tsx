@@ -15,13 +15,17 @@ import {
   Chip,
   Button,
   LinearProgress,
+  Collapse,
+  CircularProgress,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
-import { useState, useEffect, useCallback } from 'react'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { AppLayout } from '@atomic-components/templates/AppLayout'
 import { StatusChip } from '@atomic-components/atoms/StatusChip'
@@ -34,6 +38,7 @@ import { useAdminUser } from '@contexts/AdminUserContext'
 import { toastEmitter } from '@utils/toast'
 import type { Routine, UpdateRoutineRequest } from '@app-types/routines'
 import type { Airline } from '@app-types/airlines'
+import type { AnalysisRun, AnalysisRunStatus } from '@app-types/analysisRuns'
 
 function fmtDate(d: string): string {
   const [y, m, day] = d.split('-')
@@ -46,6 +51,21 @@ function formatPeriod(r: Routine): string {
     return `${outbound}\nVolta: ${fmtDate(r.returnStart)} – ${fmtDate(r.returnEnd)}`
   }
   return outbound
+}
+
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })
+}
+
+const runResult: Record<AnalysisRunStatus, { label: string; color: 'default' | 'success' | 'error' | 'warning' }> = {
+  running: { label: 'Em andamento', color: 'default' },
+  success: { label: 'Sucesso',      color: 'success' },
+  failed:  { label: 'Falha',        color: 'error' },
+  dead:    { label: 'Esgotado',     color: 'error' },
+  blocked: { label: 'Bloqueado',    color: 'warning' },
 }
 
 function formatTarget(r: Routine): string {
@@ -76,6 +96,34 @@ export function AdminUserRoutinesPage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [editTarget, setEditTarget] = useState<Routine | null>(null)
   const [airlines, setAirlines] = useState<Airline[]>([])
+
+  // ── Analysis-runs accordion ─────────────────────────────────────────────────
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [runsByRoutine, setRunsByRoutine] = useState<Record<string, AnalysisRun[]>>({})
+  const [runsLoading, setRunsLoading] = useState<Set<string>>(new Set())
+
+  async function toggleExpand(routineId: string) {
+    const willExpand = !expanded.has(routineId)
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(routineId)) next.delete(routineId)
+      else next.add(routineId)
+      return next
+    })
+
+    if (willExpand && runsByRoutine[routineId] === undefined) {
+      setRunsLoading((prev) => new Set([...prev, routineId]))
+      try {
+        const runs = await RoutinesService.listAnalysisRuns(routineId)
+        setRunsByRoutine((prev) => ({ ...prev, [routineId]: runs }))
+      } catch {
+        setRunsByRoutine((prev) => ({ ...prev, [routineId]: [] }))
+        toastEmitter.error('Falha ao carregar histórico de análises.')
+      } finally {
+        setRunsLoading((prev) => { const s = new Set(prev); s.delete(routineId); return s })
+      }
+    }
+  }
 
   const loadRoutines = useCallback(async () => {
     if (!selectedUser) return
@@ -341,6 +389,7 @@ export function AdminUserRoutinesPage() {
             <Table size="small" aria-label="Rotinas do usuário">
               <TableHead>
                 <TableRow>
+                  <TableCell padding="checkbox" />
                   <TableCell padding="checkbox">
                     <Checkbox
                       size="small"
@@ -364,14 +413,26 @@ export function AdminUserRoutinesPage() {
                   const isSelected = selected.has(routine.id)
                   const isActing = actionLoading.has(routine.id)
                   const period = formatPeriod(routine)
+                  const isExpanded = expanded.has(routine.id)
+                  const runs = runsByRoutine[routine.id]
+                  const loadingRuns = runsLoading.has(routine.id)
 
                   return (
+                    <Fragment key={routine.id}>
                     <TableRow
-                      key={routine.id}
                       selected={isSelected}
                       hover
                       sx={{ opacity: isActing ? 0.6 : 1, transition: 'opacity 0.15s' }}
                     >
+                      <TableCell padding="checkbox">
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleExpand(routine.id)}
+                          aria-label={isExpanded ? 'Recolher histórico' : 'Expandir histórico'}
+                        >
+                          {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                        </IconButton>
+                      </TableCell>
                       <TableCell
                         padding="checkbox"
                         onClick={() => toggleOne(routine.id)}
@@ -477,6 +538,96 @@ export function AdminUserRoutinesPage() {
                         </Tooltip>
                       </TableCell>
                     </TableRow>
+
+                    <TableRow>
+                      <TableCell colSpan={9} sx={{ py: 0, borderBottom: isExpanded ? undefined : 'none' }}>
+                        <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                          <Box sx={{ py: 2, px: { xs: 0, sm: 2 } }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
+                              Histórico de análises
+                            </Typography>
+
+                            {loadingRuns ? (
+                              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                                <CircularProgress size={22} />
+                              </Box>
+                            ) : runs && runs.length > 0 ? (
+                              <Table size="small" aria-label="Histórico de análises">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Voo</TableCell>
+                                    <TableCell>Início</TableCell>
+                                    <TableCell>Fim</TableCell>
+                                    <TableCell>Status</TableCell>
+                                    <TableCell>Resultado</TableCell>
+                                    <TableCell align="right">Passagens</TableCell>
+                                    <TableCell>Erro</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {runs.map((run) => (
+                                    <TableRow key={run.id} hover>
+                                      <TableCell>
+                                        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                                          {run.airline.toUpperCase()} · {run.origin}→{run.destination}
+                                        </Typography>
+                                        <Typography variant="caption" display="block" color="text.secondary">
+                                          {run.flightDate.split('-').reverse().join('/')}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Typography variant="caption">{formatDateTime(run.startedAt)}</Typography>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Typography variant="caption">{formatDateTime(run.finishedAt)}</Typography>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Chip
+                                          size="small"
+                                          variant="outlined"
+                                          color={run.status === 'running' ? 'warning' : 'default'}
+                                          label={run.status === 'running' ? 'Em processamento' : 'Finalizado'}
+                                        />
+                                      </TableCell>
+                                      <TableCell>
+                                        <Chip
+                                          size="small"
+                                          color={runResult[run.status].color}
+                                          label={runResult[run.status].label}
+                                        />
+                                      </TableCell>
+                                      <TableCell align="right">
+                                        <Typography variant="caption">{run.faresFound ?? '—'}</Typography>
+                                      </TableCell>
+                                      <TableCell sx={{ maxWidth: 240 }}>
+                                        {run.errorMessage ? (
+                                          <Tooltip title={run.errorMessage}>
+                                            <Typography
+                                              variant="caption"
+                                              color="error"
+                                              sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                            >
+                                              {run.errorMessage}
+                                            </Typography>
+                                          </Tooltip>
+                                        ) : (
+                                          <Typography variant="caption" color="text.secondary">—</Typography>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                Nenhuma análise registrada ainda.
+                              </Typography>
+                            )}
+                          </Box>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                    </Fragment>
                   )
                 })}
               </TableBody>
