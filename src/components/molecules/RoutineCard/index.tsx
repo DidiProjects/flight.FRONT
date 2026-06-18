@@ -30,9 +30,9 @@ import type { CurrentPrice } from '@app-types/flightFares'
 type Verdict = 'low' | 'typical' | 'high'
 
 const verdictMeta: Record<Verdict, { label: string; color: 'success' | 'default' | 'warning' }> = {
-  low:     { label: 'Preço baixo', color: 'success' },
+  low: { label: 'Preço baixo', color: 'success' },
   typical: { label: 'Preço típico', color: 'default' },
-  high:    { label: 'Preço alto', color: 'warning' },
+  high: { label: 'Preço alto', color: 'warning' },
 }
 
 function fmtCurrency(value: number, currency: string): string {
@@ -210,7 +210,12 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
                 preço atual{freshness ? ` · verificado ${freshness}` : ''}
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
+            <Box
+              sx={{
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
+                gap: 0.5, flexShrink: 0, width: '100%',
+              }}
+            >
               {currentInfo.verdict && (
                 <Chip
                   size="small"
