@@ -13,8 +13,6 @@ export interface Routine {
   destination: string
   outboundStart: string
   outboundEnd: string
-  returnStart: string | null
-  returnEnd: string | null
   passengers: number
   currency: string
   targetCash: number | null
@@ -38,3 +36,10 @@ export type CreateRoutineRequest = Omit<
 >
 
 export type UpdateRoutineRequest = Partial<CreateRoutineRequest>
+
+// Entrada do formulário de criação: rotina one-way + datas de volta opcionais.
+// Quando há volta, o front divide em 2 rotinas one-way (IDA e VOLTA).
+export interface CreateTripInput extends CreateRoutineRequest {
+  returnStart: string | null
+  returnEnd: string | null
+}

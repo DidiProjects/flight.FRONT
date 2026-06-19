@@ -1,5 +1,7 @@
 import { ApiService } from './ApiService'
-import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
+import type { Routine, CreateRoutineRequest, UpdateRoutineRequest, CreateTripInput } from '@app-types/routines'
+
+const MAX_ROUTINES = 10
 import type { AnalysisRun, AnalysisRunStatus } from '@app-types/analysisRuns'
 
 function analysisRunFromApi(raw: RawRoutine): AnalysisRun {
@@ -41,8 +43,6 @@ function fromApi(raw: RawRoutine): Routine {
     destination: raw.destination as string,
     outboundStart: toDate(raw.outbound_start ?? raw.outboundStart),
     outboundEnd: toDate(raw.outbound_end ?? raw.outboundEnd),
-    returnStart: raw.return_start ?? raw.returnStart ? toDate(raw.return_start ?? raw.returnStart) : null,
-    returnEnd: raw.return_end ?? raw.returnEnd ? toDate(raw.return_end ?? raw.returnEnd) : null,
     passengers: Number(raw.passengers),
     currency: (raw.currency ?? 'BRL') as string,
     targetCash: toNum(raw.target_cash ?? raw.targetCash),
@@ -74,6 +74,37 @@ class RoutinesServiceClass extends ApiService {
 
   create(data: CreateRoutineRequest): Promise<Routine> {
     return this.post<RawRoutine>('/routines', data).then(fromApi)
+  }
+
+  /**
+   * Criação de viagem. Sem volta → 1 rotina one-way. Com volta → 2 rotinas
+   * one-way (IDA e VOLTA, com sufixo no nome). Pré-checa o limite de 10 rotinas.
+   */
+  async createTrip(input: CreateTripInput, currentCount: number): Promise<Routine[]> {
+    const { returnStart, returnEnd, ...base } = input
+    const hasReturn = !!returnStart && !!returnEnd
+
+    if (!hasReturn) {
+      return [await this.create(base)]
+    }
+
+    if (currentCount + 2 > MAX_ROUTINES) {
+      const free = Math.max(0, MAX_ROUTINES - currentCount)
+      throw new Error(
+        `Ida e volta cria 2 rotinas e você tem só ${free} vaga(s) livre(s) (limite ${MAX_ROUTINES}). Crie só a ida ou libere espaço primeiro.`,
+      )
+    }
+
+    const ida = await this.create({ ...base, name: `${base.name} (IDA)` })
+    const volta = await this.create({
+      ...base,
+      name: `${base.name} (VOLTA)`,
+      origin: base.destination,
+      destination: base.origin,
+      outboundStart: returnStart,
+      outboundEnd: returnEnd,
+    })
+    return [ida, volta]
   }
 
   update(id: string, data: UpdateRoutineRequest): Promise<Routine> {

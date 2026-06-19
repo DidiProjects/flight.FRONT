@@ -18,7 +18,7 @@ import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
 import { RoutinesService } from '@services/RoutinesService'
 import { AirlinesService } from '@services/AirlinesService'
 import { toastEmitter } from '@utils/toast'
-import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
+import type { Routine, CreateTripInput } from '@app-types/routines'
 import type { Airline } from '@app-types/airlines'
 import { pageStyles } from './style'
 
@@ -58,15 +58,15 @@ export function DashboardPage() {
     setFormOpen(true)
   }
 
-  async function handleFormSubmit(data: CreateRoutineRequest | UpdateRoutineRequest) {
+  async function handleFormSubmit(data: CreateTripInput) {
     if (editTarget) {
-      const updated = await RoutinesService.update(editTarget.id, data as UpdateRoutineRequest)
+      const updated = await RoutinesService.update(editTarget.id, data)
       setRoutines((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
       toastEmitter.success('Rotina atualizada!')
     } else {
-      const created = await RoutinesService.create(data as CreateRoutineRequest)
-      setRoutines((prev) => [...prev, created])
-      toastEmitter.success('Rotina criada!')
+      const created = await RoutinesService.createTrip(data, routines.length)
+      setRoutines((prev) => [...prev, ...created])
+      toastEmitter.success(created.length > 1 ? 'Rotinas de ida e volta criadas!' : 'Rotina criada!')
     }
   }
 

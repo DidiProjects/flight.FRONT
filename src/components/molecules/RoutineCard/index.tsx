@@ -93,7 +93,6 @@ function MetaItem({ label, value }: { label: string; value: string }) {
 }
 
 export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleActive }: RoutineCardProps) {
-  const hasReturn = routine.returnStart && routine.returnEnd
   const originCity = airportNames?.get(routine.origin)
   const destinationCity = airportNames?.get(routine.destination)
 
@@ -168,15 +167,6 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
               <Box sx={cardStyles.arrowLine} />
             </Box>
             <Typography sx={cardStyles.iata}>{routine.destination}</Typography>
-            {hasReturn && (
-              <>
-                <Box sx={cardStyles.flightArrow}>
-                  <FlightIcon sx={{ fontSize: 16, transform: 'rotate(180deg)' }} />
-                  <Box sx={cardStyles.arrowLine} />
-                </Box>
-                <Typography sx={cardStyles.iata}>{routine.origin}</Typography>
-              </>
-            )}
           </Box>
           {(originCity || destinationCity) && (
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
@@ -274,16 +264,7 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
 
         {/* Meta grid */}
         <Box sx={cardStyles.meta}>
-          <MetaItem label="Ida" value={formatDateRange(routine.outboundStart, routine.outboundEnd)} />
-
-          {hasReturn ? (
-            <MetaItem
-              label="Volta"
-              value={formatDateRange(routine.returnStart!, routine.returnEnd!)}
-            />
-          ) : (
-            <MetaItem label="Volta" value="Somente ida" />
-          )}
+          <MetaItem label="Datas" value={formatDateRange(routine.outboundStart, routine.outboundEnd)} />
 
           <MetaItem label="Passageiros" value={`${routine.passengers} pax`} />
           <MetaItem label="Notificações" value={routine.notificationModes.map((m) => modeLabels[m] ?? m).join(', ')} />

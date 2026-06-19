@@ -23,8 +23,6 @@ const mockRoutine: Routine = {
   destination: 'LIS',
   outboundStart: '2026-06-01',
   outboundEnd: '2026-06-07',
-  returnStart: null,
-  returnEnd: null,
   passengers: 1,
   targetCash: 3000,
   targetPts: null,

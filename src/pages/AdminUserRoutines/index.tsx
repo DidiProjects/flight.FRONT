@@ -36,7 +36,7 @@ import { RoutinesService } from '@services/RoutinesService'
 import { AirlinesService } from '@services/AirlinesService'
 import { useAdminUser } from '@contexts/AdminUserContext'
 import { toastEmitter } from '@utils/toast'
-import type { Routine, UpdateRoutineRequest } from '@app-types/routines'
+import type { Routine, CreateTripInput } from '@app-types/routines'
 import type { Airline } from '@app-types/airlines'
 import type { AnalysisRun, AnalysisRunStatus } from '@app-types/analysisRuns'
 
@@ -46,11 +46,7 @@ function fmtDate(d: string): string {
 }
 
 function formatPeriod(r: Routine): string {
-  const outbound = `${fmtDate(r.outboundStart)} – ${fmtDate(r.outboundEnd)}`
-  if (r.returnStart && r.returnEnd) {
-    return `${outbound}\nVolta: ${fmtDate(r.returnStart)} – ${fmtDate(r.returnEnd)}`
-  }
-  return outbound
+  return `${fmtDate(r.outboundStart)} – ${fmtDate(r.outboundEnd)}`
 }
 
 function formatDateTime(iso: string | null): string {
@@ -142,7 +138,7 @@ export function AdminUserRoutinesPage() {
     AirlinesService.list().then(setAirlines).catch(() => { /* non-critical */ })
   }, [])
 
-  async function handleAdminEdit(data: UpdateRoutineRequest) {
+  async function handleAdminEdit(data: CreateTripInput) {
     if (!editTarget) return
     await RoutinesService.adminUpdateRoutine(editTarget.id, data)
     toastEmitter.success(`"${editTarget.name}" atualizada.`)

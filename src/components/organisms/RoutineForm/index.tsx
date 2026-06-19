@@ -34,7 +34,8 @@ import { useCoverage } from '@hooks/useCoverage'
 import { routineSchema } from '@utils/schemas'
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
-import type { Routine, CreateRoutineRequest, UpdateRoutineRequest } from '@app-types/routines'
+import { toastEmitter } from '@utils/toast'
+import type { Routine, CreateTripInput } from '@app-types/routines'
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(-6px); }
@@ -118,10 +119,10 @@ interface RoutineFormProps {
   routine?: Routine | null
   airlines: Airline[]
   onClose: () => void
-  onSubmit: (data: CreateRoutineRequest | UpdateRoutineRequest) => Promise<void>
+  onSubmit: (data: CreateTripInput) => Promise<void>
 }
 
-const EMPTY: CreateRoutineRequest = {
+const EMPTY: CreateTripInput = {
   name: '',
   airlines: [],
   origin: '',
@@ -147,10 +148,10 @@ const EMPTY: CreateRoutineRequest = {
 export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: RoutineFormProps) {
   const { user } = useAuth()
   const userEmail = user?.email
-  const [form, setForm] = useState<CreateRoutineRequest>(EMPTY)
+  const [form, setForm] = useState<CreateTripInput>(EMPTY)
   const [loading, setLoading] = useState(false)
   const [ccEmailInput, setCcEmailInput] = useState('')
-  const { errors, validate, touchField, reset } = useZodForm<CreateRoutineRequest>(routineSchema, 0)
+  const { errors, validate, touchField, reset } = useZodForm<CreateTripInput>(routineSchema, 0)
 
   const activeAirlines = airlines.filter((a) => a.active)
   const airlineCodes = useMemo(() => activeAirlines.map((a) => a.code), [activeAirlines])
@@ -166,8 +167,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         destination: routine.destination,
         outboundStart: routine.outboundStart,
         outboundEnd: routine.outboundEnd,
-        returnStart: routine.returnStart,
-        returnEnd: routine.returnEnd,
+        returnStart: null,
+        returnEnd: null,
         passengers: routine.passengers,
         targetCash: routine.targetCash,
         targetPts: routine.targetPts,
@@ -203,13 +204,13 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.airlines])
 
-  function set<K extends keyof CreateRoutineRequest>(key: K, value: CreateRoutineRequest[K]) {
+  function set<K extends keyof CreateTripInput>(key: K, value: CreateTripInput[K]) {
     const updated = { ...form, [key]: value }
     setForm(updated)
     touchField(key, updated)
   }
 
-  function handleChange(key: Exclude<keyof CreateRoutineRequest, 'notificationModes'>) {
+  function handleChange(key: Exclude<keyof CreateTripInput, 'notificationModes'>) {
     return (e: ChangeEvent<HTMLInputElement>) => set(key, e.target.value as never)
   }
 
@@ -227,6 +228,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     try {
       await onSubmit(form)
       onClose()
+    } catch (err) {
+      toastEmitter.error(err instanceof Error ? err.message : 'Falha ao salvar rotina.')
     } finally {
       setLoading(false)
     }
@@ -374,7 +377,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                 startDate={form.outboundStart}
                 endDate={form.outboundEnd}
                 onChange={(start, end) => {
-                  const updated: CreateRoutineRequest = { ...form, outboundStart: start, outboundEnd: end }
+                  const updated: CreateTripInput = { ...form, outboundStart: start, outboundEnd: end }
                   setForm(updated)
                   touchField('outboundStart', updated)
                   touchField('outboundEnd', updated)
@@ -386,27 +389,29 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               />
             </Box>
 
-            <Box sx={formStyles.dateGroup}>
-              <Typography sx={formStyles.dateGroupLabel}>
-                Volta
-                <Typography component="span" sx={formStyles.optionalTag}>opcional</Typography>
-              </Typography>
-              <DateRangePickerField
-                label="Período de volta"
-                startDate={form.returnStart}
-                endDate={form.returnEnd}
-                onChange={(start, end) => {
-                  const updated: CreateRoutineRequest = { ...form, returnStart: start || null, returnEnd: end || null }
-                  setForm(updated)
-                  touchField('returnStart', updated)
-                  touchField('returnEnd', updated)
-                }}
-                clearable
-                maxRangeDays={30}
-                error={!!errors.returnEnd}
-                helperText={errors.returnEnd}
-              />
-            </Box>
+            {!isEdit && (
+              <Box sx={formStyles.dateGroup}>
+                <Typography sx={formStyles.dateGroupLabel}>
+                  Volta
+                  <Typography component="span" sx={formStyles.optionalTag}>opcional · cria uma 2ª rotina</Typography>
+                </Typography>
+                <DateRangePickerField
+                  label="Período de volta"
+                  startDate={form.returnStart}
+                  endDate={form.returnEnd}
+                  onChange={(start, end) => {
+                    const updated: CreateTripInput = { ...form, returnStart: start || null, returnEnd: end || null }
+                    setForm(updated)
+                    touchField('returnStart', updated)
+                    touchField('returnEnd', updated)
+                  }}
+                  clearable
+                  maxRangeDays={30}
+                  error={!!errors.returnEnd}
+                  helperText={errors.returnEnd}
+                />
+              </Box>
+            )}
           </Section>
 
           <Divider />
@@ -423,8 +428,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                     onChange={() => {
                       const has = form.notificationModes.includes('target')
                       const next = has
-                        ? form.notificationModes.filter((m) => m !== 'target') as CreateRoutineRequest['notificationModes']
-                        : [...form.notificationModes, 'target'] as CreateRoutineRequest['notificationModes']
+                        ? form.notificationModes.filter((m) => m !== 'target') as CreateTripInput['notificationModes']
+                        : [...form.notificationModes, 'target'] as CreateTripInput['notificationModes']
                       set('notificationModes', next)
                     }}
                   />
@@ -570,8 +575,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                     onChange={() => {
                       const has = form.notificationModes.includes('scheduled')
                       const next = has
-                        ? form.notificationModes.filter((m) => m !== 'scheduled') as CreateRoutineRequest['notificationModes']
-                        : [...form.notificationModes, 'scheduled'] as CreateRoutineRequest['notificationModes']
+                        ? form.notificationModes.filter((m) => m !== 'scheduled') as CreateTripInput['notificationModes']
+                        : [...form.notificationModes, 'scheduled'] as CreateTripInput['notificationModes']
                       set('notificationModes', next)
                     }}
                   />
