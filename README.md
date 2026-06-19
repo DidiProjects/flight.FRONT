@@ -1,104 +1,55 @@
 # flight.FRONT
 
-Frontend for the Flight Price Monitor — a web application that lets users create and manage routines to track airline ticket prices, receiving alerts when prices hit their targets.
+Frontend para gerenciar rotinas de monitoramento de preços de voos. O usuário cria/edita rotinas e recebe alertas quando o preço atinge a meta. Consome a flight.API (REST).
 
-## Tech Stack
+## Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | React 19 |
-| Build tool | Vite 6 |
-| UI library | MUI 6 (Material UI) |
-| Language | TypeScript 5 |
-| Validation | Zod 4 |
-| Routing | React Router 7 |
-| Testing | Vitest + Testing Library |
-| Deploy | Netlify |
+- React 19 + TypeScript 5, build com Vite 6 (PWA via vite-plugin-pwa)
+- MUI 6, React Router 7, Zod 4
+- Testes: Vitest + Testing Library
 
-## Features
-
-- **Authentication** — Login, registration, forgot/reset password, forced password change on first access
-- **Monitoring routines** — Create, edit, activate/deactivate and delete flight price monitoring routines
-- **Fare types** — Monitor by price, points, or hybrid (points + airport fee), dynamically filtered per airline
-- **Notifications** — Configure notification mode (on target, daily best, scheduled) and frequency (hourly, daily, monthly), with CC email support
-- **Admin panel** — User management: approve pending registrations, assign roles, suspend and delete accounts
-- **Admin user routines** — Admins can inspect the routines of any user
-
-## Architecture
-
-The project follows **Atomic Design**:
-
-```
-src/
-├── components/
-│   ├── atoms/          # Basic UI primitives (Logo, Spinner, StatusChip…)
-│   ├── molecules/      # Composed components (RoutineCard, FormField, EmptyState…)
-│   ├── organisms/      # Feature-level components (RoutineForm, UserTable, AppHeader)
-│   └── templates/      # Page layout shells (AppLayout, AuthLayout)
-├── pages/              # Route-level page components
-├── contexts/           # React Context providers (AuthContext, AdminUserContext)
-├── hooks/              # Custom hooks (useAuth, useZodForm, useToast…)
-├── services/           # API layer (ApiService, AuthService, RoutinesService…)
-├── types/              # Shared TypeScript interfaces
-├── utils/              # Helpers (jwt, tokenStore, storage, schemas…)
-├── routes/             # Route definitions and guards
-├── providers/          # App-level provider composition
-└── theme/              # MUI theme customization
-```
-
-### Path aliases
-
-| Alias | Resolves to |
-|---|---|
-| `@atomic-components` | `src/components` |
-| `@services` | `src/services` |
-| `@contexts` | `src/contexts` |
-| `@hooks` | `src/hooks` |
-| `@providers` | `src/providers` |
-| `@theme` | `src/theme` |
-| `@utils` | `src/utils` |
-| `@routes` | `src/routes` |
-| `@pages` | `src/pages` |
-| `@app-types` | `src/types` |
-| `@` | `src` |
-
-## Authentication
-
-Token handling follows a secure-by-default pattern:
-
-- **Access token** — stored in memory only (cleared on page reload)
-- **Refresh token** — persisted in `localStorage` under the key `flight_rt`
-- **Reactive refresh** — on any `401` response, `ApiService` queues concurrent requests and performs a single refresh call, then retries
-- **Proactive refresh** — `AuthContext` decodes the JWT `exp` claim and schedules a `setTimeout` to refresh ~60 seconds before expiry, preventing mid-session expirations for active users
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20+
-- npm 10+
-
-### Environment variables
-
-Create a `.env.local` file at the project root:
-
-```env
-VITE_API_URL=http://localhost:8000
-```
-
-### Install & run
+## Rodar
 
 ```bash
 npm install
-npm start          # dev server at http://localhost:3000
-npm run build      # production build
-npm run preview    # preview production build locally
+npm start          # dev em http://localhost:3000
+npm run build      # build de produção (tsc -b && vite build)
+npm run preview    # preview do build
+npm test           # testes (watch); test:run / test:coverage
 ```
 
-### Tests
+### Variáveis de ambiente
 
-```bash
-npm test               # watch mode
-npm run test:run       # single run
-npm run test:coverage  # coverage report
+Copie `.env.example` para `.env`:
+
+```env
+VITE_API_URL=http://localhost:3011/flight   # base da flight.API (inclui o prefixo /flight)
+VITE_APP_URL=http://localhost:3000
 ```
+
+## Estrutura
+
+```
+src/
+├── components/   # atoms, molecules, organisms, templates (Atomic Design)
+├── pages/        # páginas por rota
+├── routes/       # definição de rotas e guards
+├── contexts/     # AuthContext, AdminUserContext
+├── hooks/        # useAuth, useZodForm, useToast…
+├── services/     # camada de API (ApiService base + serviços)
+├── types/        # interfaces compartilhadas
+├── utils/        # jwt, tokenStore, storage, schemas…
+├── providers/    # composição de providers
+└── theme/        # tema MUI
+```
+
+Aliases de import configurados em `vite.config.ts`: `@`, `@atomic-components`, `@services`, `@contexts`, `@hooks`, `@providers`, `@theme`, `@utils`, `@routes`, `@pages`, `@app-types`.
+
+## Comunicação com a flight.API
+
+Todas as chamadas passam por `ApiService` (`src/services/ApiService.ts`), que prefixa `VITE_API_URL` e injeta `Authorization: Bearer`.
+
+- Access token: só em memória (`tokenStore`).
+- Refresh token: `localStorage` na chave `flight_rt` (`storage`).
+- Em `401`, `ApiService` enfileira requisições, faz um único `POST /auth/refresh` e repete a chamada; falha → evento `auth:logout`.
+- `AuthContext` agenda refresh proativo antes do `exp` do JWT.
