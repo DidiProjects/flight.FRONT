@@ -21,6 +21,8 @@ export interface JobView {
   finishedAt: string | null
   lastStep?: string
   lastError: string | null
+  /** Dono do job (email). Jobs legados sem dono vêm null. */
+  userEmail: string | null
 }
 
 /** Linha de timeline/log de uma execução. */

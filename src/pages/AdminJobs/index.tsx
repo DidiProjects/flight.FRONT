@@ -35,6 +35,7 @@ import {
   DEFAULT_FILTER,
   DEFAULT_SORT,
   distinctAirlines,
+  distinctUsers,
   filterJobs,
   nextSort,
   sortJobs,
@@ -110,6 +111,7 @@ export function AdminJobsPage() {
   const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE_OPTIONS[0])
 
   const airlines = useMemo(() => distinctAirlines(jobs), [jobs])
+  const users = useMemo(() => distinctUsers(jobs), [jobs])
   const filtered = useMemo(() => sortJobs(filterJobs(jobs, filter), sort), [jobs, filter, sort])
   const paged = useMemo(
     () => filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
@@ -178,7 +180,7 @@ export function AdminJobsPage() {
         <EmptyState Icon={WorkOutlineIcon} title="Nenhum job no momento" description="Jobs ativos aparecerão aqui em tempo real." />
       ) : (
         <>
-          <JobsFilters filter={filter} airlines={airlines} onChange={setFilter} />
+          <JobsFilters filter={filter} airlines={airlines} users={users} onChange={setFilter} />
           <Paper variant="outlined">
             <Table size="small">
               <TableHead>
@@ -190,13 +192,14 @@ export function AdminJobsPage() {
                   <SortableHeader label="Status" column="status" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
                   <SortableHeader label="Início" column="startedAt" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
                   <TableCell>Tempo</TableCell>
+                  <TableCell>Dono</TableCell>
                   <TableCell align="right">Ações</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={9}>
                       <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                         Nenhum job com os filtros aplicados.
                       </Typography>
@@ -231,6 +234,9 @@ export function AdminJobsPage() {
                       </TableCell>
                       <TableCell>{formatDateTime(job.startedAt)}</TableCell>
                       <TableCell>{jobDuration(job, now)}</TableCell>
+                      <TableCell sx={{ color: job.userEmail ? 'text.primary' : 'text.disabled' }}>
+                        {job.userEmail ?? '—'}
+                      </TableCell>
                       <TableCell align="right">
                         <Button
                           size="small"
@@ -244,7 +250,7 @@ export function AdminJobsPage() {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell sx={{ py: 0, border: 0 }} colSpan={8}>
+                      <TableCell sx={{ py: 0, border: 0 }} colSpan={9}>
                         <Collapse in={isOpen} unmountOnExit>
                           <Stack spacing={0.5} sx={{ py: 1, pl: 6 }}>
                             {isLoadingTl ? (

@@ -6,10 +6,11 @@ import type { JobsFilter } from './jobsView'
 interface Props {
   filter: JobsFilter
   airlines: string[]
+  users: string[]
   onChange: (filter: JobsFilter) => void
 }
 
-export function JobsFilters({ filter, airlines, onChange }: Props) {
+export function JobsFilters({ filter, airlines, users, onChange }: Props) {
   return (
     <Stack direction="row" spacing={1.5} sx={{ mb: 2, flexWrap: 'wrap' }}>
       <FormControl size="small" sx={{ minWidth: 160 }}>
@@ -38,6 +39,21 @@ export function JobsFilters({ filter, airlines, onChange }: Props) {
           <MenuItem value="all">Todas</MenuItem>
           {airlines.map((a) => (
             <MenuItem key={a} value={a} sx={{ textTransform: 'capitalize' }}>{a}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 200 }}>
+        <InputLabel id="jobs-user-filter">Usuário</InputLabel>
+        <Select
+          labelId="jobs-user-filter"
+          label="Usuário"
+          value={filter.userEmail}
+          onChange={(e) => onChange({ ...filter, userEmail: e.target.value })}
+        >
+          <MenuItem value="all">Todos</MenuItem>
+          {users.map((u) => (
+            <MenuItem key={u} value={u}>{u}</MenuItem>
           ))}
         </Select>
       </FormControl>

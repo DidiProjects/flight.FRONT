@@ -19,6 +19,7 @@ describe('AdminJobsService', () => {
       jobs: [{
         id: 'j1', request_id: 'r1', airline: 'azul', origin: 'VCP', destination: 'GRU',
         flight_date: '2026-07-01', status: 'running', running_since: '2026-07-01T10:00:00Z', last_error: null,
+        user_email: 'ana@example.com',
       }],
     }))
     const { AdminJobsService } = await import('./AdminJobsService')
@@ -27,6 +28,7 @@ describe('AdminJobsService', () => {
     expect(jobs[0]).toEqual({
       requestId: 'r1', jobId: 'j1', airline: 'azul', origin: 'VCP', destination: 'GRU',
       flightDate: '2026-07-01', status: 'running', runningSince: '2026-07-01T10:00:00Z', lastError: null,
+      userEmail: 'ana@example.com',
     })
   })
 

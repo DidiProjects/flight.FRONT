@@ -6,6 +6,7 @@ export type SortDir = 'asc' | 'desc'
 export interface JobsFilter {
   status: JobStatus | 'all'
   airline: string | 'all'
+  userEmail: string | 'all'
 }
 
 export interface JobsSort {
@@ -13,7 +14,7 @@ export interface JobsSort {
   dir: SortDir
 }
 
-export const DEFAULT_FILTER: JobsFilter = { status: 'all', airline: 'all' }
+export const DEFAULT_FILTER: JobsFilter = { status: 'all', airline: 'all', userEmail: 'all' }
 export const DEFAULT_SORT: JobsSort = { key: 'startedAt', dir: 'desc' }
 
 const routeOf = (j: JobView): string => `${j.origin}-${j.destination}`
@@ -30,11 +31,16 @@ export function distinctAirlines(jobs: JobView[]): string[] {
   return [...new Set(jobs.map((j) => j.airline))].sort()
 }
 
+export function distinctUsers(jobs: JobView[]): string[] {
+  return [...new Set(jobs.map((j) => j.userEmail).filter((e): e is string => !!e))].sort()
+}
+
 export function filterJobs(jobs: JobView[], filter: JobsFilter): JobView[] {
   return jobs.filter(
     (j) =>
       (filter.status === 'all' || j.status === filter.status) &&
-      (filter.airline === 'all' || j.airline === filter.airline),
+      (filter.airline === 'all' || j.airline === filter.airline) &&
+      (filter.userEmail === 'all' || j.userEmail === filter.userEmail),
   )
 }
 

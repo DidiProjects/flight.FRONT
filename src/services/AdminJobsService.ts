@@ -13,6 +13,7 @@ interface RawJob {
   run_started_at: string | null
   run_finished_at: string | null
   last_error: string | null
+  user_email: string | null
 }
 
 interface RawEvent {
@@ -37,6 +38,7 @@ function jobFromApi(raw: RawJob): JobView {
     startedAt: raw.run_started_at,
     finishedAt: raw.run_finished_at,
     lastError: raw.last_error,
+    userEmail: raw.user_email,
   }
 }
 
