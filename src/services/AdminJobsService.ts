@@ -59,6 +59,11 @@ class AdminJobsServiceClass extends ApiService {
     return events.map(eventFromApi)
   }
 
+  async listTimelineByJob(jobId: string): Promise<JobEventLine[]> {
+    const { events } = await this.get<{ events: RawEvent[] }>(`/admin/jobs/${jobId}/timeline`)
+    return events.map(eventFromApi)
+  }
+
   cancelJob(requestId: string): Promise<CancelJobResponse> {
     return this.post<CancelJobResponse>(`/admin/jobs/${requestId}/cancel`)
   }

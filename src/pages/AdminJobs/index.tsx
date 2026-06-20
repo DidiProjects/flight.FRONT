@@ -26,7 +26,7 @@ import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
 import { useRealtimeJobs } from '@hooks/useRealtimeJobs'
 import { AdminJobsService } from '@services/AdminJobsService'
 import { toastEmitter } from '@utils/toast'
-import type { JobView, JobStatus } from '@app-types/jobs'
+import type { JobView, JobStatus, JobEventLine } from '@app-types/jobs'
 
 const STATUS_COLOR: Record<JobStatus, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
   pending: 'default',
@@ -48,6 +48,11 @@ const STATUS_LABEL: Record<JobStatus, string> = {
   cancelled: 'Cancelado',
 }
 
+function formatFlightDate(d: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d)
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : d
+}
+
 function formatDuration(fromIso: string | null, now: number): string {
   if (!fromIso) return '—'
   const ms = now - new Date(fromIso).getTime()
@@ -65,6 +70,30 @@ export function AdminJobsPage() {
   const [target, setTarget] = useState<JobView | null>(null)
   const [cancelling, setCancelling] = useState<Set<string>>(new Set())
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [historyEvents, setHistoryEvents] = useState<Map<string, JobEventLine[]>>(new Map())
+  const [loadingEvents, setLoadingEvents] = useState<Set<string>>(new Set())
+
+  async function toggleRow(job: JobView): Promise<void> {
+    const rowKey = job.requestId ?? job.jobId
+    const willOpen = expanded !== rowKey
+    setExpanded(willOpen ? rowKey : null)
+    if (!willOpen) return
+
+    const jobId = job.jobId
+    const hasLive = job.requestId ? (events.get(job.requestId)?.length ?? 0) > 0 : false
+    if (hasLive || historyEvents.has(jobId) || loadingEvents.has(jobId)) return
+
+    setLoadingEvents((prev) => new Set(prev).add(jobId))
+    try {
+      const evs = await AdminJobsService.listTimelineByJob(jobId)
+      setHistoryEvents((prev) => new Map(prev).set(jobId, evs))
+    } catch {
+      setHistoryEvents((prev) => new Map(prev).set(jobId, []))
+      toastEmitter.error('Falha ao carregar a timeline do job.')
+    } finally {
+      setLoadingEvents((prev) => { const n = new Set(prev); n.delete(jobId); return n })
+    }
+  }
 
   // Tick de 1s para a duração ao vivo (calculada do runningSince autoritativo).
   useEffect(() => {
@@ -136,7 +165,9 @@ export function AdminJobsPage() {
                 const isCancelling = job.requestId ? cancelling.has(job.requestId) : false
                 const canCancel = job.status === 'running' || job.status === 'pending'
                 const rowKey = job.requestId ?? job.jobId
-                const timeline = job.requestId ? (events.get(job.requestId) ?? []) : []
+                const liveTl = job.requestId ? (events.get(job.requestId) ?? []) : []
+                const timeline = liveTl.length > 0 ? liveTl : (historyEvents.get(job.jobId) ?? [])
+                const isLoadingTl = loadingEvents.has(job.jobId)
                 const isOpen = expanded === rowKey
                 return (
                   <Fragment key={rowKey}>
@@ -144,15 +175,14 @@ export function AdminJobsPage() {
                     <TableCell sx={{ width: 40 }}>
                       <IconButton
                         size="small"
-                        disabled={timeline.length === 0}
-                        onClick={() => setExpanded(isOpen ? null : rowKey)}
+                        onClick={() => void toggleRow(job)}
                       >
                         {isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                       </IconButton>
                     </TableCell>
                     <TableCell sx={{ textTransform: 'capitalize' }}>{job.airline}</TableCell>
                     <TableCell>{job.origin} → {job.destination}</TableCell>
-                    <TableCell>{job.flightDate}</TableCell>
+                    <TableCell>{formatFlightDate(job.flightDate)}</TableCell>
                     <TableCell>
                       <Chip size="small" color={STATUS_COLOR[job.status]} label={STATUS_LABEL[job.status]} />
                       {job.lastStep && job.status === 'running' && (
@@ -178,11 +208,20 @@ export function AdminJobsPage() {
                     <TableCell sx={{ py: 0, border: 0 }} colSpan={7}>
                       <Collapse in={isOpen} unmountOnExit>
                         <Stack spacing={0.5} sx={{ py: 1, pl: 6 }}>
-                          {timeline.map((ev) => (
-                            <Typography key={ev.seq} variant="caption" sx={{ color: ev.level === 'error' ? 'error.main' : 'text.secondary' }}>
-                              {new Date(ev.ts).toLocaleTimeString()} · {ev.type}{ev.detail ? ` — ${ev.detail}` : ''}
-                            </Typography>
-                          ))}
+                          {isLoadingTl ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CircularProgress size={14} />
+                              <Typography variant="caption" color="text.secondary">Carregando timeline…</Typography>
+                            </Box>
+                          ) : timeline.length > 0 ? (
+                            timeline.map((ev) => (
+                              <Typography key={ev.seq} variant="caption" sx={{ color: ev.level === 'error' ? 'error.main' : 'text.secondary' }}>
+                                {new Date(ev.ts).toLocaleTimeString()} · {ev.type}{ev.detail ? ` — ${ev.detail}` : ''}
+                              </Typography>
+                            ))
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">Sem timeline registrada para este job.</Typography>
+                          )}
                         </Stack>
                       </Collapse>
                     </TableCell>

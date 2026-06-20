@@ -16,7 +16,6 @@ import {
   Button,
   LinearProgress,
   Collapse,
-  CircularProgress,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -27,7 +26,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { useRealtimeJobs } from '@hooks/useRealtimeJobs'
+import { useLiveRuns } from '@hooks/useLiveRuns'
 import { AppLayout } from '@atomic-components/templates/AppLayout'
 import { StatusChip } from '@atomic-components/atoms/StatusChip'
 import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
@@ -39,8 +38,7 @@ import { useAdminUser } from '@contexts/AdminUserContext'
 import { toastEmitter } from '@utils/toast'
 import type { Routine, CreateTripInput } from '@app-types/routines'
 import type { Airline } from '@app-types/airlines'
-import type { AnalysisRun, AnalysisRunStatus } from '@app-types/analysisRuns'
-import type { JobView } from '@app-types/jobs'
+import { RoutineHistoryPanel } from './RoutineHistoryPanel'
 
 function fmtDate(d: string): string {
   const [y, m, day] = d.split('-')
@@ -49,78 +47,6 @@ function fmtDate(d: string): string {
 
 function formatPeriod(r: Routine): string {
   return `${fmtDate(r.outboundStart)} – ${fmtDate(r.outboundEnd)}`
-}
-
-function formatDateTime(iso: string | null): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return '—'
-  return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })
-}
-
-type RunResultMeta = { label: string; color: 'default' | 'success' | 'error' | 'warning' }
-
-const runResult: Record<AnalysisRunStatus, RunResultMeta> = {
-  running:   { label: 'Em andamento', color: 'default' },
-  success:   { label: 'Sucesso',      color: 'success' },
-  failed:    { label: 'Falha',        color: 'error' },
-  dead:      { label: 'Esgotado',     color: 'error' },
-  blocked:   { label: 'Bloqueado',    color: 'warning' },
-  cancelled: { label: 'Cancelado',    color: 'default' },
-}
-
-// Fallback defensivo: status novo no backend não deve quebrar a tela.
-function runResultMeta(status: string): RunResultMeta {
-  return runResult[status as AnalysisRunStatus] ?? { label: status, color: 'default' }
-}
-
-const TERMINAL_STATUS: ReadonlySet<string> = new Set(['success', 'failed', 'dead', 'blocked', 'cancelled'])
-
-// ── Realtime: casa um job ao vivo (telemetria SSE) com a rotina ──────────────
-// A telemetria não carrega routineId, então casamos por rota+data (mesma lógica
-// do listByRoutineMatch do backend).
-function matchesRoutine(jv: JobView, r: Routine): boolean {
-  const date = jv.flightDate?.slice(0, 10)
-  return (
-    r.airlines.includes(jv.airline) &&
-    jv.origin === r.origin &&
-    jv.destination === r.destination &&
-    !!date && date >= r.outboundStart && date <= r.outboundEnd
-  )
-}
-
-function jobToRun(jv: JobView): AnalysisRun {
-  return {
-    id: jv.requestId ?? jv.jobId,
-    requestId: jv.requestId,
-    airline: jv.airline,
-    origin: jv.origin,
-    destination: jv.destination,
-    flightDate: jv.flightDate?.slice(0, 10) ?? '',
-    status: (jv.status === 'pending' ? 'running' : jv.status) as AnalysisRunStatus,
-    errorMessage: jv.lastError,
-    faresFound: null,
-    startedAt: jv.runningSince ?? new Date().toISOString(),
-    finishedAt: null,
-  }
-}
-
-// Histórico autoritativo (DB) sobreposto pelos deltas ao vivo do SSE, casados por
-// requestId. Jobs novos (ainda não persistidos no histórico) entram como linha viva.
-function mergeRuns(history: AnalysisRun[], live: JobView[]): AnalysisRun[] {
-  const byKey = new Map<string, AnalysisRun>()
-  for (const run of history) byKey.set(run.requestId ?? run.id, run)
-  for (const jv of live) {
-    const k = jv.requestId ?? jv.jobId
-    const prev = byKey.get(k)
-    const status = (jv.status === 'pending' ? 'running' : jv.status) as AnalysisRunStatus
-    if (prev) {
-      byKey.set(k, { ...prev, status, errorMessage: jv.lastError ?? prev.errorMessage })
-    } else {
-      byKey.set(k, jobToRun(jv))
-    }
-  }
-  return [...byKey.values()].sort((a, b) => (b.startedAt ?? '').localeCompare(a.startedAt ?? ''))
 }
 
 function formatTarget(r: Routine): string {
@@ -140,7 +66,7 @@ function formatTarget(r: Routine): string {
 export function AdminUserRoutinesPage() {
   const navigate = useNavigate()
   const { selectedUser } = useAdminUser()
-  const { jobs: liveJobs } = useRealtimeJobs()
+  const live = useLiveRuns()
 
   const [routines, setRoutines] = useState<Routine[]>([])
   const [loading, setLoading] = useState(true)
@@ -152,33 +78,15 @@ export function AdminUserRoutinesPage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [editTarget, setEditTarget] = useState<Routine | null>(null)
   const [airlines, setAirlines] = useState<Airline[]>([])
-
-  // ── Analysis-runs accordion ─────────────────────────────────────────────────
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [runsByRoutine, setRunsByRoutine] = useState<Record<string, AnalysisRun[]>>({})
-  const [runsLoading, setRunsLoading] = useState<Set<string>>(new Set())
 
-  async function toggleExpand(routineId: string) {
-    const willExpand = !expanded.has(routineId)
+  function toggleExpand(routineId: string) {
     setExpanded((prev) => {
       const next = new Set(prev)
       if (next.has(routineId)) next.delete(routineId)
       else next.add(routineId)
       return next
     })
-
-    if (willExpand && runsByRoutine[routineId] === undefined) {
-      setRunsLoading((prev) => new Set([...prev, routineId]))
-      try {
-        const runs = await RoutinesService.listAnalysisRuns(routineId)
-        setRunsByRoutine((prev) => ({ ...prev, [routineId]: runs }))
-      } catch {
-        setRunsByRoutine((prev) => ({ ...prev, [routineId]: [] }))
-        toastEmitter.error('Falha ao carregar histórico de análises.')
-      } finally {
-        setRunsLoading((prev) => { const s = new Set(prev); s.delete(routineId); return s })
-      }
-    }
   }
 
   const loadRoutines = useCallback(async () => {
@@ -195,30 +103,8 @@ export function AdminUserRoutinesPage() {
   useEffect(() => { void loadRoutines() }, [loadRoutines])
 
   useEffect(() => {
-    AirlinesService.list().then(setAirlines).catch(() => { /* non-critical */ })
+    AirlinesService.list().then(setAirlines).catch(() => undefined)
   }, [])
-
-  // Refetch autoritativo quando um job ao vivo de uma rotina expandida finaliza e
-  // ainda não consta no histórico carregado (antes do SSE descartá-lo aos ~60s).
-  const refreshRuns = useCallback(async (routineId: string) => {
-    try {
-      const runs = await RoutinesService.listAnalysisRuns(routineId)
-      setRunsByRoutine((prev) => ({ ...prev, [routineId]: runs }))
-    } catch { /* mantém o cache atual */ }
-  }, [])
-
-  useEffect(() => {
-    for (const routine of routines) {
-      if (!expanded.has(routine.id)) continue
-      const history = runsByRoutine[routine.id]
-      if (history === undefined) continue
-      const known = new Set(history.map((r) => r.requestId ?? r.id))
-      const hasNewTerminal = liveJobs.some(
-        (j) => matchesRoutine(j, routine) && TERMINAL_STATUS.has(j.status) && !known.has(j.requestId ?? j.jobId),
-      )
-      if (hasNewTerminal) void refreshRuns(routine.id)
-    }
-  }, [liveJobs, expanded, routines, runsByRoutine, refreshRuns])
 
   async function handleAdminEdit(data: CreateTripInput) {
     if (!editTarget) return
@@ -228,7 +114,6 @@ export function AdminUserRoutinesPage() {
     void loadRoutines()
   }
 
-  // ── Selection ──────────────────────────────────────────────────────────────
   const allSelected = routines.length > 0 && selected.size === routines.length
   const someSelected = selected.size > 0 && selected.size < routines.length
 
@@ -239,16 +124,12 @@ export function AdminUserRoutinesPage() {
   function toggleOne(id: string) {
     setSelected((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
 
-  // ── Individual actions ─────────────────────────────────────────────────────
   function startAction(id: string) {
     setActionLoading((prev) => new Set([...prev, id]))
   }
@@ -302,7 +183,6 @@ export function AdminUserRoutinesPage() {
     }
   }
 
-  // ── Bulk actions ───────────────────────────────────────────────────────────
   async function handleBulkDispatch() {
     setBulkLoading(true)
     try {
@@ -363,7 +243,6 @@ export function AdminUserRoutinesPage() {
 
   return (
     <AppLayout>
-      {/* ── Header ── */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
         <Tooltip title="Voltar para usuários">
           <IconButton size="small" onClick={() => navigate('/admin')} aria-label="Voltar">
@@ -389,7 +268,6 @@ export function AdminUserRoutinesPage() {
 
       {loading && <LinearProgress sx={{ borderRadius: '4px', mb: 2 }} />}
 
-      {/* ── Bulk action bar ── */}
       {selected.size > 0 && (
         <Box
           sx={{
@@ -454,7 +332,6 @@ export function AdminUserRoutinesPage() {
         </Box>
       )}
 
-      {/* ── Content ── */}
       {!loading && routines.length === 0 ? (
         <EmptyState
           Icon={RouteOutlinedIcon}
@@ -490,14 +367,7 @@ export function AdminUserRoutinesPage() {
                 {routines.map((routine) => {
                   const isSelected = selected.has(routine.id)
                   const isActing = actionLoading.has(routine.id)
-                  const period = formatPeriod(routine)
                   const isExpanded = expanded.has(routine.id)
-                  const history = runsByRoutine[routine.id]
-                  const loadingRuns = runsLoading.has(routine.id)
-                  // Histórico autoritativo + telemetria ao vivo (SSE), em tempo real.
-                  const runs = history !== undefined
-                    ? mergeRuns(history, liveJobs.filter((j) => matchesRoutine(j, routine)))
-                    : undefined
 
                   return (
                     <Fragment key={routine.id}>
@@ -546,16 +416,7 @@ export function AdminUserRoutinesPage() {
                       </TableCell>
 
                       <TableCell>
-                        {period.includes('\n') ? (
-                          <>
-                            <Typography variant="caption" display="block">{period.split('\n')[0]}</Typography>
-                            <Typography variant="caption" display="block" color="text.secondary">
-                              {period.split('\n')[1]}
-                            </Typography>
-                          </>
-                        ) : (
-                          <Typography variant="caption">{period}</Typography>
-                        )}
+                        <Typography variant="caption">{formatPeriod(routine)}</Typography>
                       </TableCell>
 
                       <TableCell>
@@ -624,88 +485,7 @@ export function AdminUserRoutinesPage() {
                     <TableRow>
                       <TableCell colSpan={9} sx={{ py: 0, borderBottom: isExpanded ? undefined : 'none' }}>
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                          <Box sx={{ py: 2, px: { xs: 0, sm: 2 } }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-                              Histórico de análises
-                            </Typography>
-
-                            {loadingRuns ? (
-                              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                                <CircularProgress size={22} />
-                              </Box>
-                            ) : runs && runs.length > 0 ? (
-                              <Table size="small" aria-label="Histórico de análises">
-                                <TableHead>
-                                  <TableRow>
-                                    <TableCell>Voo</TableCell>
-                                    <TableCell>Início</TableCell>
-                                    <TableCell>Fim</TableCell>
-                                    <TableCell>Status</TableCell>
-                                    <TableCell>Resultado</TableCell>
-                                    <TableCell align="right">Passagens</TableCell>
-                                    <TableCell>Erro</TableCell>
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {runs.map((run) => (
-                                    <TableRow key={run.id} hover>
-                                      <TableCell>
-                                        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                                          {run.airline.toUpperCase()} · {run.origin}→{run.destination}
-                                        </Typography>
-                                        <Typography variant="caption" display="block" color="text.secondary">
-                                          {run.flightDate.split('-').reverse().join('/')}
-                                        </Typography>
-                                      </TableCell>
-                                      <TableCell>
-                                        <Typography variant="caption">{formatDateTime(run.startedAt)}</Typography>
-                                      </TableCell>
-                                      <TableCell>
-                                        <Typography variant="caption">{formatDateTime(run.finishedAt)}</Typography>
-                                      </TableCell>
-                                      <TableCell>
-                                        <Chip
-                                          size="small"
-                                          variant="outlined"
-                                          color={run.status === 'running' ? 'warning' : 'default'}
-                                          label={run.status === 'running' ? 'Em processamento' : 'Finalizado'}
-                                        />
-                                      </TableCell>
-                                      <TableCell>
-                                        <Chip
-                                          size="small"
-                                          color={runResultMeta(run.status).color}
-                                          label={runResultMeta(run.status).label}
-                                        />
-                                      </TableCell>
-                                      <TableCell align="right">
-                                        <Typography variant="caption">{run.faresFound ?? '—'}</Typography>
-                                      </TableCell>
-                                      <TableCell sx={{ maxWidth: 240 }}>
-                                        {run.errorMessage ? (
-                                          <Tooltip title={run.errorMessage}>
-                                            <Typography
-                                              variant="caption"
-                                              color="error"
-                                              sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                            >
-                                              {run.errorMessage}
-                                            </Typography>
-                                          </Tooltip>
-                                        ) : (
-                                          <Typography variant="caption" color="text.secondary">—</Typography>
-                                        )}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            ) : (
-                              <Typography variant="body2" color="text.secondary">
-                                Nenhuma análise registrada ainda.
-                              </Typography>
-                            )}
-                          </Box>
+                          <RoutineHistoryPanel routine={routine} live={live} />
                         </Collapse>
                       </TableCell>
                     </TableRow>
@@ -718,7 +498,6 @@ export function AdminUserRoutinesPage() {
         </Paper>
       )}
 
-      {/* ── Single delete confirm ── */}
       <ConfirmDialog
         open={!!deleteTarget}
         title="Excluir rotina"
@@ -729,7 +508,6 @@ export function AdminUserRoutinesPage() {
         onCancel={() => setDeleteTarget(null)}
       />
 
-      {/* ── Bulk delete confirm ── */}
       <ConfirmDialog
         open={bulkDeleteOpen}
         title="Excluir rotinas selecionadas"
@@ -740,7 +518,6 @@ export function AdminUserRoutinesPage() {
         onCancel={() => setBulkDeleteOpen(false)}
       />
 
-      {/* ── Edit routine drawer ── */}
       <RoutineForm
         open={!!editTarget}
         routine={editTarget}
