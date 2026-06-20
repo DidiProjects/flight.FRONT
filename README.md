@@ -53,3 +53,16 @@ Todas as chamadas passam por `ApiService` (`src/services/ApiService.ts`), que pr
 - Refresh token: `localStorage` na chave `flight_rt` (`storage`).
 - Em `401`, `ApiService` enfileira requisições, faz um único `POST /auth/refresh` e repete a chamada; falha → evento `auth:logout`.
 - `AuthContext` agenda refresh proativo antes do `exp` do JWT.
+
+## Painel Admin de jobs em tempo real
+
+Rota admin `/admin/jobs` (aba "Jobs"): mostra os jobs de scraping ao vivo
+(status, etapa, tempo de execução), permite **interromper** um job e exibe a
+timeline de eventos — tudo sem refresh.
+
+- `RealtimeService` abre um **SSE** (`EventSource`) em `GET /flight/admin/stream`.
+  Como o `EventSource` não envia header, o access token vai por query param.
+- `useRealtimeJobs` mantém o mapa de jobs (snapshot inicial + deltas
+  `job.upsert`/`job.removed`) e a timeline (`job.event`).
+- `AdminJobsService` cobre as ações REST: `GET /admin/jobs`,
+  `GET /admin/jobs/:id/events`, `POST /admin/jobs/:id/cancel`.
