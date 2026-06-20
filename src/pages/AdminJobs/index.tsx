@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import {
   Box,
   Typography,
@@ -11,7 +11,12 @@ import {
   Chip,
   Button,
   CircularProgress,
+  Collapse,
+  IconButton,
+  Stack,
 } from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline'
 import { AppLayout } from '@atomic-components/templates/AppLayout'
@@ -55,10 +60,11 @@ function formatDuration(fromIso: string | null, now: number): string {
 }
 
 export function AdminJobsPage() {
-  const { jobs, connected } = useRealtimeJobs()
+  const { jobs, events, connected } = useRealtimeJobs()
   const [now, setNow] = useState(Date.now())
   const [target, setTarget] = useState<JobView | null>(null)
   const [cancelling, setCancelling] = useState<Set<string>>(new Set())
+  const [expanded, setExpanded] = useState<string | null>(null)
 
   // Tick de 1s para a duração ao vivo (calculada do runningSince autoritativo).
   useEffect(() => {
@@ -116,6 +122,7 @@ export function AdminJobsPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
+                <TableCell sx={{ width: 40 }} />
                 <TableCell>Companhia</TableCell>
                 <TableCell>Rota</TableCell>
                 <TableCell>Data do voo</TableCell>
@@ -128,8 +135,21 @@ export function AdminJobsPage() {
               {rows.map((job) => {
                 const isCancelling = job.requestId ? cancelling.has(job.requestId) : false
                 const canCancel = job.status === 'running' || job.status === 'pending'
+                const rowKey = job.requestId ?? job.jobId
+                const timeline = job.requestId ? (events.get(job.requestId) ?? []) : []
+                const isOpen = expanded === rowKey
                 return (
-                  <TableRow key={job.requestId ?? job.jobId} hover>
+                  <Fragment key={rowKey}>
+                  <TableRow hover>
+                    <TableCell sx={{ width: 40 }}>
+                      <IconButton
+                        size="small"
+                        disabled={timeline.length === 0}
+                        onClick={() => setExpanded(isOpen ? null : rowKey)}
+                      >
+                        {isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                      </IconButton>
+                    </TableCell>
                     <TableCell sx={{ textTransform: 'capitalize' }}>{job.airline}</TableCell>
                     <TableCell>{job.origin} → {job.destination}</TableCell>
                     <TableCell>{job.flightDate}</TableCell>
@@ -154,6 +174,20 @@ export function AdminJobsPage() {
                       </Button>
                     </TableCell>
                   </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ py: 0, border: 0 }} colSpan={7}>
+                      <Collapse in={isOpen} unmountOnExit>
+                        <Stack spacing={0.5} sx={{ py: 1, pl: 6 }}>
+                          {timeline.map((ev) => (
+                            <Typography key={ev.seq} variant="caption" sx={{ color: ev.level === 'error' ? 'error.main' : 'text.secondary' }}>
+                              {new Date(ev.ts).toLocaleTimeString()} · {ev.type}{ev.detail ? ` — ${ev.detail}` : ''}
+                            </Typography>
+                          ))}
+                        </Stack>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                  </Fragment>
                 )
               })}
             </TableBody>
