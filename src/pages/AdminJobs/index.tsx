@@ -8,6 +8,8 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  TableSortLabel,
+  TablePagination,
   Chip,
   Button,
   CircularProgress,
@@ -26,27 +28,22 @@ import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
 import { useRealtimeJobs } from '@hooks/useRealtimeJobs'
 import { AdminJobsService } from '@services/AdminJobsService'
 import { toastEmitter } from '@utils/toast'
-import type { JobView, JobStatus, JobEventLine } from '@app-types/jobs'
+import type { JobView, JobEventLine } from '@app-types/jobs'
+import { STATUS_COLOR, STATUS_LABEL } from './jobsStatus'
+import { JobsFilters } from './JobsFilters'
+import {
+  DEFAULT_FILTER,
+  DEFAULT_SORT,
+  distinctAirlines,
+  filterJobs,
+  nextSort,
+  sortJobs,
+  type JobsFilter,
+  type JobsSort,
+  type SortKey,
+} from './jobsView'
 
-const STATUS_COLOR: Record<JobStatus, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
-  pending: 'default',
-  running: 'info',
-  success: 'success',
-  failed: 'error',
-  dead: 'error',
-  blocked: 'warning',
-  cancelled: 'default',
-}
-
-const STATUS_LABEL: Record<JobStatus, string> = {
-  pending: 'Pendente',
-  running: 'Executando',
-  success: 'Sucesso',
-  failed: 'Falhou',
-  dead: 'Morto',
-  blocked: 'Bloqueado',
-  cancelled: 'Cancelado',
-}
+const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
 function formatFlightDate(d: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d)
@@ -64,6 +61,28 @@ function formatDuration(fromIso: string | null, now: number): string {
   return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${sec}s` : `${sec}s`
 }
 
+interface SortableHeaderProps {
+  label: string
+  column: SortKey
+  sort: JobsSort
+  onSort: (key: SortKey) => void
+  align?: 'right'
+}
+
+function SortableHeader({ label, column, sort, onSort, align }: SortableHeaderProps) {
+  return (
+    <TableCell align={align} sortDirection={sort.key === column ? sort.dir : false}>
+      <TableSortLabel
+        active={sort.key === column}
+        direction={sort.key === column ? sort.dir : 'asc'}
+        onClick={() => onSort(column)}
+      >
+        {label}
+      </TableSortLabel>
+    </TableCell>
+  )
+}
+
 export function AdminJobsPage() {
   const { jobs, events, connected } = useRealtimeJobs()
   const [now, setNow] = useState(Date.now())
@@ -72,6 +91,25 @@ export function AdminJobsPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [historyEvents, setHistoryEvents] = useState<Map<string, JobEventLine[]>>(new Map())
   const [loadingEvents, setLoadingEvents] = useState<Set<string>>(new Set())
+
+  const [filter, setFilter] = useState<JobsFilter>(DEFAULT_FILTER)
+  const [sort, setSort] = useState<JobsSort>(DEFAULT_SORT)
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE_OPTIONS[0])
+
+  const airlines = useMemo(() => distinctAirlines(jobs), [jobs])
+  const filtered = useMemo(() => sortJobs(filterJobs(jobs, filter), sort), [jobs, filter, sort])
+  const paged = useMemo(
+    () => filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filtered, page, rowsPerPage],
+  )
+
+  useEffect(() => setPage(0), [filter])
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   async function toggleRow(job: JobView): Promise<void> {
     const rowKey = job.requestId ?? job.jobId
@@ -95,22 +133,6 @@ export function AdminJobsPage() {
     }
   }
 
-  // Tick de 1s para a duração ao vivo (calculada do runningSince autoritativo).
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
-
-  const rows = useMemo(
-    () =>
-      [...jobs].sort((a, b) => {
-        if (a.status === 'running' && b.status !== 'running') return -1
-        if (b.status === 'running' && a.status !== 'running') return 1
-        return (b.runningSince ?? '').localeCompare(a.runningSince ?? '')
-      }),
-    [jobs],
-  )
-
   async function confirmCancel(): Promise<void> {
     if (!target?.requestId) return
     const requestId = target.requestId
@@ -124,11 +146,7 @@ export function AdminJobsPage() {
           : 'Sem execução ativa — job recuperado e reagendado.',
       )
     } finally {
-      setCancelling((prev) => {
-        const next = new Set(prev)
-        next.delete(requestId)
-        return next
-      })
+      setCancelling((prev) => { const next = new Set(prev); next.delete(requestId); return next })
     }
   }
 
@@ -144,94 +162,112 @@ export function AdminJobsPage() {
       </Box>
       <AdminNav />
 
-      {rows.length === 0 ? (
+      {jobs.length === 0 ? (
         <EmptyState Icon={WorkOutlineIcon} title="Nenhum job no momento" description="Jobs ativos aparecerão aqui em tempo real." />
       ) : (
-        <Paper variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ width: 40 }} />
-                <TableCell>Companhia</TableCell>
-                <TableCell>Rota</TableCell>
-                <TableCell>Data do voo</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Tempo</TableCell>
-                <TableCell align="right">Ações</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((job) => {
-                const isCancelling = job.requestId ? cancelling.has(job.requestId) : false
-                const canCancel = job.status === 'running' || job.status === 'pending'
-                const rowKey = job.requestId ?? job.jobId
-                const liveTl = job.requestId ? (events.get(job.requestId) ?? []) : []
-                const timeline = liveTl.length > 0 ? liveTl : (historyEvents.get(job.jobId) ?? [])
-                const isLoadingTl = loadingEvents.has(job.jobId)
-                const isOpen = expanded === rowKey
-                return (
-                  <Fragment key={rowKey}>
-                  <TableRow hover>
-                    <TableCell sx={{ width: 40 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => void toggleRow(job)}
-                      >
-                        {isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                      </IconButton>
-                    </TableCell>
-                    <TableCell sx={{ textTransform: 'capitalize' }}>{job.airline}</TableCell>
-                    <TableCell>{job.origin} → {job.destination}</TableCell>
-                    <TableCell>{formatFlightDate(job.flightDate)}</TableCell>
-                    <TableCell>
-                      <Chip size="small" color={STATUS_COLOR[job.status]} label={STATUS_LABEL[job.status]} />
-                      {job.lastStep && job.status === 'running' && (
-                        <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
-                          {job.lastStep}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>{job.status === 'running' ? formatDuration(job.runningSince, now) : '—'}</TableCell>
-                    <TableCell align="right">
-                      <Button
-                        size="small"
-                        color="error"
-                        startIcon={isCancelling ? <CircularProgress size={14} /> : <StopCircleOutlinedIcon />}
-                        disabled={!canCancel || isCancelling || !job.requestId}
-                        onClick={() => setTarget(job)}
-                      >
-                        {isCancelling ? 'Interrompendo…' : 'Interromper'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+        <>
+          <JobsFilters filter={filter} airlines={airlines} onChange={setFilter} />
+          <Paper variant="outlined">
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ width: 40 }} />
+                  <SortableHeader label="Companhia" column="airline" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                  <SortableHeader label="Rota" column="route" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                  <SortableHeader label="Data do voo" column="flightDate" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                  <SortableHeader label="Status" column="status" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                  <SortableHeader label="Tempo" column="runningSince" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                  <TableCell align="right">Ações</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell sx={{ py: 0, border: 0 }} colSpan={7}>
-                      <Collapse in={isOpen} unmountOnExit>
-                        <Stack spacing={0.5} sx={{ py: 1, pl: 6 }}>
-                          {isLoadingTl ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <CircularProgress size={14} />
-                              <Typography variant="caption" color="text.secondary">Carregando timeline…</Typography>
-                            </Box>
-                          ) : timeline.length > 0 ? (
-                            timeline.map((ev) => (
-                              <Typography key={ev.seq} variant="caption" sx={{ color: ev.level === 'error' ? 'error.main' : 'text.secondary' }}>
-                                {new Date(ev.ts).toLocaleTimeString()} · {ev.type}{ev.detail ? ` — ${ev.detail}` : ''}
-                              </Typography>
-                            ))
-                          ) : (
-                            <Typography variant="caption" color="text.secondary">Sem timeline registrada para este job.</Typography>
-                          )}
-                        </Stack>
-                      </Collapse>
+                    <TableCell colSpan={7}>
+                      <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                        Nenhum job com os filtros aplicados.
+                      </Typography>
                     </TableCell>
                   </TableRow>
-                  </Fragment>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </Paper>
+                ) : paged.map((job) => {
+                  const isCancelling = job.requestId ? cancelling.has(job.requestId) : false
+                  const canCancel = job.status === 'running' || job.status === 'pending'
+                  const rowKey = job.requestId ?? job.jobId
+                  const liveTl = job.requestId ? (events.get(job.requestId) ?? []) : []
+                  const timeline = liveTl.length > 0 ? liveTl : (historyEvents.get(job.jobId) ?? [])
+                  const isLoadingTl = loadingEvents.has(job.jobId)
+                  const isOpen = expanded === rowKey
+                  return (
+                    <Fragment key={rowKey}>
+                    <TableRow hover>
+                      <TableCell sx={{ width: 40 }}>
+                        <IconButton size="small" onClick={() => void toggleRow(job)}>
+                          {isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                        </IconButton>
+                      </TableCell>
+                      <TableCell sx={{ textTransform: 'capitalize' }}>{job.airline}</TableCell>
+                      <TableCell>{job.origin} → {job.destination}</TableCell>
+                      <TableCell>{formatFlightDate(job.flightDate)}</TableCell>
+                      <TableCell>
+                        <Chip size="small" color={STATUS_COLOR[job.status]} label={STATUS_LABEL[job.status]} />
+                        {job.lastStep && job.status === 'running' && (
+                          <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                            {job.lastStep}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>{job.status === 'running' ? formatDuration(job.runningSince, now) : '—'}</TableCell>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          color="error"
+                          startIcon={isCancelling ? <CircularProgress size={14} /> : <StopCircleOutlinedIcon />}
+                          disabled={!canCancel || isCancelling || !job.requestId}
+                          onClick={() => setTarget(job)}
+                        >
+                          {isCancelling ? 'Interrompendo…' : 'Interromper'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell sx={{ py: 0, border: 0 }} colSpan={7}>
+                        <Collapse in={isOpen} unmountOnExit>
+                          <Stack spacing={0.5} sx={{ py: 1, pl: 6 }}>
+                            {isLoadingTl ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <CircularProgress size={14} />
+                                <Typography variant="caption" color="text.secondary">Carregando timeline…</Typography>
+                              </Box>
+                            ) : timeline.length > 0 ? (
+                              timeline.map((ev) => (
+                                <Typography key={ev.seq} variant="caption" sx={{ color: ev.level === 'error' ? 'error.main' : 'text.secondary' }}>
+                                  {new Date(ev.ts).toLocaleTimeString()} · {ev.type}{ev.detail ? ` — ${ev.detail}` : ''}
+                                </Typography>
+                              ))
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">Sem timeline registrada para este job.</Typography>
+                            )}
+                          </Stack>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                    </Fragment>
+                  )
+                })}
+              </TableBody>
+            </Table>
+            <TablePagination
+              component="div"
+              count={filtered.length}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }}
+              rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
+              labelRowsPerPage="Linhas:"
+            />
+          </Paper>
+        </>
       )}
 
       <ConfirmDialog
