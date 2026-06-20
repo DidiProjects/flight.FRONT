@@ -11,6 +11,7 @@ import { DashboardPage } from '@pages/Dashboard'
 import { AdminPage } from '@pages/Admin'
 import { AdminUserRoutinesPage } from '@pages/AdminUserRoutines'
 import { AdminAirlinesPage } from '@pages/AdminAirlines'
+import { AdminJobsPage } from '@pages/AdminJobs'
 
 export function AppRoutes() {
   return (
@@ -30,6 +31,7 @@ export function AppRoutes() {
         {/* admin only */}
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/jobs" element={<AdminJobsPage />} />
           <Route path="/admin/airlines" element={<AdminAirlinesPage />} />
           <Route path="/admin/user-routines" element={<AdminUserRoutinesPage />} />
         </Route>

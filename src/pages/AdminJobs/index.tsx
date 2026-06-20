@@ -1,0 +1,175 @@
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Chip,
+  Button,
+  CircularProgress,
+} from '@mui/material'
+import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
+import WorkOutlineIcon from '@mui/icons-material/WorkOutline'
+import { AppLayout } from '@atomic-components/templates/AppLayout'
+import { AdminNav } from '@atomic-components/molecules/AdminNav'
+import { EmptyState } from '@atomic-components/molecules/EmptyState'
+import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
+import { useRealtimeJobs } from '@hooks/useRealtimeJobs'
+import { AdminJobsService } from '@services/AdminJobsService'
+import { toastEmitter } from '@utils/toast'
+import type { JobView, JobStatus } from '@app-types/jobs'
+
+const STATUS_COLOR: Record<JobStatus, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
+  pending: 'default',
+  running: 'info',
+  success: 'success',
+  failed: 'error',
+  dead: 'error',
+  blocked: 'warning',
+  cancelled: 'default',
+}
+
+const STATUS_LABEL: Record<JobStatus, string> = {
+  pending: 'Pendente',
+  running: 'Executando',
+  success: 'Sucesso',
+  failed: 'Falhou',
+  dead: 'Morto',
+  blocked: 'Bloqueado',
+  cancelled: 'Cancelado',
+}
+
+function formatDuration(fromIso: string | null, now: number): string {
+  if (!fromIso) return '—'
+  const ms = now - new Date(fromIso).getTime()
+  if (ms < 0) return '0s'
+  const s = Math.floor(ms / 1000)
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${sec}s` : `${sec}s`
+}
+
+export function AdminJobsPage() {
+  const { jobs, connected } = useRealtimeJobs()
+  const [now, setNow] = useState(Date.now())
+  const [target, setTarget] = useState<JobView | null>(null)
+  const [cancelling, setCancelling] = useState<Set<string>>(new Set())
+
+  // Tick de 1s para a duração ao vivo (calculada do runningSince autoritativo).
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const rows = useMemo(
+    () =>
+      [...jobs].sort((a, b) => {
+        if (a.status === 'running' && b.status !== 'running') return -1
+        if (b.status === 'running' && a.status !== 'running') return 1
+        return (b.runningSince ?? '').localeCompare(a.runningSince ?? '')
+      }),
+    [jobs],
+  )
+
+  async function confirmCancel(): Promise<void> {
+    if (!target?.requestId) return
+    const requestId = target.requestId
+    setCancelling((prev) => new Set(prev).add(requestId))
+    setTarget(null)
+    try {
+      const res = await AdminJobsService.cancelJob(requestId)
+      toastEmitter.error(
+        res.delivery === 'dispatched'
+          ? 'Interrupção enviada ao worker.'
+          : 'Worker offline — interrupção será aplicada na reconexão.',
+      )
+    } finally {
+      setCancelling((prev) => {
+        const next = new Set(prev)
+        next.delete(requestId)
+        return next
+      })
+    }
+  }
+
+  return (
+    <AppLayout>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="h5">Jobs de scraping</Typography>
+        <Chip
+          size="small"
+          color={connected ? 'success' : 'default'}
+          label={connected ? 'Ao vivo' : 'Conectando…'}
+        />
+      </Box>
+      <AdminNav />
+
+      {rows.length === 0 ? (
+        <EmptyState Icon={WorkOutlineIcon} title="Nenhum job no momento" description="Jobs ativos aparecerão aqui em tempo real." />
+      ) : (
+        <Paper variant="outlined">
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Companhia</TableCell>
+                <TableCell>Rota</TableCell>
+                <TableCell>Data do voo</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Tempo</TableCell>
+                <TableCell align="right">Ações</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((job) => {
+                const isCancelling = job.requestId ? cancelling.has(job.requestId) : false
+                const canCancel = job.status === 'running' || job.status === 'pending'
+                return (
+                  <TableRow key={job.requestId ?? job.jobId} hover>
+                    <TableCell sx={{ textTransform: 'capitalize' }}>{job.airline}</TableCell>
+                    <TableCell>{job.origin} → {job.destination}</TableCell>
+                    <TableCell>{job.flightDate}</TableCell>
+                    <TableCell>
+                      <Chip size="small" color={STATUS_COLOR[job.status]} label={STATUS_LABEL[job.status]} />
+                      {job.lastStep && job.status === 'running' && (
+                        <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                          {job.lastStep}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>{job.status === 'running' ? formatDuration(job.runningSince, now) : '—'}</TableCell>
+                    <TableCell align="right">
+                      <Button
+                        size="small"
+                        color="error"
+                        startIcon={isCancelling ? <CircularProgress size={14} /> : <StopCircleOutlinedIcon />}
+                        disabled={!canCancel || isCancelling || !job.requestId}
+                        onClick={() => setTarget(job)}
+                      >
+                        {isCancelling ? 'Interrompendo…' : 'Interromper'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </Paper>
+      )}
+
+      <ConfirmDialog
+        open={target !== null}
+        title="Interromper job?"
+        message={target ? `Isto aborta a análise de ${target.airline} ${target.origin}→${target.destination} (${target.flightDate}) imediatamente.` : ''}
+        warningMessage="O job volta para a fila e será reagendado normalmente."
+        confirmLabel="Interromper"
+        onConfirm={confirmCancel}
+        onCancel={() => setTarget(null)}
+      />
+    </AppLayout>
+  )
+}
