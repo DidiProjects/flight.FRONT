@@ -1,7 +1,8 @@
-export type AnalysisRunStatus = 'running' | 'success' | 'failed' | 'dead' | 'blocked'
+export type AnalysisRunStatus = 'running' | 'success' | 'failed' | 'dead' | 'blocked' | 'cancelled'
 
 export interface AnalysisRun {
   id: string
+  requestId: string | null
   airline: string
   origin: string
   destination: string

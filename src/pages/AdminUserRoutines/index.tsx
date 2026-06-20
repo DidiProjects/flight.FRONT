@@ -27,6 +27,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
+import { useRealtimeJobs } from '@hooks/useRealtimeJobs'
 import { AppLayout } from '@atomic-components/templates/AppLayout'
 import { StatusChip } from '@atomic-components/atoms/StatusChip'
 import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
@@ -39,6 +40,7 @@ import { toastEmitter } from '@utils/toast'
 import type { Routine, CreateTripInput } from '@app-types/routines'
 import type { Airline } from '@app-types/airlines'
 import type { AnalysisRun, AnalysisRunStatus } from '@app-types/analysisRuns'
+import type { JobView } from '@app-types/jobs'
 
 function fmtDate(d: string): string {
   const [y, m, day] = d.split('-')
@@ -56,12 +58,69 @@ function formatDateTime(iso: string | null): string {
   return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })
 }
 
-const runResult: Record<AnalysisRunStatus, { label: string; color: 'default' | 'success' | 'error' | 'warning' }> = {
-  running: { label: 'Em andamento', color: 'default' },
-  success: { label: 'Sucesso',      color: 'success' },
-  failed:  { label: 'Falha',        color: 'error' },
-  dead:    { label: 'Esgotado',     color: 'error' },
-  blocked: { label: 'Bloqueado',    color: 'warning' },
+type RunResultMeta = { label: string; color: 'default' | 'success' | 'error' | 'warning' }
+
+const runResult: Record<AnalysisRunStatus, RunResultMeta> = {
+  running:   { label: 'Em andamento', color: 'default' },
+  success:   { label: 'Sucesso',      color: 'success' },
+  failed:    { label: 'Falha',        color: 'error' },
+  dead:      { label: 'Esgotado',     color: 'error' },
+  blocked:   { label: 'Bloqueado',    color: 'warning' },
+  cancelled: { label: 'Cancelado',    color: 'default' },
+}
+
+// Fallback defensivo: status novo no backend não deve quebrar a tela.
+function runResultMeta(status: string): RunResultMeta {
+  return runResult[status as AnalysisRunStatus] ?? { label: status, color: 'default' }
+}
+
+const TERMINAL_STATUS: ReadonlySet<string> = new Set(['success', 'failed', 'dead', 'blocked', 'cancelled'])
+
+// ── Realtime: casa um job ao vivo (telemetria SSE) com a rotina ──────────────
+// A telemetria não carrega routineId, então casamos por rota+data (mesma lógica
+// do listByRoutineMatch do backend).
+function matchesRoutine(jv: JobView, r: Routine): boolean {
+  const date = jv.flightDate?.slice(0, 10)
+  return (
+    r.airlines.includes(jv.airline) &&
+    jv.origin === r.origin &&
+    jv.destination === r.destination &&
+    !!date && date >= r.outboundStart && date <= r.outboundEnd
+  )
+}
+
+function jobToRun(jv: JobView): AnalysisRun {
+  return {
+    id: jv.requestId ?? jv.jobId,
+    requestId: jv.requestId,
+    airline: jv.airline,
+    origin: jv.origin,
+    destination: jv.destination,
+    flightDate: jv.flightDate?.slice(0, 10) ?? '',
+    status: (jv.status === 'pending' ? 'running' : jv.status) as AnalysisRunStatus,
+    errorMessage: jv.lastError,
+    faresFound: null,
+    startedAt: jv.runningSince ?? new Date().toISOString(),
+    finishedAt: null,
+  }
+}
+
+// Histórico autoritativo (DB) sobreposto pelos deltas ao vivo do SSE, casados por
+// requestId. Jobs novos (ainda não persistidos no histórico) entram como linha viva.
+function mergeRuns(history: AnalysisRun[], live: JobView[]): AnalysisRun[] {
+  const byKey = new Map<string, AnalysisRun>()
+  for (const run of history) byKey.set(run.requestId ?? run.id, run)
+  for (const jv of live) {
+    const k = jv.requestId ?? jv.jobId
+    const prev = byKey.get(k)
+    const status = (jv.status === 'pending' ? 'running' : jv.status) as AnalysisRunStatus
+    if (prev) {
+      byKey.set(k, { ...prev, status, errorMessage: jv.lastError ?? prev.errorMessage })
+    } else {
+      byKey.set(k, jobToRun(jv))
+    }
+  }
+  return [...byKey.values()].sort((a, b) => (b.startedAt ?? '').localeCompare(a.startedAt ?? ''))
 }
 
 function formatTarget(r: Routine): string {
@@ -81,6 +140,7 @@ function formatTarget(r: Routine): string {
 export function AdminUserRoutinesPage() {
   const navigate = useNavigate()
   const { selectedUser } = useAdminUser()
+  const { jobs: liveJobs } = useRealtimeJobs()
 
   const [routines, setRoutines] = useState<Routine[]>([])
   const [loading, setLoading] = useState(true)
@@ -137,6 +197,28 @@ export function AdminUserRoutinesPage() {
   useEffect(() => {
     AirlinesService.list().then(setAirlines).catch(() => { /* non-critical */ })
   }, [])
+
+  // Refetch autoritativo quando um job ao vivo de uma rotina expandida finaliza e
+  // ainda não consta no histórico carregado (antes do SSE descartá-lo aos ~60s).
+  const refreshRuns = useCallback(async (routineId: string) => {
+    try {
+      const runs = await RoutinesService.listAnalysisRuns(routineId)
+      setRunsByRoutine((prev) => ({ ...prev, [routineId]: runs }))
+    } catch { /* mantém o cache atual */ }
+  }, [])
+
+  useEffect(() => {
+    for (const routine of routines) {
+      if (!expanded.has(routine.id)) continue
+      const history = runsByRoutine[routine.id]
+      if (history === undefined) continue
+      const known = new Set(history.map((r) => r.requestId ?? r.id))
+      const hasNewTerminal = liveJobs.some(
+        (j) => matchesRoutine(j, routine) && TERMINAL_STATUS.has(j.status) && !known.has(j.requestId ?? j.jobId),
+      )
+      if (hasNewTerminal) void refreshRuns(routine.id)
+    }
+  }, [liveJobs, expanded, routines, runsByRoutine, refreshRuns])
 
   async function handleAdminEdit(data: CreateTripInput) {
     if (!editTarget) return
@@ -410,8 +492,12 @@ export function AdminUserRoutinesPage() {
                   const isActing = actionLoading.has(routine.id)
                   const period = formatPeriod(routine)
                   const isExpanded = expanded.has(routine.id)
-                  const runs = runsByRoutine[routine.id]
+                  const history = runsByRoutine[routine.id]
                   const loadingRuns = runsLoading.has(routine.id)
+                  // Histórico autoritativo + telemetria ao vivo (SSE), em tempo real.
+                  const runs = history !== undefined
+                    ? mergeRuns(history, liveJobs.filter((j) => matchesRoutine(j, routine)))
+                    : undefined
 
                   return (
                     <Fragment key={routine.id}>
@@ -588,8 +674,8 @@ export function AdminUserRoutinesPage() {
                                       <TableCell>
                                         <Chip
                                           size="small"
-                                          color={runResult[run.status].color}
-                                          label={runResult[run.status].label}
+                                          color={runResultMeta(run.status).color}
+                                          label={runResultMeta(run.status).label}
                                         />
                                       </TableCell>
                                       <TableCell align="right">

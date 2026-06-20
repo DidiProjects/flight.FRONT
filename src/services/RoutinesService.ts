@@ -7,6 +7,7 @@ import type { AnalysisRun, AnalysisRunStatus } from '@app-types/analysisRuns'
 function analysisRunFromApi(raw: RawRoutine): AnalysisRun {
   return {
     id: raw.id as string,
+    requestId: (raw.request_id ?? raw.requestId ?? null) as string | null,
     airline: raw.airline as string,
     origin: raw.origin as string,
     destination: raw.destination as string,
