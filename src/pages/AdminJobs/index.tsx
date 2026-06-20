@@ -118,10 +118,10 @@ export function AdminJobsPage() {
     setTarget(null)
     try {
       const res = await AdminJobsService.cancelJob(requestId)
-      toastEmitter.error(
+      toastEmitter.info(
         res.delivery === 'dispatched'
           ? 'Interrupção enviada ao worker.'
-          : 'Worker offline — interrupção será aplicada na reconexão.',
+          : 'Sem execução ativa — job recuperado e reagendado.',
       )
     } finally {
       setCancelling((prev) => {

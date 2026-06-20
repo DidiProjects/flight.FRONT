@@ -33,5 +33,5 @@ export interface JobEventLine {
 
 export interface CancelJobResponse {
   accepted: boolean
-  delivery: 'dispatched' | 'queued'
+  delivery: 'dispatched' | 'recovered'
 }
