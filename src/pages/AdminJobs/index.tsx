@@ -192,7 +192,7 @@ export function AdminJobsPage() {
                   <SortableHeader label="Status" column="status" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
                   <SortableHeader label="Início" column="startedAt" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
                   <TableCell>Tempo</TableCell>
-                  <TableCell>Dono</TableCell>
+                  <TableCell>User</TableCell>
                   <TableCell align="right">Ações</TableCell>
                 </TableRow>
               </TableHead>
