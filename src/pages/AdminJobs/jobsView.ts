@@ -1,6 +1,6 @@
 import type { JobStatus, JobView } from '@app-types/jobs'
 
-export type SortKey = 'airline' | 'route' | 'flightDate' | 'status' | 'runningSince'
+export type SortKey = 'airline' | 'route' | 'flightDate' | 'status' | 'startedAt'
 export type SortDir = 'asc' | 'desc'
 
 export interface JobsFilter {
@@ -14,7 +14,7 @@ export interface JobsSort {
 }
 
 export const DEFAULT_FILTER: JobsFilter = { status: 'all', airline: 'all' }
-export const DEFAULT_SORT: JobsSort = { key: 'runningSince', dir: 'desc' }
+export const DEFAULT_SORT: JobsSort = { key: 'startedAt', dir: 'desc' }
 
 const routeOf = (j: JobView): string => `${j.origin}-${j.destination}`
 
@@ -23,7 +23,7 @@ const COMPARATORS: Record<SortKey, (a: JobView, b: JobView) => number> = {
   route:        (a, b) => routeOf(a).localeCompare(routeOf(b)),
   flightDate:   (a, b) => a.flightDate.localeCompare(b.flightDate),
   status:       (a, b) => a.status.localeCompare(b.status),
-  runningSince: (a, b) => (a.runningSince ?? '').localeCompare(b.runningSince ?? ''),
+  startedAt:    (a, b) => (a.startedAt ?? '').localeCompare(b.startedAt ?? ''),
 }
 
 export function distinctAirlines(jobs: JobView[]): string[] {

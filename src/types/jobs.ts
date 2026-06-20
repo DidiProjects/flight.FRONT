@@ -17,6 +17,8 @@ export interface JobView {
   flightDate: string
   status: JobStatus
   runningSince: string | null
+  startedAt: string | null
+  finishedAt: string | null
   lastStep?: string
   lastError: string | null
 }

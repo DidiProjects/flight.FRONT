@@ -10,6 +10,8 @@ interface RawJob {
   flight_date: string
   status: JobStatus
   running_since: string | null
+  run_started_at: string | null
+  run_finished_at: string | null
   last_error: string | null
 }
 
@@ -32,6 +34,8 @@ function jobFromApi(raw: RawJob): JobView {
     flightDate: raw.flight_date,
     status: raw.status,
     runningSince: raw.running_since,
+    startedAt: raw.run_started_at,
+    finishedAt: raw.run_finished_at,
     lastError: raw.last_error,
   }
 }

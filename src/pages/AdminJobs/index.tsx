@@ -50,15 +50,27 @@ function formatFlightDate(d: string): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : d
 }
 
-function formatDuration(fromIso: string | null, now: number): string {
-  if (!fromIso) return '—'
-  const ms = now - new Date(fromIso).getTime()
-  if (ms < 0) return '0s'
-  const s = Math.floor(ms / 1000)
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })
+}
+
+function formatElapsed(ms: number): string {
+  const s = Math.floor(Math.max(0, ms) / 1000)
   const h = Math.floor(s / 3600)
   const m = Math.floor((s % 3600) / 60)
   const sec = s % 60
   return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${sec}s` : `${sec}s`
+}
+
+function jobDuration(job: JobView, now: number): string {
+  if (!job.startedAt) return '—'
+  const start = new Date(job.startedAt).getTime()
+  const end = job.finishedAt ? new Date(job.finishedAt).getTime() : job.status === 'running' ? now : NaN
+  return Number.isNaN(end) ? '—' : formatElapsed(end - start)
 }
 
 interface SortableHeaderProps {
@@ -176,14 +188,15 @@ export function AdminJobsPage() {
                   <SortableHeader label="Rota" column="route" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
                   <SortableHeader label="Data do voo" column="flightDate" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
                   <SortableHeader label="Status" column="status" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
-                  <SortableHeader label="Tempo" column="runningSince" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                  <SortableHeader label="Início" column="startedAt" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                  <TableCell>Tempo</TableCell>
                   <TableCell align="right">Ações</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                         Nenhum job com os filtros aplicados.
                       </Typography>
@@ -216,7 +229,8 @@ export function AdminJobsPage() {
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell>{job.status === 'running' ? formatDuration(job.runningSince, now) : '—'}</TableCell>
+                      <TableCell>{formatDateTime(job.startedAt)}</TableCell>
+                      <TableCell>{jobDuration(job, now)}</TableCell>
                       <TableCell align="right">
                         <Button
                           size="small"
@@ -230,7 +244,7 @@ export function AdminJobsPage() {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell sx={{ py: 0, border: 0 }} colSpan={7}>
+                      <TableCell sx={{ py: 0, border: 0 }} colSpan={8}>
                         <Collapse in={isOpen} unmountOnExit>
                           <Stack spacing={0.5} sx={{ py: 1, pl: 6 }}>
                             {isLoadingTl ? (
