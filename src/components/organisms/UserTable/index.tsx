@@ -29,7 +29,7 @@ interface UserTableProps {
   onClickUser: (user: User) => void
 }
 
-export function UserTable({ users, onApprove, onSuspend, onClickUser }: UserTableProps) {
+export function UserTable({ users, onApprove, onSuspend, onDelete, onClickUser }: UserTableProps) {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
@@ -43,11 +43,9 @@ export function UserTable({ users, onApprove, onSuspend, onClickUser }: UserTabl
     setSelectedUser(null)
   }
 
-  const handlerClickMenuItem = (selectedUser: User | null) => {
-    if (selectedUser) {
-      return onSuspend(selectedUser);
-    }
-    closeMenu();
+  const runAction = (action: (user: User) => void) => {
+    if (selectedUser) action(selectedUser)
+    closeMenu()
   }
 
   const actionsMenu = (
@@ -60,7 +58,7 @@ export function UserTable({ users, onApprove, onSuspend, onClickUser }: UserTabl
     >
       {selectedUser?.status === 'active' && (
         <MenuItem
-          onClick={() => handlerClickMenuItem(selectedUser)}
+          onClick={() => runAction(onSuspend)}
           sx={{ color: 'warning.main' }}
         >
           <BlockIcon fontSize="small" sx={{ mr: 1 }} />
@@ -69,7 +67,7 @@ export function UserTable({ users, onApprove, onSuspend, onClickUser }: UserTabl
       )}
       {selectedUser?.status === 'suspended' && (
         <MenuItem
-          onClick={() => handlerClickMenuItem(selectedUser)}
+          onClick={() => runAction(onApprove)}
           sx={{ color: 'success.main' }}
         >
           <CheckCircleOutlineIcon fontSize="small" sx={{ mr: 1 }} />
@@ -77,7 +75,7 @@ export function UserTable({ users, onApprove, onSuspend, onClickUser }: UserTabl
         </MenuItem>
       )}
       <MenuItem
-        onClick={() => handlerClickMenuItem(selectedUser)}
+        onClick={() => runAction(onDelete)}
         sx={{ color: 'error.main' }}
       >
         <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} />

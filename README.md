@@ -12,7 +12,7 @@ Frontend para gerenciar rotinas de monitoramento de preços de voos. O usuário 
 
 ```bash
 npm install
-npm start          # dev em http://localhost:3000
+npm start          # dev em http://localhost:3001
 npm run build      # build de produção (tsc -b && vite build)
 npm run preview    # preview do build
 npm test           # testes (watch); test:run / test:coverage
@@ -24,7 +24,7 @@ Copie `.env.example` para `.env`:
 
 ```env
 VITE_API_URL=http://localhost:3011/flight   # base da flight.API (inclui o prefixo /flight)
-VITE_APP_URL=http://localhost:3000
+VITE_APP_URL=http://localhost:3001
 ```
 
 ## Estrutura
