@@ -14,6 +14,7 @@ interface RawJob {
   run_finished_at: string | null
   last_error: string | null
   user_email: string | null
+  orphaned_at: string | null
 }
 
 interface RawEvent {
@@ -39,6 +40,7 @@ function jobFromApi(raw: RawJob): JobView {
     finishedAt: raw.run_finished_at,
     lastError: raw.last_error,
     userEmail: raw.user_email,
+    orphanedAt: raw.orphaned_at,
   }
 }
 

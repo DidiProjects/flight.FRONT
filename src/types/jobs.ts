@@ -23,6 +23,8 @@ export interface JobView {
   lastError: string | null
   /** Dono do job (email). Jobs legados sem dono vêm null. */
   userEmail: string | null
+  /** Setado quando a rota perdeu a rotina ativa (aposentado). null = ativo. */
+  orphanedAt: string | null
 }
 
 /** Linha de timeline/log de uma execução. */

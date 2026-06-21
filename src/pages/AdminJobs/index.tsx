@@ -226,6 +226,9 @@ export function AdminJobsPage() {
                       <TableCell>{formatFlightDate(job.flightDate)}</TableCell>
                       <TableCell>
                         <Chip size="small" color={STATUS_COLOR[job.status]} label={STATUS_LABEL[job.status]} />
+                        {job.orphanedAt && (
+                          <Chip size="small" variant="outlined" color="warning" label="Sem rotina" sx={{ ml: 0.5 }} />
+                        )}
                         {job.lastStep && job.status === 'running' && (
                           <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
                             {job.lastStep}
