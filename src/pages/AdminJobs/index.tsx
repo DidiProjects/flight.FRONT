@@ -227,7 +227,7 @@ export function AdminJobsPage() {
                           <TableCell sx={{ textTransform: 'capitalize' }}>{job.airline}</TableCell>
                           <TableCell>{job.origin} → {job.destination}</TableCell>
                           <TableCell>{formatFlightDate(job.flightDate)}</TableCell>
-                          <TableCell sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <TableCell>
                             <Stack direction="column" gap={0.5}>
                               <Chip size="small" color={STATUS_COLOR[job.status]} label={STATUS_LABEL[job.status]} />
                               {job.orphanedAt && (
