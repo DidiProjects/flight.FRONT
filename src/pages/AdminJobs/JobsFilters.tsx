@@ -12,7 +12,11 @@ interface Props {
 
 export function JobsFilters({ filter, airlines, users, onChange }: Props) {
   return (
-    <Stack direction="row" spacing={1.5} sx={{ mb: 2, flexWrap: 'wrap' }}>
+    <Stack
+      direction={{ xs: 'column', sm: 'row' }}
+      sx={{ mb: 2, flexWrap: 'wrap' }}
+      spacing={1.5}
+    >
       <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 160 } }}>
         <InputLabel id="jobs-status-filter">Status</InputLabel>
         <Select

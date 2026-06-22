@@ -230,7 +230,9 @@ export function AdminJobsPage() {
                       <TableCell>
                         <Chip size="small" color={STATUS_COLOR[job.status]} label={STATUS_LABEL[job.status]} />
                         {job.orphanedAt && (
-                          <Chip size="small" variant="outlined" color="warning" label="Sem rotina" sx={{ ml: 0.5 }} />
+                          <Typography component="span" variant="caption" sx={{color: 'warning.main' }}>
+                            Sem rotina
+                          </Typography>
                         )}
                         {job.lastStep && job.status === 'running' && (
                           <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
