@@ -193,13 +193,14 @@ export function AdminJobsPage() {
                   <SortableHeader label="Início" column="startedAt" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
                   <TableCell>Tempo</TableCell>
                   <TableCell>User</TableCell>
+                  <TableCell>Job ID</TableCell>
                   <TableCell align="right">Ações</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9}>
+                    <TableCell colSpan={10}>
                       <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                         Nenhum job com os filtros aplicados.
                       </Typography>
@@ -240,6 +241,9 @@ export function AdminJobsPage() {
                       <TableCell sx={{ color: job.userEmail ? 'text.primary' : 'text.disabled' }}>
                         {job.userEmail ?? '—'}
                       </TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'text.secondary' }}>
+                        {job.jobId || '—'}
+                      </TableCell>
                       <TableCell align="right">
                         <Button
                           size="small"
@@ -253,7 +257,7 @@ export function AdminJobsPage() {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell sx={{ py: 0, border: 0 }} colSpan={9}>
+                      <TableCell sx={{ py: 0, border: 0 }} colSpan={10}>
                         <Collapse in={isOpen} unmountOnExit>
                           <Stack spacing={0.5} sx={{ py: 1, pl: 6 }}>
                             {isLoadingTl ? (
