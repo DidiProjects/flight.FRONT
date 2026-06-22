@@ -4,6 +4,7 @@ import {
   Typography,
   Paper,
   Table,
+  TableContainer,
   TableHead,
   TableBody,
   TableRow,
@@ -182,6 +183,7 @@ export function AdminJobsPage() {
         <>
           <JobsFilters filter={filter} airlines={airlines} users={users} onChange={setFilter} />
           <Paper variant="outlined">
+            <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -193,7 +195,7 @@ export function AdminJobsPage() {
                   <SortableHeader label="Início" column="startedAt" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
                   <TableCell>Tempo</TableCell>
                   <TableCell>User</TableCell>
-                  <TableCell>Job ID</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>Job ID</TableCell>
                   <TableCell align="right">Ações</TableCell>
                 </TableRow>
               </TableHead>
@@ -236,12 +238,12 @@ export function AdminJobsPage() {
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell>{formatDateTime(job.startedAt)}</TableCell>
-                      <TableCell>{jobDuration(job, now)}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateTime(job.startedAt)}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{jobDuration(job, now)}</TableCell>
                       <TableCell sx={{ color: job.userEmail ? 'text.primary' : 'text.disabled' }}>
                         {job.userEmail ?? '—'}
                       </TableCell>
-                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'text.secondary' }}>
+                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'text.secondary', whiteSpace: 'nowrap' }}>
                         {job.jobId || '—'}
                       </TableCell>
                       <TableCell align="right">
@@ -283,6 +285,7 @@ export function AdminJobsPage() {
                 })}
               </TableBody>
             </Table>
+            </TableContainer>
             <TablePagination
               component="div"
               count={filtered.length}

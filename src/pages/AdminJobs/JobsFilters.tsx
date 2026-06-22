@@ -13,7 +13,7 @@ interface Props {
 export function JobsFilters({ filter, airlines, users, onChange }: Props) {
   return (
     <Stack direction="row" spacing={1.5} sx={{ mb: 2, flexWrap: 'wrap' }}>
-      <FormControl size="small" sx={{ minWidth: 160 }}>
+      <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 160 } }}>
         <InputLabel id="jobs-status-filter">Status</InputLabel>
         <Select
           labelId="jobs-status-filter"
@@ -28,7 +28,7 @@ export function JobsFilters({ filter, airlines, users, onChange }: Props) {
         </Select>
       </FormControl>
 
-      <FormControl size="small" sx={{ minWidth: 160 }}>
+      <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 160 } }}>
         <InputLabel id="jobs-airline-filter">Companhia</InputLabel>
         <Select
           labelId="jobs-airline-filter"
@@ -43,7 +43,7 @@ export function JobsFilters({ filter, airlines, users, onChange }: Props) {
         </Select>
       </FormControl>
 
-      <FormControl size="small" sx={{ minWidth: 200 }}>
+      <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
         <InputLabel id="jobs-user-filter">Usuário</InputLabel>
         <Select
           labelId="jobs-user-filter"
