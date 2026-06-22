@@ -184,109 +184,111 @@ export function AdminJobsPage() {
           <JobsFilters filter={filter} airlines={airlines} users={users} onChange={setFilter} />
           <Paper variant="outlined">
             <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ width: 40 }} />
-                  <SortableHeader label="Companhia" column="airline" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
-                  <SortableHeader label="Rota" column="route" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
-                  <SortableHeader label="Data do voo" column="flightDate" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
-                  <SortableHeader label="Status" column="status" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
-                  <SortableHeader label="Início" column="startedAt" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
-                  <TableCell>Tempo</TableCell>
-                  <TableCell>User</TableCell>
-                  <TableCell sx={{ whiteSpace: 'nowrap' }}>Job ID</TableCell>
-                  <TableCell align="right">Ações</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paged.length === 0 ? (
+              <Table size="small">
+                <TableHead>
                   <TableRow>
-                    <TableCell colSpan={10}>
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                        Nenhum job com os filtros aplicados.
-                      </Typography>
-                    </TableCell>
+                    <TableCell sx={{ width: 40 }} />
+                    <SortableHeader label="Companhia" column="airline" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                    <SortableHeader label="Rota" column="route" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                    <SortableHeader label="Data do voo" column="flightDate" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                    <SortableHeader label="Status" column="status" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                    <SortableHeader label="Início" column="startedAt" sort={sort} onSort={(k) => setSort((s) => nextSort(s, k))} />
+                    <TableCell>Tempo</TableCell>
+                    <TableCell>User</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>Job ID</TableCell>
+                    <TableCell align="right">Ações</TableCell>
                   </TableRow>
-                ) : paged.map((job) => {
-                  const isCancelling = job.requestId ? cancelling.has(job.requestId) : false
-                  const canCancel = job.status === 'running' || job.status === 'pending'
-                  const rowKey = job.requestId ?? job.jobId
-                  const liveTl = job.requestId ? (events.get(job.requestId) ?? []) : []
-                  const timeline = liveTl.length > 0 ? liveTl : (historyEvents.get(job.jobId) ?? [])
-                  const isLoadingTl = loadingEvents.has(job.jobId)
-                  const isOpen = expanded === rowKey
-                  return (
-                    <Fragment key={rowKey}>
-                    <TableRow hover>
-                      <TableCell sx={{ width: 40 }}>
-                        <IconButton size="small" onClick={() => void toggleRow(job)}>
-                          {isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                        </IconButton>
-                      </TableCell>
-                      <TableCell sx={{ textTransform: 'capitalize' }}>{job.airline}</TableCell>
-                      <TableCell>{job.origin} → {job.destination}</TableCell>
-                      <TableCell>{formatFlightDate(job.flightDate)}</TableCell>
-                      <TableCell sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Chip size="small" color={STATUS_COLOR[job.status]} label={STATUS_LABEL[job.status]} />
-                        {job.orphanedAt && (
-                          <Typography component="span" variant="caption" sx={{color: 'warning.main' }}>
-                            Sem rotina
-                          </Typography>
-                        )}
-                        {job.lastStep && job.status === 'running' && (
-                          <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
-                            {job.lastStep}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateTime(job.startedAt)}</TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{jobDuration(job, now)}</TableCell>
-                      <TableCell sx={{ color: job.userEmail ? 'text.primary' : 'text.disabled' }}>
-                        {job.userEmail ?? '—'}
-                      </TableCell>
-                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                        {job.jobId || '—'}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Button
-                          size="small"
-                          color="error"
-                          startIcon={isCancelling ? <CircularProgress size={14} /> : <StopCircleOutlinedIcon />}
-                          disabled={!canCancel || isCancelling || !job.requestId}
-                          onClick={() => setTarget(job)}
-                        >
-                          {isCancelling ? 'Interrompendo…' : 'Interromper'}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                </TableHead>
+                <TableBody>
+                  {paged.length === 0 ? (
                     <TableRow>
-                      <TableCell sx={{ py: 0, border: 0 }} colSpan={10}>
-                        <Collapse in={isOpen} unmountOnExit>
-                          <Stack spacing={0.5} sx={{ py: 1, pl: 6 }}>
-                            {isLoadingTl ? (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <CircularProgress size={14} />
-                                <Typography variant="caption" color="text.secondary">Carregando timeline…</Typography>
-                              </Box>
-                            ) : timeline.length > 0 ? (
-                              timeline.map((ev) => (
-                                <Typography key={ev.seq} variant="caption" sx={{ color: ev.level === 'error' ? 'error.main' : 'text.secondary' }}>
-                                  {new Date(ev.ts).toLocaleTimeString()} · {ev.type}{ev.detail ? ` — ${ev.detail}` : ''}
-                                </Typography>
-                              ))
-                            ) : (
-                              <Typography variant="caption" color="text.secondary">Sem timeline registrada para este job.</Typography>
-                            )}
-                          </Stack>
-                        </Collapse>
+                      <TableCell colSpan={10}>
+                        <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                          Nenhum job com os filtros aplicados.
+                        </Typography>
                       </TableCell>
                     </TableRow>
-                    </Fragment>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                  ) : paged.map((job) => {
+                    const isCancelling = job.requestId ? cancelling.has(job.requestId) : false
+                    const canCancel = job.status === 'running' || job.status === 'pending'
+                    const rowKey = job.requestId ?? job.jobId
+                    const liveTl = job.requestId ? (events.get(job.requestId) ?? []) : []
+                    const timeline = liveTl.length > 0 ? liveTl : (historyEvents.get(job.jobId) ?? [])
+                    const isLoadingTl = loadingEvents.has(job.jobId)
+                    const isOpen = expanded === rowKey
+                    return (
+                      <Fragment key={rowKey}>
+                        <TableRow hover>
+                          <TableCell sx={{ width: 40 }}>
+                            <IconButton size="small" onClick={() => void toggleRow(job)}>
+                              {isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                            </IconButton>
+                          </TableCell>
+                          <TableCell sx={{ textTransform: 'capitalize' }}>{job.airline}</TableCell>
+                          <TableCell>{job.origin} → {job.destination}</TableCell>
+                          <TableCell>{formatFlightDate(job.flightDate)}</TableCell>
+                          <TableCell sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Stack direction="column" gap={0.5}>
+                              <Chip size="small" color={STATUS_COLOR[job.status]} label={STATUS_LABEL[job.status]} />
+                              {job.orphanedAt && (
+                                <Typography component="span" variant="caption" sx={{ color: 'warning.main' }}>
+                                  Sem rotina
+                                </Typography>
+                              )}
+                              {job.lastStep && job.status === 'running' && (
+                                <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                                  {job.lastStep}
+                                </Typography>
+                              )}
+                            </Stack>
+                          </TableCell>
+                          <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateTime(job.startedAt)}</TableCell>
+                          <TableCell sx={{ whiteSpace: 'nowrap' }}>{jobDuration(job, now)}</TableCell>
+                          <TableCell sx={{ color: job.userEmail ? 'text.primary' : 'text.disabled' }}>
+                            {job.userEmail ?? '—'}
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                            {job.jobId || '—'}
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button
+                              size="small"
+                              color="error"
+                              startIcon={isCancelling ? <CircularProgress size={14} /> : <StopCircleOutlinedIcon />}
+                              disabled={!canCancel || isCancelling || !job.requestId}
+                              onClick={() => setTarget(job)}
+                            >
+                              {isCancelling ? 'Interrompendo…' : 'Interromper'}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell sx={{ py: 0, border: 0 }} colSpan={10}>
+                            <Collapse in={isOpen} unmountOnExit>
+                              <Stack spacing={0.5} sx={{ py: 1, pl: 6 }}>
+                                {isLoadingTl ? (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <CircularProgress size={14} />
+                                    <Typography variant="caption" color="text.secondary">Carregando timeline…</Typography>
+                                  </Box>
+                                ) : timeline.length > 0 ? (
+                                  timeline.map((ev) => (
+                                    <Typography key={ev.seq} variant="caption" sx={{ color: ev.level === 'error' ? 'error.main' : 'text.secondary' }}>
+                                      {new Date(ev.ts).toLocaleTimeString()} · {ev.type}{ev.detail ? ` — ${ev.detail}` : ''}
+                                    </Typography>
+                                  ))
+                                ) : (
+                                  <Typography variant="caption" color="text.secondary">Sem timeline registrada para este job.</Typography>
+                                )}
+                              </Stack>
+                            </Collapse>
+                          </TableCell>
+                        </TableRow>
+                      </Fragment>
+                    )
+                  })}
+                </TableBody>
+              </Table>
             </TableContainer>
             <TablePagination
               component="div"
