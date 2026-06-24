@@ -36,6 +36,7 @@ import { RoutinesService } from '@services/RoutinesService'
 import { AirlinesService } from '@services/AirlinesService'
 import { useAdminUser } from '@contexts/AdminUserContext'
 import { toastEmitter } from '@utils/toast'
+import { formatMoney } from '@utils/money'
 import type { Routine, CreateTripInput } from '@app-types/routines'
 import type { Airline } from '@app-types/airlines'
 import { RoutineHistoryPanel } from './RoutineHistoryPanel'
@@ -50,8 +51,7 @@ function formatPeriod(r: Routine): string {
 }
 
 function formatTarget(r: Routine): string {
-  const fmtCash = (val: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: r.currency }).format(val)
+  const fmtCash = (val: number) => formatMoney(val, r.currency)
   if (r.priority === 'cash') {
     return r.targetCash != null ? fmtCash(r.targetCash) : '—'
   }

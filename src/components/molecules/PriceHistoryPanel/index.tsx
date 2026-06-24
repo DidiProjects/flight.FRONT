@@ -10,6 +10,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { FlightFaresService } from '@services/FlightFaresService'
 import { PriceSparkline } from '@atomic-components/atoms/PriceSparkline'
 import type { PriceSparklinePoint } from '@atomic-components/atoms/PriceSparkline'
+import { formatMoney } from '@utils/money'
 import type { PriceHistorySummary } from '@app-types/flightFares'
 
 interface PriceHistoryPanelProps {
@@ -18,19 +19,62 @@ interface PriceHistoryPanelProps {
   destination: string
   dateFrom: string
   dateTo: string
-  currencyFallback: string
+  currencyFallback: string | null
 }
 
-function formatCurrency(value: number, currency: string): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value)
-}
-
-function buildSparklineData(summary: PriceHistorySummary): PriceSparklinePoint[] {
+function buildCashSparkline(summary: PriceHistorySummary): PriceSparklinePoint[] {
   const points: PriceSparklinePoint[] = []
   if (summary.minCash30d != null) points.push({ label: 'Mínimo', value: summary.minCash30d })
   if (summary.p20Cash30d != null) points.push({ label: 'P20', value: summary.p20Cash30d })
   if (summary.avgCash30d != null) points.push({ label: 'Média', value: summary.avgCash30d })
   return points
+}
+
+function buildPtsSparkline(summary: PriceHistorySummary): PriceSparklinePoint[] {
+  const points: PriceSparklinePoint[] = []
+  if (summary.minPts30d != null) points.push({ label: 'Mínimo', value: summary.minPts30d })
+  if (summary.avgPts30d != null) points.push({ label: 'Média', value: summary.avgPts30d })
+  return points
+}
+
+function Track({
+  title,
+  points,
+  avg,
+  min,
+  formatValue,
+}: {
+  title: string
+  points: PriceSparklinePoint[]
+  avg: number | null
+  min: number | null
+  formatValue: (v: number) => string
+}) {
+  return (
+    <Box sx={{ flex: '1 1 140px', minWidth: 140 }}>
+      <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.disabled', mb: 0.5 }}>
+        {title}
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <PriceSparkline data={points} width={110} height={38} />
+        <Box>
+          {avg != null && (
+            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }}>
+              {formatValue(avg)}
+            </Typography>
+          )}
+          <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+            média · últimos 30 dias
+          </Typography>
+          {min != null && (
+            <Typography sx={{ fontSize: '0.6875rem', color: 'success.dark', mt: 0.25 }}>
+              mín. {formatValue(min)}
+            </Typography>
+          )}
+        </Box>
+      </Box>
+    </Box>
+  )
 }
 
 export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dateTo, currencyFallback }: PriceHistoryPanelProps) {
@@ -58,11 +102,13 @@ export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dat
       .finally(() => setLoading(false))
   }, [open, fetched, airlines, origin, destination, dateFrom, dateTo])
 
-  const hasData =
-    summary != null &&
-    (summary.avgCash30d != null || summary.minCash30d != null)
+  const hasCash = summary != null && (summary.avgCash30d != null || summary.minCash30d != null)
+  const hasPts  = summary != null && (summary.avgPts30d != null || summary.minPts30d != null)
+  const hasData = hasCash || hasPts
 
-  const sparklineData = summary ? buildSparklineData(summary) : []
+  const currency = summary?.currency ?? currencyFallback
+  const fmtCash = (v: number) => formatMoney(v, currency)
+  const fmtPts  = (v: number) => `${Math.round(v).toLocaleString('pt-BR')} pts`
 
   return (
     <Box sx={{ mt: 1.5 }}>
@@ -116,24 +162,26 @@ export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dat
             </Typography>
           )}
 
-          {!loading && !error && hasData && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <PriceSparkline data={sparklineData} width={120} height={40} />
-              <Box>
-                {summary!.avgCash30d != null && (
-                  <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }}>
-                    {formatCurrency(summary!.avgCash30d, summary!.currency ?? currencyFallback)}
-                  </Typography>
-                )}
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
-                  média · últimos 30 dias
-                </Typography>
-                {summary!.minCash30d != null && (
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'success.dark', mt: 0.25 }}>
-                    mín. {formatCurrency(summary!.minCash30d, summary!.currency ?? currencyFallback)}
-                  </Typography>
-                )}
-              </Box>
+          {!loading && !error && hasData && summary && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2.5 }}>
+              {hasCash && (
+                <Track
+                  title="Dinheiro"
+                  points={buildCashSparkline(summary)}
+                  avg={summary.avgCash30d}
+                  min={summary.minCash30d}
+                  formatValue={fmtCash}
+                />
+              )}
+              {hasPts && (
+                <Track
+                  title="Pontos"
+                  points={buildPtsSparkline(summary)}
+                  avg={summary.avgPts30d}
+                  min={summary.minPts30d}
+                  formatValue={fmtPts}
+                />
+              )}
             </Box>
           )}
         </Box>

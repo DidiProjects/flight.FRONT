@@ -23,6 +23,7 @@ import { FareCalendar } from '@atomic-components/molecules/FareCalendar'
 import { FlightFaresService } from '@services/FlightFaresService'
 import { timeAgo } from '@utils/timeAgo'
 import { buildBookingLink } from '@utils/bookingLink'
+import { formatMoney } from '@utils/money'
 import { cardStyles } from './style'
 import type { Routine } from '@app-types/routines'
 import type { CurrentPrice } from '@app-types/flightFares'
@@ -35,8 +36,8 @@ const verdictMeta: Record<Verdict, { label: string; color: 'success' | 'default'
   high: { label: 'Preço alto', color: 'warning' },
 }
 
-function fmtCurrency(value: number, currency: string): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value)
+function fmtCurrency(value: number, currency: string | null): string {
+  return formatMoney(value, currency)
 }
 
 function computeVerdict(value: number | null, avg: number | null, threshold: number | null): Verdict | null {
@@ -273,7 +274,7 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
             <Box sx={{ ...cardStyles.metaItem, gridColumn: '1 / -1' }}>
               <Typography sx={cardStyles.metaLabel}>Target</Typography>
               <Typography sx={cardStyles.targetValue}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: routine.currency }).format(routine.targetCash)}
+                {formatMoney(routine.targetCash, routine.currency)}
               </Typography>
             </Box>
           )}
@@ -291,7 +292,7 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
               <Typography sx={cardStyles.targetValue}>
                 {routine.targetHybPts.toLocaleString('pt-BR')} pts
                 {' + '}
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: routine.currency }).format(routine.targetHybCash)}
+                {formatMoney(routine.targetHybCash, routine.currency)}
               </Typography>
             </Box>
           )}
@@ -317,7 +318,6 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
           destination={routine.destination}
           dateFrom={routine.outboundStart}
           dateTo={routine.outboundEnd}
-          priority={routine.priority}
           currencyFallback={routine.currency}
         />
 

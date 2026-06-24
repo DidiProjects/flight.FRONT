@@ -45,7 +45,7 @@ function fromApi(raw: RawRoutine): Routine {
     outboundStart: toDate(raw.outbound_start ?? raw.outboundStart),
     outboundEnd: toDate(raw.outbound_end ?? raw.outboundEnd),
     passengers: Number(raw.passengers),
-    currency: (raw.currency ?? 'BRL') as string,
+    currency: (raw.currency ?? null) as string | null,
     targetCash: toNum(raw.target_cash ?? raw.targetCash),
     targetPts: toNum(raw.target_pts ?? raw.targetPts),
     targetHybPts: toNum(raw.target_hyb_pts ?? raw.targetHybPts),

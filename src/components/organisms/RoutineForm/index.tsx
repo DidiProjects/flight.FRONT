@@ -14,6 +14,7 @@ import {
   Chip,
   InputAdornment,
   Checkbox,
+  Alert,
 } from '@mui/material'
 
 import CloseIcon from '@mui/icons-material/Close'
@@ -247,10 +248,13 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   const isEdit = !!routine
   const selectedAirlines = airlines.filter((a) => form.airlines.includes(a.code))
-  // Moeda do target = moeda do mercado da ORIGEM (resolvida no backend por airports.currency).
+  // Moeda do target, em ordem: (1) moeda fixa da companhia (airlines.currency), quando definida;
+  // (2) moeda do mercado da ORIGEM (airports.currency do trajeto).
+  // Vazia quando ainda não há moeda resolvível — nesse caso nada é exibido no lugar.
   const derivedCurrency =
+    selectedAirlines.find((a) => a.currency)?.currency ??
     airports.find((a) => a.code === form.origin)?.currency ??
-    selectedAirlines[0]?.currency ?? 'BRL'
+    ''
   const hasCash = selectedAirlines.some((a) => a.has_cash)
   const hasPts  = selectedAirlines.some((a) => a.has_pts)
   const hasHyb  = selectedAirlines.some((a) => a.has_hyb)
@@ -344,14 +348,26 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
             >
               {sortedAirlines.map((a) => {
                 const status = getAirlineCoverageStatus(a.code, form.origin, form.destination, coverageIndex)
+                const isSelected = form.airlines.includes(a.code)
+                // Empresa sem cobertura no trajeto fica desabilitada (não dá pra raspar).
+                // Mas se já estava selecionada, mantemos habilitada para permitir desmarcar.
+                const disabled = status === 'uncovered' && !isSelected && !coverageLoading
                 return (
                   <MenuItem
                     key={a.code}
                     value={a.code}
-                    sx={status === 'uncovered' ? { opacity: 0.4 } : {}}
+                    disabled={disabled}
+                    sx={status === 'uncovered' && !isSelected ? { opacity: 0.5 } : {}}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
-                      <Typography variant="body2">{a.name}</Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="body2">{a.name}</Typography>
+                        {status === 'uncovered' && !coverageLoading && (
+                          <Typography variant="caption" color="text.disabled">
+                            Sem cobertura para {form.origin || '—'}→{form.destination || '—'}
+                          </Typography>
+                        )}
+                      </Box>
                       <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
                         {a.has_cash && <FareBadge label="cash" />}
                         {a.has_pts  && <FareBadge label="pts" />}
@@ -442,6 +458,16 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               />
               <Collapse in={form.notificationModes.includes('target')} unmountOnExit>
                 <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2, pb: 1 }}>
+                  <Alert severity="info" variant="outlined" sx={{ ...anim(0), py: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Quando você recebe o e-mail de preço alvo
+                    </Typography>
+                    <Typography component="ul" variant="caption" sx={{ m: 0, pl: 2, color: 'text.secondary', '& li': { mb: 0.25 } }}>
+                      <li>Assim que uma passagem é encontrada no seu alvo — ou até <strong>10% acima</strong> dele (margem de tolerância).</li>
+                      <li>Considera o <strong>menor preço</strong> entre as datas e companhias monitoradas.</li>
+                      <li>No máximo <strong>1 e-mail a cada 24&nbsp;h</strong>, enquanto a rotina estiver ativa.</li>
+                    </Typography>
+                  </Alert>
                   <Box sx={anim(0)}>
                     <FormField
                       label="Passageiros"
@@ -531,7 +557,7 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                         sx={{ flex: 1 }}
                         required
                         error={!!errors.targetHybCash}
-                        helperText={errors.targetHybCash ?? `Taxa em ${derivedCurrency} do modo híbrido`}
+                        helperText={errors.targetHybCash ?? (derivedCurrency ? `Taxa em ${derivedCurrency} do modo híbrido` : 'Taxa do modo híbrido')}
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">

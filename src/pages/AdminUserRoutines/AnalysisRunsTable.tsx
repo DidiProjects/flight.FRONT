@@ -1,4 +1,4 @@
-import { Chip, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from '@mui/material'
+import { Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@mui/material'
 import type { AnalysisRun, AnalysisRunStatus } from '@app-types/analysisRuns'
 
 type ResultMeta = { label: string; color: 'default' | 'success' | 'error' | 'warning' }
@@ -27,24 +27,26 @@ const formatFlightDate = (date: string): string => date.split('-').reverse().joi
 
 export function AnalysisRunsTable({ runs }: { runs: AnalysisRun[] }) {
   return (
-    <Table size="small" aria-label="Histórico de análises">
-      <TableHead>
-        <TableRow>
-          <TableCell>Voo</TableCell>
-          <TableCell>Início</TableCell>
-          <TableCell>Fim</TableCell>
-          <TableCell>Status</TableCell>
-          <TableCell>Resultado</TableCell>
-          <TableCell align="right">Passagens</TableCell>
-          <TableCell>Erro</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {runs.map((run) => (
-          <AnalysisRunRow key={run.id} run={run} />
-        ))}
-      </TableBody>
-    </Table>
+    <TableContainer sx={{ maxHeight: 360 }}>
+      <Table size="small" stickyHeader aria-label="Histórico de análises">
+        <TableHead>
+          <TableRow>
+            <TableCell>Voo</TableCell>
+            <TableCell>Início</TableCell>
+            <TableCell>Fim</TableCell>
+            <TableCell>Status</TableCell>
+            <TableCell>Resultado</TableCell>
+            <TableCell align="right">Passagens</TableCell>
+            <TableCell>Erro</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {runs.map((run) => (
+            <AnalysisRunRow key={run.id} run={run} />
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   )
 }
 
