@@ -32,7 +32,7 @@ export function distinctAirlines(jobs: JobView[]): string[] {
 }
 
 export function distinctUsers(jobs: JobView[]): string[] {
-  return [...new Set(jobs.map((j) => j.userEmail).filter((e): e is string => !!e))].sort()
+  return [...new Set(jobs.flatMap((j) => j.userEmails))].sort()
 }
 
 export function filterJobs(jobs: JobView[], filter: JobsFilter): JobView[] {
@@ -40,7 +40,7 @@ export function filterJobs(jobs: JobView[], filter: JobsFilter): JobView[] {
     (j) =>
       (filter.status === 'all' || j.status === filter.status) &&
       (filter.airline === 'all' || j.airline === filter.airline) &&
-      (filter.userEmail === 'all' || j.userEmail === filter.userEmail),
+      (filter.userEmail === 'all' || j.userEmails.includes(filter.userEmail)),
   )
 }
 

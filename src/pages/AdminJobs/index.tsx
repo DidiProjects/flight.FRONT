@@ -244,8 +244,8 @@ export function AdminJobsPage() {
                           </TableCell>
                           <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateTime(job.startedAt)}</TableCell>
                           <TableCell sx={{ whiteSpace: 'nowrap' }}>{jobDuration(job, now)}</TableCell>
-                          <TableCell sx={{ color: job.userEmail ? 'text.primary' : 'text.disabled' }}>
-                            {job.userEmail ?? '—'}
+                          <TableCell sx={{ color: job.userEmails.length ? 'text.primary' : 'text.disabled' }}>
+                            {job.userEmails.length ? job.userEmails.join(', ') : '—'}
                           </TableCell>
                           <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'text.secondary', whiteSpace: 'nowrap' }}>
                             {job.jobId || '—'}

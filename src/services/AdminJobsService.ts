@@ -13,7 +13,7 @@ interface RawJob {
   run_started_at: string | null
   run_finished_at: string | null
   last_error: string | null
-  user_email: string | null
+  user_emails: string[] | null
   orphaned_at: string | null
 }
 
@@ -39,7 +39,7 @@ function jobFromApi(raw: RawJob): JobView {
     startedAt: raw.run_started_at,
     finishedAt: raw.run_finished_at,
     lastError: raw.last_error,
-    userEmail: raw.user_email,
+    userEmails: raw.user_emails ?? [],
     orphanedAt: raw.orphaned_at,
   }
 }
