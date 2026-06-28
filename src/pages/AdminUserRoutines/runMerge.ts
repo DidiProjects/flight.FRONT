@@ -28,9 +28,9 @@ function jobToRun(job: JobView): AnalysisRun {
     flightDate: job.flightDate?.slice(0, 10) ?? '',
     status: toRunStatus(job.status),
     errorMessage: job.lastError,
-    faresFound: null,
+    faresFound: job.faresFound ?? null,
     startedAt: job.runningSince ?? new Date().toISOString(),
-    finishedAt: null,
+    finishedAt: job.finishedAt ?? null,
   }
 }
 
@@ -38,6 +38,8 @@ const overlay = (run: AnalysisRun, job: JobView): AnalysisRun => ({
   ...run,
   status: toRunStatus(job.status),
   errorMessage: job.lastError ?? run.errorMessage,
+  finishedAt: job.finishedAt ?? run.finishedAt,
+  faresFound: job.faresFound ?? run.faresFound,
 })
 
 export function mergeRuns(history: AnalysisRun[], live: JobView[]): AnalysisRun[] {

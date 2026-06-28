@@ -21,6 +21,8 @@ export interface JobView {
   finishedAt: string | null
   lastStep?: string
   lastError: string | null
+  /** Tarifas encontradas (vem no job.finished). undefined enquanto não finalizou. */
+  faresFound?: number | null
   /** Donos derivados por rota (rotinas ativas que cobrem rota+data). Vazio = sem dono. */
   userEmails: string[]
   /** Setado quando a rota perdeu a rotina ativa (aposentado). null = ativo. */
