@@ -135,6 +135,8 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
     }))
     .filter((o): o is { airline: string; url: string } => o.url != null)
 
+  const isRoundTrip = routine.tripType === 'round_trip'
+
   const formatDateRange = (start: string | null | undefined, end: string | null | undefined) => {
     const fmt = (d: string | null | undefined) => {
       if (!d) return '—'
@@ -168,6 +170,15 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
               <Box sx={cardStyles.arrowLine} />
             </Box>
             <Typography sx={cardStyles.iata}>{routine.destination}</Typography>
+            {isRoundTrip && (
+              <>
+                <Box sx={{ ...cardStyles.flightArrow, transform: 'scaleX(-1)' }}>
+                  <FlightIcon sx={{ fontSize: 16 }} />
+                  <Box sx={cardStyles.arrowLine} />
+                </Box>
+                <Typography sx={cardStyles.iata}>{routine.origin}</Typography>
+              </>
+            )}
           </Box>
           {(originCity || destinationCity) && (
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
@@ -265,7 +276,13 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
 
         {/* Meta grid */}
         <Box sx={cardStyles.meta}>
-          <MetaItem label="Datas" value={formatDateRange(routine.outboundStart, routine.outboundEnd)} />
+          <MetaItem
+            label={isRoundTrip ? 'Ida' : 'Datas'}
+            value={formatDateRange(routine.outboundStart, routine.outboundEnd)}
+          />
+          {isRoundTrip && (
+            <MetaItem label="Volta" value={formatDateRange(routine.inboundStart, routine.inboundEnd)} />
+          )}
 
           <MetaItem label="Passageiros" value={`${routine.passengers} pax`} />
           <MetaItem label="Notificações" value={routine.notificationModes.map((m) => modeLabels[m] ?? m).join(', ')} />

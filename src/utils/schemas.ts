@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MAX_ROUNDTRIP_SPAN_MONTHS, maxInboundDate } from './roundtrip'
 
 const email = z
   .string()
@@ -112,6 +113,20 @@ export const routineSchema = z
       return diffDays <= 30
     },
     { message: 'O range de datas de volta não pode exceder 30 dias', path: ['returnEnd'] },
+  )
+  .refine(
+    (d) => !d.returnStart || !d.outboundStart || d.returnStart >= d.outboundStart,
+    { message: 'A volta não pode começar antes da ida', path: ['returnStart'] },
+  )
+  .refine(
+    (d) => {
+      if (!d.returnStart || !d.outboundEnd) return true
+      return d.returnStart <= maxInboundDate(d.outboundEnd)
+    },
+    {
+      message: `A volta não pode passar de ${MAX_ROUNDTRIP_SPAN_MONTHS} meses depois da ida`,
+      path: ['returnStart'],
+    },
   )
   .refine(
     (d) => !d.notificationModes.includes('target') || d.priority !== 'cash' || d.targetCash != null,

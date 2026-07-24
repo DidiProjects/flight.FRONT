@@ -33,6 +33,7 @@ import { useAuth } from '@hooks/useAuth'
 import { useZodForm } from '@hooks/useZodForm'
 import { useCoverage } from '@hooks/useCoverage'
 import { routineSchema } from '@utils/schemas'
+import { MAX_ROUNDTRIP_SPAN_MONTHS } from '@utils/roundtrip'
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
 import { toastEmitter } from '@utils/toast'
@@ -168,8 +169,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         destination: routine.destination,
         outboundStart: routine.outboundStart,
         outboundEnd: routine.outboundEnd,
-        returnStart: null,
-        returnEnd: null,
+        returnStart: routine.inboundStart,
+        returnEnd: routine.inboundEnd,
         passengers: routine.passengers,
         targetCash: routine.targetCash,
         targetPts: routine.targetPts,
@@ -405,29 +406,29 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               />
             </Box>
 
-            {!isEdit && (
-              <Box sx={formStyles.dateGroup}>
-                <Typography sx={formStyles.dateGroupLabel}>
-                  Volta
-                  <Typography component="span" sx={formStyles.optionalTag}>opcional · cria uma 2ª rotina</Typography>
+            <Box sx={formStyles.dateGroup}>
+              <Typography sx={formStyles.dateGroupLabel}>
+                Volta
+                <Typography component="span" sx={formStyles.optionalTag}>
+                  opcional · até {MAX_ROUNDTRIP_SPAN_MONTHS} meses depois da ida
                 </Typography>
-                <DateRangePickerField
-                  label="Período de volta"
-                  startDate={form.returnStart}
-                  endDate={form.returnEnd}
-                  onChange={(start, end) => {
-                    const updated: CreateTripInput = { ...form, returnStart: start || null, returnEnd: end || null }
-                    setForm(updated)
-                    touchField('returnStart', updated)
-                    touchField('returnEnd', updated)
-                  }}
-                  clearable
-                  maxRangeDays={30}
-                  error={!!errors.returnEnd}
-                  helperText={errors.returnEnd}
-                />
-              </Box>
-            )}
+              </Typography>
+              <DateRangePickerField
+                label="Período de volta"
+                startDate={form.returnStart}
+                endDate={form.returnEnd}
+                onChange={(start, end) => {
+                  const updated: CreateTripInput = { ...form, returnStart: start || null, returnEnd: end || null }
+                  setForm(updated)
+                  touchField('returnStart', updated)
+                  touchField('returnEnd', updated)
+                }}
+                clearable
+                maxRangeDays={30}
+                error={!!(errors.returnStart || errors.returnEnd)}
+                helperText={errors.returnStart || errors.returnEnd}
+              />
+            </Box>
           </Section>
 
           <Divider />
