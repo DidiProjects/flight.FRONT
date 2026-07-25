@@ -36,4 +36,10 @@ export interface CurrentPrice {
   p20Cash30d: number | null
   avgPts30d: number | null
   minPts30d: number | null
+  /**
+   * Rotina ida-e-volta cuja volta é indefinida (a companhia não deixa vê-la).
+   * A ida FOI coletada — só não é o preço da viagem. Serve para o card não dizer
+   * "sem preço coletado" quando o motivo é outro.
+   */
+  inboundUnavailable?: boolean
 }

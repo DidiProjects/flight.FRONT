@@ -110,13 +110,16 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
       destination: routine.destination,
       dateFrom: routine.outboundStart,
       dateTo: routine.outboundEnd,
+      // Rotina RT: o preço do card é o TOTAL da viagem, não o da ida.
+      inboundFrom: routine.inboundStart,
+      inboundTo: routine.inboundEnd,
     })
       .then((d) => { if (!cancelled) setCurrent(d) })
       .catch(() => { if (!cancelled) setCurrent(null) })
       .finally(() => { if (!cancelled) setCurrentLoading(false) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [airlinesKey, routine.origin, routine.destination, routine.outboundStart, routine.outboundEnd])
+  }, [airlinesKey, routine.origin, routine.destination, routine.outboundStart, routine.outboundEnd, routine.inboundStart, routine.inboundEnd])
 
   const currentInfo = current ? currentForPriority(current, routine) : null
   const freshness = timeAgo(current?.scrapedAt ?? null)
@@ -251,6 +254,18 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
                 </Button>
               ) : null}
             </Box>
+          </Box>
+        ) : current?.inboundUnavailable ? (
+          // A ida foi coletada; a companhia é que não deixa ver a volta. Dizer
+          // "sem preço coletado" esconderia isso, e mostrar o preço da ida seria
+          // pior ainda: não é o preço da viagem.
+          <Box sx={{ py: 1, px: 1.5, borderRadius: 1.5, backgroundColor: 'action.hover' }}>
+            <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.15 }}>
+              —
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              volta não disponível{freshness ? ` · verificado ${freshness}` : ''}
+            </Typography>
           </Box>
         ) : (
           <Typography variant="caption" color="text.secondary">

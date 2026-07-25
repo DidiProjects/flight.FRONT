@@ -25,6 +25,8 @@ type RawCurrent = RawPriceHistory & {
   best_hyb_pts:  number | string | null
   best_hyb_cash: number | string | null
   scraped_at:    string | null
+  /** RT sem total porque a volta é indefinida (a ida foi coletada, o par não fecha). */
+  inbound_unavailable?: boolean | null
 }
 
 function currentFromApi(raw: RawCurrent): CurrentPrice {
@@ -40,6 +42,7 @@ function currentFromApi(raw: RawCurrent): CurrentPrice {
     p20Cash30d:  toNum(raw.p20_cash_30d),
     avgPts30d:   toNum(raw.avg_pts_30d),
     minPts30d:   toNum(raw.min_pts_30d),
+    inboundUnavailable: raw.inbound_unavailable === true,
   }
 }
 
@@ -56,6 +59,9 @@ interface RoutineSummaryParams {
   destination: string
   dateFrom: string
   dateTo: string
+  /** Janela de volta. Presente = rotina round_trip, e /current devolve o TOTAL do par. */
+  inboundFrom?: string | null
+  inboundTo?: string | null
 }
 
 type RawPriceHistory = {
@@ -117,6 +123,11 @@ class FlightFaresServiceClass extends ApiService {
       destination: params.destination,
       date_from:   params.dateFrom,
       date_to:     params.dateTo,
+      // Sem isto o card de rotina RT mostraria o preço da perna de ida como se
+      // fosse o da viagem.
+      ...(params.inboundFrom && params.inboundTo
+        ? { inbound_from: params.inboundFrom, inbound_to: params.inboundTo }
+        : {}),
     }).toString()
 
     const raw = await this.get<RawCurrent>(`/fares/current?${qs}`)
