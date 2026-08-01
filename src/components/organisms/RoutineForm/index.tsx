@@ -206,6 +206,34 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.airlines])
 
+  // A rotina vira round_trip ao ter as duas datas de volta — é o que o
+  // RoutinesService traduz para `tripType` no envio.
+  const isRoundTrip = !!form.returnStart && !!form.returnEnd
+
+  /**
+   * Preencher a volta força a prioridade para dinheiro.
+   *
+   * Ida-e-volta só fecha total em dinheiro: com a ida escolhida em reais, a
+   * companhia não publica o preço da volta em pontos. Deixar a rotina em pts ou
+   * híbrido a manteria ligada prometendo um alerta que nunca chega.
+   *
+   * Os alvos em pontos são limpos junto — guardá-los deixaria um valor invisível
+   * na tela sendo enviado ao back, que agora recusa a rotina inteira.
+   */
+  useEffect(() => {
+    if (!isRoundTrip) return
+    if (form.priority === 'cash' && form.targetPts == null &&
+        form.targetHybPts == null && form.targetHybCash == null) return
+    setForm((prev) => ({
+      ...prev,
+      priority: 'cash',
+      targetPts: null,
+      targetHybPts: null,
+      targetHybCash: null,
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRoundTrip])
+
   function set<K extends keyof CreateTripInput>(key: K, value: CreateTripInput[K]) {
     const updated = { ...form, [key]: value }
     setForm(updated)
@@ -492,9 +520,15 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                       size="medium"
                     >
                       {(hasCash || !selectedAirlines.length) && <MenuItem value="cash">Dinheiro - Menor preço em moeda</MenuItem>}
-                      {(hasPts  || !selectedAirlines.length) && <MenuItem value="pts">Pontos - Menor preço em pontos</MenuItem>}
-                      {(hasHyb  || !selectedAirlines.length) && <MenuItem value="hyb">Híbrido - Menor em pontos + dinheiro</MenuItem>}
+                      {!isRoundTrip && (hasPts || !selectedAirlines.length) && <MenuItem value="pts">Pontos - Menor preço em pontos</MenuItem>}
+                      {!isRoundTrip && (hasHyb || !selectedAirlines.length) && <MenuItem value="hyb">Híbrido - Menor em pontos + dinheiro</MenuItem>}
                     </FormField>
+                    {isRoundTrip && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                        Ida e volta é monitorada só em dinheiro: com a ida escolhida em reais, a
+                        companhia não publica o preço da volta em pontos.
+                      </Typography>
+                    )}
                   </Box>
                   {form.priority === 'cash' && (
                     <Box sx={anim(140)}>

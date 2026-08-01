@@ -47,22 +47,58 @@ function computeVerdict(value: number | null, avg: number | null, threshold: num
   return 'high'
 }
 
-function currentForPriority(c: CurrentPrice, routine: Routine): { display: string | null; verdict: Verdict | null } {
+function fmtPts(value: number): string {
+  return `${value.toLocaleString('pt-BR')} pts`
+}
+
+/**
+ * Total dividido em ida e volta.
+ *
+ * Só existe quando as DUAS parcelas vieram: metade da divisão é pior que nenhuma
+ * — o leitor completaria a outra de cabeça e erraria. Fica ausente em rotina
+ * one-way e quando o total é bundle da companhia (preço único, sem divisão).
+ */
+function breakdown(outbound: number | null, inbound: number | null, fmt: (v: number) => string): string | null {
+  if (outbound == null || inbound == null) return null
+  return `ida ${fmt(outbound)} · volta ${fmt(inbound)}`
+}
+
+function currentForPriority(
+  c: CurrentPrice,
+  routine: Routine,
+): { display: string | null; verdict: Verdict | null; legs: string | null } {
   const currency = c.currency ?? routine.currency
   if (routine.priority === 'pts') {
     const v = c.bestPts
-    return { display: v != null ? `${v.toLocaleString('pt-BR')} pts` : null, verdict: computeVerdict(v, c.avgPts30d, c.minPts30d) }
+    return {
+      display: v != null ? fmtPts(v) : null,
+      verdict: computeVerdict(v, c.avgPts30d, c.minPts30d),
+      legs: breakdown(c.bestPtsOutbound, c.bestPtsInbound, fmtPts),
+    }
   }
   if (routine.priority === 'hyb') {
     const pts = c.bestHybPts
     const cash = c.bestHybCash
     const display = pts != null
-      ? `${pts.toLocaleString('pt-BR')} pts${cash != null ? ` + ${fmtCurrency(cash, currency)}` : ''}`
+      ? `${fmtPts(pts)}${cash != null ? ` + ${fmtCurrency(cash, currency)}` : ''}`
       : null
-    return { display, verdict: null }
+    // No híbrido cada perna tem as duas componentes; juntá-las numa string só
+    // mantém a leitura "ida X · volta Y" idêntica às outras prioridades.
+    const legPts = (v: number) => fmtPts(v)
+    const legs = breakdown(c.bestHybPtsOutbound, c.bestHybPtsInbound, legPts)
+    const legsCash = breakdown(c.bestHybCashOutbound, c.bestHybCashInbound, (v) => fmtCurrency(v, currency))
+    return {
+      display,
+      verdict: null,
+      legs: legs && legsCash ? `${legs} (+ ${legsCash})` : legs,
+    }
   }
   const v = c.bestCash
-  return { display: v != null ? fmtCurrency(v, currency) : null, verdict: computeVerdict(v, c.avgCash30d, c.p20Cash30d) }
+  return {
+    display: v != null ? fmtCurrency(v, currency) : null,
+    verdict: computeVerdict(v, c.avgCash30d, c.p20Cash30d),
+    legs: breakdown(c.bestCashOutbound, c.bestCashInbound, (x) => fmtCurrency(x, currency)),
+  }
 }
 
 interface RoutineCardProps {
@@ -211,8 +247,18 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
               <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.15 }}>
                 {currentInfo.display}
               </Typography>
+              {currentInfo.legs && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', lineHeight: 1.3 }}
+                >
+                  {currentInfo.legs}
+                </Typography>
+              )}
               <Typography variant="caption" color="text.secondary">
-                preço atual{freshness ? ` · verificado ${freshness}` : ''}
+                {currentInfo.legs ? 'total ida e volta' : 'preço atual'}
+                {freshness ? ` · verificado ${freshness}` : ''}
               </Typography>
             </Box>
             <Box
