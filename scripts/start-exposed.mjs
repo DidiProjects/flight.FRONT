@@ -55,6 +55,14 @@ console.log(`
 const vite = spawn('npx', ['vite', '--host', host, '--port', port], {
   stdio: 'inherit',
   shell: process.platform === 'win32',
+  env: {
+    ...process.env,
+    // Loga as requisições com o IP de origem: é o que diz se o celular chegou
+    // até aqui quando a tela dele fica em branco.
+    LOG_REQUESTS: '1',
+    // Console na tela — no iOS não há devtools para Opera nem Chrome.
+    VITE_MOBILE_CONSOLE: '1',
+  },
 })
 
 vite.on('exit', (code) => process.exit(code ?? 0))

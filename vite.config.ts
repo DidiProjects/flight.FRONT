@@ -3,8 +3,74 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
 
+/**
+ * Registra cada requisição com o IP de origem.
+ *
+ * O Vite não loga requisições HTTP, então "o celular não abre" fica sem
+ * evidência: não dá para saber se o tráfego chega à máquina ou morre antes.
+ * Com isto, uma linha vinda de um IP `100.x` prova que chegou — e a ausência
+ * dela prova que não.
+ *
+ * Ligado só pelo `start:exposed`, senão polui o dev normal.
+ */
+function requestLogger() {
+  return {
+    name: 'request-logger',
+    apply: 'serve' as const,
+    configureServer(server: { middlewares: { use: (fn: (req: { method?: string; url?: string; socket: { remoteAddress?: string } }, res: unknown, next: () => void) => void) => void } }) {
+      if (process.env.LOG_REQUESTS !== '1') return
+      server.middlewares.use((req, _res, next) => {
+        const ip = (req.socket.remoteAddress ?? '?').replace(/^::ffff:/, '')
+        console.log(`  [req] ${ip}  ${req.method} ${req.url}`)
+        next()
+      })
+    },
+  }
+}
+
+/**
+ * Mostra erros de JS na própria tela.
+ *
+ * O Eruda só ajuda depois que o bundle carrega — se o erro é no import de um
+ * módulo, ele nunca inicializa e a tela fica preta sem nenhuma pista. Este
+ * script é INLINE no <head>: roda antes de qualquer módulo, não depende de
+ * rede nem de cache, e por isso sobrevive justamente aos erros que apagam a
+ * tela. É a única forma de ler a mensagem num iPhone, onde não há devtools.
+ */
+function mobileErrorOverlay() {
+  return {
+    name: 'mobile-error-overlay',
+    apply: 'serve' as const,
+    transformIndexHtml(html: string) {
+      if (process.env.VITE_MOBILE_CONSOLE !== '1') return html
+      const script = `<script>(function(){
+  function show(title, detail) {
+    var box = document.getElementById('__err__');
+    if (!box) {
+      box = document.createElement('pre');
+      box.id = '__err__';
+      box.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;margin:0;padding:12px;background:#7f1d1d;color:#fff;font:12px/1.4 ui-monospace,monospace;white-space:pre-wrap;max-height:60vh;overflow:auto';
+      (document.body || document.documentElement).appendChild(box);
+    }
+    box.textContent += title + '\\n' + detail + '\\n\\n';
+  }
+  window.addEventListener('error', function (e) {
+    show('[error] ' + (e.message || ''), (e.filename || '') + ':' + (e.lineno || ''));
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason;
+    show('[promise] ' + ((r && (r.message || r)) || 'rejeitada'), (r && r.stack) || '');
+  });
+})();</script>`
+      return html.replace('<head>', `<head>\n    ${script}`)
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
+    requestLogger(),
+    mobileErrorOverlay(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
