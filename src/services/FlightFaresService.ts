@@ -107,6 +107,16 @@ function fromApi(raw: RawPriceHistory): PriceHistorySummary {
   }
 }
 
+/**
+ * Janela de volta na query. Presente = rotina de par, e a API passa a falar em
+ * TOTAL: preço atual, régua do veredito e calendário, todos na mesma grandeza.
+ */
+function inboundParams(p: RoutineSummaryParams): Record<string, string> {
+  return p.inboundFrom && p.inboundTo
+    ? { inbound_from: p.inboundFrom, inbound_to: p.inboundTo }
+    : {}
+}
+
 class FlightFaresServiceClass extends ApiService {
   async getPriceHistory(params: PriceHistoryParams): Promise<PriceHistorySummary> {
     const qs = new URLSearchParams({
@@ -127,6 +137,9 @@ class FlightFaresServiceClass extends ApiService {
       destination: params.destination,
       date_from:   params.dateFrom,
       date_to:     params.dateTo,
+      // Sem isto a régua sairia de UMA perna e o total do par pareceria caro
+      // para sempre — o card diria "Preço alto" na melhor oferta da rota.
+      ...inboundParams(params),
     }).toString()
 
     const raw = await this.get<RawPriceHistory>(`/fares/summary?${qs}`)
@@ -142,9 +155,7 @@ class FlightFaresServiceClass extends ApiService {
       date_to:     params.dateTo,
       // Sem isto o card de rotina RT mostraria o preço da perna de ida como se
       // fosse o da viagem.
-      ...(params.inboundFrom && params.inboundTo
-        ? { inbound_from: params.inboundFrom, inbound_to: params.inboundTo }
-        : {}),
+      ...inboundParams(params),
     }).toString()
 
     const raw = await this.get<RawCurrent>(`/fares/current?${qs}`)
@@ -158,6 +169,9 @@ class FlightFaresServiceClass extends ApiService {
       destination: params.destination,
       date_from:   params.dateFrom,
       date_to:     params.dateTo,
+      // Sem isto o calendário vem VAZIO em rotina de par: a coleta grava as
+      // duas pernas com return_date, e o ramo avulso filtra return_date IS NULL.
+      ...inboundParams(params),
     }).toString()
 
     const raw = await this.get<{ dates: RawByDate[] }>(`/fares/by-date?${qs}`)

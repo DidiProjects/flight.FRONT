@@ -24,27 +24,13 @@ import { FlightFaresService } from '@services/FlightFaresService'
 import { timeAgo } from '@utils/timeAgo'
 import { buildBookingLink } from '@utils/bookingLink'
 import { formatMoney } from '@utils/money'
+import { computeVerdict, verdictMeta, type Verdict } from '@utils/priceVerdict'
 import { cardStyles } from './style'
 import type { Routine } from '@app-types/routines'
 import type { CurrentPrice } from '@app-types/flightFares'
 
-type Verdict = 'low' | 'typical' | 'high'
-
-const verdictMeta: Record<Verdict, { label: string; color: 'success' | 'default' | 'warning' }> = {
-  low: { label: 'Preço baixo', color: 'success' },
-  typical: { label: 'Preço típico', color: 'default' },
-  high: { label: 'Preço alto', color: 'warning' },
-}
-
 function fmtCurrency(value: number, currency: string | null): string {
   return formatMoney(value, currency)
-}
-
-function computeVerdict(value: number | null, avg: number | null, threshold: number | null): Verdict | null {
-  if (value == null || avg == null) return null
-  if (threshold != null && value <= threshold) return 'low'
-  if (value <= avg) return 'typical'
-  return 'high'
 }
 
 function fmtPts(value: number): string {
@@ -388,6 +374,8 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
           dateFrom={routine.outboundStart}
           dateTo={routine.outboundEnd}
           currencyFallback={routine.currency}
+          inboundFrom={routine.inboundStart}
+          inboundTo={routine.inboundEnd}
         />
 
         <FareCalendar
@@ -397,6 +385,12 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
           dateFrom={routine.outboundStart}
           dateTo={routine.outboundEnd}
           currencyFallback={routine.currency}
+          // Em RT cada célula é o total da viagem naquela data de ida.
+          inboundFrom={routine.inboundStart}
+          inboundTo={routine.inboundEnd}
+          // Régua já carregada pelo card: a cor da célula significa o mesmo que
+          // o chip de veredito, sem uma segunda requisição.
+          summary={current}
         />
 
       </CardContent>
