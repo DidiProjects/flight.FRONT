@@ -40,6 +40,29 @@ export default defineConfig({
   ],
   server: {
     port: 3001,
+    /**
+     * A API é servida pela MESMA origem do front em desenvolvimento.
+     *
+     * Com `VITE_API_URL=/flight`, o browser só conversa com o dev server e o
+     * proxy fala com a API server-side, onde CORS não se aplica. É o que
+     * permite `npm run start:exposed` funcionar sem tocar no `FRONTEND_URL` da
+     * API: acessado por Tailscale, o front chama o próprio host e a origem
+     * continua batendo.
+     *
+     * Em produção não há proxy — o CI sobrescreve o .env com a URL absoluta da
+     * API (`vars.VITE_API_URL`), então o build sai com origem cruzada e o CORS
+     * do backend volta a ser o que manda.
+     */
+    proxy: {
+      '/flight': {
+        target: process.env.API_PROXY_TARGET ?? 'http://localhost:3011',
+        changeOrigin: true,
+        // O Admin consome SSE (`/flight/admin/stream`). Sem desligar a
+        // compressão, a resposta é bufferizada e os eventos só chegam em lote —
+        // o painel fica "vivo" mas parado.
+        headers: { 'Accept-Encoding': 'identity' },
+      },
+    },
   },
   resolve: {
     alias: {
