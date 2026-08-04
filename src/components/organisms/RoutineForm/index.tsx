@@ -277,13 +277,17 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   const isEdit = !!routine
   const selectedAirlines = airlines.filter((a) => form.airlines.includes(a.code))
-  // Moeda do target, em ordem: (1) moeda fixa da companhia (airlines.currency), quando definida;
-  // (2) moeda do mercado da ORIGEM (airports.currency do trajeto).
-  // Vazia quando ainda não há moeda resolvível — nesse caso nada é exibido no lugar.
-  const derivedCurrency =
-    selectedAirlines.find((a) => a.currency)?.currency ??
-    airports.find((a) => a.code === form.origin)?.currency ??
-    ''
+  /**
+   * O alvo é SEMPRE em Real — máscara fixa, não mais deduzida.
+   *
+   * Antes saía do cadastro (moeda da companhia, senão a do aeroporto de origem),
+   * e o cadastro está errado: a BA tem GBP em todos os aeroportos, inclusive os
+   * brasileiros. O campo dizia "GBP" enquanto a coleta trazia real.
+   *
+   * Agora cada tarifa guarda a moeda em que a companhia cobrou, e o sistema
+   * converte para comparar com este alvo.
+   */
+  const TARGET_CURRENCY = 'R$'
   const hasCash = selectedAirlines.some((a) => a.has_cash)
   const hasPts  = selectedAirlines.some((a) => a.has_pts)
   const hasHyb  = selectedAirlines.some((a) => a.has_hyb)
@@ -540,12 +544,12 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                         size="medium"
                         required
                         error={!!errors.targetCash}
-                        helperText={errors.targetCash ?? 'Notifica quando o preço atingir ou ficar abaixo deste valor'}
+                        helperText={errors.targetCash ?? 'Sempre em reais. Passagem em outra moeda é convertida pela cotação do dia.'}
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
                               <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
-                                {derivedCurrency}
+                                {TARGET_CURRENCY}
                               </Typography>
                             </InputAdornment>
                           ),
@@ -592,12 +596,12 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                         sx={{ flex: 1 }}
                         required
                         error={!!errors.targetHybCash}
-                        helperText={errors.targetHybCash ?? (derivedCurrency ? `Taxa em ${derivedCurrency} do modo híbrido` : 'Taxa do modo híbrido')}
+                        helperText={errors.targetHybCash ?? 'Taxa em reais do modo híbrido'}
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
                               <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
-                                {derivedCurrency}
+                                {TARGET_CURRENCY}
                               </Typography>
                             </InputAdornment>
                           ),

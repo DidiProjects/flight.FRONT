@@ -24,7 +24,31 @@ export interface PriceByDateEntry {
   bestHybCash: number | null
 }
 
+/** Um TRAJETO voado. Hoje um por jornada; a conexão modelada dará N. */
+export interface Segment {
+  origin: string
+  destination: string
+}
+
+/**
+ * O que a companhia VENDE e precifica: a ida, ou a volta.
+ *
+ * A moeda mora AQUI, não no card: herdar do nível de cima é o que fazia ida e
+ * volta aparecerem rotuladas iguais quando a coleta foi em moedas diferentes.
+ */
+export interface Journey {
+  direction: 'outbound' | 'inbound'
+  currency: string | null
+  cash: number | null
+  pts: number | null
+  hybPts: number | null
+  hybCash: number | null
+  segments: Segment[]
+}
+
 export interface CurrentPrice {
+  /** Uma em só-ida, duas em ida-e-volta. */
+  journeys?: Journey[]
   currency: string | null
   bestCash: number | null
   bestPts: number | null

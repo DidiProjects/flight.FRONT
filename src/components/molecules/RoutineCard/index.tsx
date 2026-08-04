@@ -27,7 +27,7 @@ import { formatMoney } from '@utils/money'
 import { computeVerdict, verdictMeta, type Verdict } from '@utils/priceVerdict'
 import { cardStyles } from './style'
 import type { Routine } from '@app-types/routines'
-import type { CurrentPrice } from '@app-types/flightFares'
+import type { CurrentPrice, Journey } from '@app-types/flightFares'
 
 function fmtCurrency(value: number, currency: string | null): string {
   return formatMoney(value, currency)
@@ -49,6 +49,27 @@ function breakdown(outbound: number | null, inbound: number | null, fmt: (v: num
   return `ida ${fmt(outbound)} · volta ${fmt(inbound)}`
 }
 
+/**
+ * O mesmo, mas cada jornada formatada na MOEDA DELA.
+ *
+ * A versão acima recebia um `fmt` só, com uma moeda herdada do par — era ela
+ * que fazia ida e volta aparecerem rotuladas iguais mesmo quando a companhia
+ * cobrou em moedas diferentes. Agora a moeda vem de dentro da jornada.
+ */
+function breakdownByJourney(
+  journeys: Journey[] | undefined,
+  pick: (j: Journey) => number | null,
+  fmt: (v: number, currency: string | null) => string,
+): string | null {
+  const out = journeys?.find((j) => j.direction === 'outbound')
+  const inb = journeys?.find((j) => j.direction === 'inbound')
+  if (!out || !inb) return null
+  const a = pick(out)
+  const b = pick(inb)
+  if (a == null || b == null) return null
+  return `ida ${fmt(a, out.currency)} · volta ${fmt(b, inb.currency)}`
+}
+
 function currentForPriority(
   c: CurrentPrice,
   routine: Routine,
@@ -59,7 +80,8 @@ function currentForPriority(
     return {
       display: v != null ? fmtPts(v) : null,
       verdict: computeVerdict(v, c.avgPts30d, c.minPts30d),
-      legs: breakdown(c.bestPtsOutbound, c.bestPtsInbound, fmtPts),
+      legs: breakdownByJourney(c.journeys, (j) => j.pts, (v) => fmtPts(v))
+        ?? breakdown(c.bestPtsOutbound, c.bestPtsInbound, fmtPts),
     }
   }
   if (routine.priority === 'hyb') {
@@ -72,7 +94,8 @@ function currentForPriority(
     // mantém a leitura "ida X · volta Y" idêntica às outras prioridades.
     const legPts = (v: number) => fmtPts(v)
     const legs = breakdown(c.bestHybPtsOutbound, c.bestHybPtsInbound, legPts)
-    const legsCash = breakdown(c.bestHybCashOutbound, c.bestHybCashInbound, (v) => fmtCurrency(v, currency))
+    const legsCash = breakdownByJourney(c.journeys, (j) => j.hybCash, fmtCurrency)
+      ?? breakdown(c.bestHybCashOutbound, c.bestHybCashInbound, (v) => fmtCurrency(v, currency))
     return {
       display,
       verdict: null,
@@ -83,7 +106,8 @@ function currentForPriority(
   return {
     display: v != null ? fmtCurrency(v, currency) : null,
     verdict: computeVerdict(v, c.avgCash30d, c.p20Cash30d),
-    legs: breakdown(c.bestCashOutbound, c.bestCashInbound, (x) => fmtCurrency(x, currency)),
+    legs: breakdownByJourney(c.journeys, (j) => j.cash, fmtCurrency)
+      ?? breakdown(c.bestCashOutbound, c.bestCashInbound, (x) => fmtCurrency(x, currency)),
   }
 }
 
