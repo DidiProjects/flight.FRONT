@@ -170,6 +170,8 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
   const currentInfo = current ? currentForPriority(current, routine) : null
   const freshness = timeAgo(current?.scrapedAt ?? null)
 
+  const isRoundTrip = routine.tripType === 'round_trip'
+
   const [buyAnchor, setBuyAnchor] = useState<null | HTMLElement>(null)
   const bookingOptions = routine.airlines
     .map((a) => ({
@@ -180,11 +182,11 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
         date: routine.outboundStart,
         passengers: routine.passengers,
         fareType: routine.priority,
+        // Sem isto o botão de compra de uma rotina de par abre busca só-ida.
+        ...(isRoundTrip && routine.inboundStart ? { returnDate: routine.inboundStart } : {}),
       }),
     }))
     .filter((o): o is { airline: string; url: string } => o.url != null)
-
-  const isRoundTrip = routine.tripType === 'round_trip'
 
   const formatDateRange = (start: string | null | undefined, end: string | null | undefined) => {
     const fmt = (d: string | null | undefined) => {
