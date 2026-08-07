@@ -24,7 +24,31 @@ export interface PriceByDateEntry {
   bestHybCash: number | null
 }
 
+/** Um TRAJETO voado. Hoje um por jornada; a conexão modelada dará N. */
+export interface Segment {
+  origin: string
+  destination: string
+}
+
+/**
+ * O que a companhia VENDE e precifica: a ida, ou a volta.
+ *
+ * A moeda mora AQUI, não no card: herdar do nível de cima é o que fazia ida e
+ * volta aparecerem rotuladas iguais quando a coleta foi em moedas diferentes.
+ */
+export interface Journey {
+  direction: 'outbound' | 'inbound'
+  currency: string | null
+  cash: number | null
+  pts: number | null
+  hybPts: number | null
+  hybCash: number | null
+  segments: Segment[]
+}
+
 export interface CurrentPrice {
+  /** Uma em só-ida, duas em ida-e-volta. */
+  journeys?: Journey[]
   currency: string | null
   bestCash: number | null
   bestPts: number | null
@@ -36,4 +60,27 @@ export interface CurrentPrice {
   p20Cash30d: number | null
   avgPts30d: number | null
   minPts30d: number | null
+  /**
+   * Rotina ida-e-volta cuja volta é indefinida (a companhia não deixa vê-la).
+   * A ida FOI coletada — só não é o preço da viagem. Serve para o card não dizer
+   * "sem preço coletado" quando o motivo é outro.
+   */
+  inboundUnavailable?: boolean
+  /**
+   * Parcelas do melhor par, para exibir o total segregado em ida e volta.
+   *
+   * São as parcelas da combinação vencedora de CADA dimensão — o par mais barato
+   * em dinheiro não é necessariamente o mais barato em pontos.
+   *
+   * Nulas em rotina one-way (não há par) e quando o total veio do bundle da
+   * companhia, que é um preço único sem divisão publicada.
+   */
+  bestCashOutbound: number | null
+  bestCashInbound: number | null
+  bestPtsOutbound: number | null
+  bestPtsInbound: number | null
+  bestHybPtsOutbound: number | null
+  bestHybPtsInbound: number | null
+  bestHybCashOutbound: number | null
+  bestHybCashInbound: number | null
 }

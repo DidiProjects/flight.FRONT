@@ -60,13 +60,15 @@ export function DashboardPage() {
 
   async function handleFormSubmit(data: CreateTripInput) {
     if (editTarget) {
-      const updated = await RoutinesService.update(editTarget.id, data)
+      const updated = await RoutinesService.updateTrip(editTarget.id, data)
       setRoutines((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
       toastEmitter.success('Rotina atualizada!')
     } else {
-      const created = await RoutinesService.createTrip(data, routines.length)
-      setRoutines((prev) => [...prev, ...created])
-      toastEmitter.success(created.length > 1 ? 'Rotinas de ida e volta criadas!' : 'Rotina criada!')
+      const created = await RoutinesService.createTrip(data)
+      setRoutines((prev) => [...prev, created])
+      toastEmitter.success(
+        created.tripType === 'round_trip' ? 'Rotina de ida e volta criada!' : 'Rotina criada!',
+      )
     }
   }
 

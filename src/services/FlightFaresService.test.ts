@@ -116,4 +116,53 @@ describe('FlightFaresService', () => {
       })
     })
   })
+
+  describe('getCurrent', () => {
+    const rtParams = { ...summaryParams, inboundFrom: '2026-09-01', inboundTo: '2026-09-30' }
+
+    it('rotina RT pede o total do par, nao o preco da ida', async () => {
+      const { FlightFaresService } = await import('./FlightFaresService')
+      await FlightFaresService.getCurrent(rtParams)
+
+      const calledUrl = mockFetch.mock.calls[0][0] as string
+      expect(calledUrl).toContain('inbound_from=2026-09-01')
+      expect(calledUrl).toContain('inbound_to=2026-09-30')
+    })
+
+    it('rotina one-way nao manda janela de volta', async () => {
+      const { FlightFaresService } = await import('./FlightFaresService')
+      await FlightFaresService.getCurrent(summaryParams)
+
+      const calledUrl = mockFetch.mock.calls[0][0] as string
+      expect(calledUrl).not.toContain('inbound_from')
+    })
+
+    it('volta indefinida chega como inboundUnavailable', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true, status: 200,
+        json: async () => ({ ...rawResponse, best_cash: null, best_pts: null,
+          best_hyb_pts: null, best_hyb_cash: null, scraped_at: '2026-07-25T10:00:00Z',
+          inbound_unavailable: true }),
+      })
+      const { FlightFaresService } = await import('./FlightFaresService')
+      const result = await FlightFaresService.getCurrent(rtParams)
+
+      // Sem total, mas com motivo conhecido: o card mostra "—", nao
+      // "sem preco coletado".
+      expect(result.bestCash).toBeNull()
+      expect(result.inboundUnavailable).toBe(true)
+    })
+
+    it('ausencia do campo nao vira volta indefinida', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true, status: 200,
+        json: async () => ({ ...rawResponse, best_cash: 900, best_pts: null,
+          best_hyb_pts: null, best_hyb_cash: null, scraped_at: null }),
+      })
+      const { FlightFaresService } = await import('./FlightFaresService')
+      const result = await FlightFaresService.getCurrent(summaryParams)
+
+      expect(result.inboundUnavailable).toBe(false)
+    })
+  })
 })

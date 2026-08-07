@@ -33,6 +33,7 @@ import { useAuth } from '@hooks/useAuth'
 import { useZodForm } from '@hooks/useZodForm'
 import { useCoverage } from '@hooks/useCoverage'
 import { routineSchema } from '@utils/schemas'
+import { MAX_ROUNDTRIP_SPAN_MONTHS } from '@utils/roundtrip'
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
 import { toastEmitter } from '@utils/toast'
@@ -168,8 +169,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         destination: routine.destination,
         outboundStart: routine.outboundStart,
         outboundEnd: routine.outboundEnd,
-        returnStart: null,
-        returnEnd: null,
+        returnStart: routine.inboundStart,
+        returnEnd: routine.inboundEnd,
         passengers: routine.passengers,
         targetCash: routine.targetCash,
         targetPts: routine.targetPts,
@@ -204,6 +205,34 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.airlines])
+
+  // A rotina vira round_trip ao ter as duas datas de volta — é o que o
+  // RoutinesService traduz para `tripType` no envio.
+  const isRoundTrip = !!form.returnStart && !!form.returnEnd
+
+  /**
+   * Preencher a volta força a prioridade para dinheiro.
+   *
+   * Ida-e-volta só fecha total em dinheiro: com a ida escolhida em reais, a
+   * companhia não publica o preço da volta em pontos. Deixar a rotina em pts ou
+   * híbrido a manteria ligada prometendo um alerta que nunca chega.
+   *
+   * Os alvos em pontos são limpos junto — guardá-los deixaria um valor invisível
+   * na tela sendo enviado ao back, que agora recusa a rotina inteira.
+   */
+  useEffect(() => {
+    if (!isRoundTrip) return
+    if (form.priority === 'cash' && form.targetPts == null &&
+        form.targetHybPts == null && form.targetHybCash == null) return
+    setForm((prev) => ({
+      ...prev,
+      priority: 'cash',
+      targetPts: null,
+      targetHybPts: null,
+      targetHybCash: null,
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRoundTrip])
 
   function set<K extends keyof CreateTripInput>(key: K, value: CreateTripInput[K]) {
     const updated = { ...form, [key]: value }
@@ -248,13 +277,17 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   const isEdit = !!routine
   const selectedAirlines = airlines.filter((a) => form.airlines.includes(a.code))
-  // Moeda do target, em ordem: (1) moeda fixa da companhia (airlines.currency), quando definida;
-  // (2) moeda do mercado da ORIGEM (airports.currency do trajeto).
-  // Vazia quando ainda não há moeda resolvível — nesse caso nada é exibido no lugar.
-  const derivedCurrency =
-    selectedAirlines.find((a) => a.currency)?.currency ??
-    airports.find((a) => a.code === form.origin)?.currency ??
-    ''
+  /**
+   * O alvo é SEMPRE em Real — máscara fixa, não mais deduzida.
+   *
+   * Antes saía do cadastro (moeda da companhia, senão a do aeroporto de origem),
+   * e o cadastro está errado: a BA tem GBP em todos os aeroportos, inclusive os
+   * brasileiros. O campo dizia "GBP" enquanto a coleta trazia real.
+   *
+   * Agora cada tarifa guarda a moeda em que a companhia cobrou, e o sistema
+   * converte para comparar com este alvo.
+   */
+  const TARGET_CURRENCY = 'R$'
   const hasCash = selectedAirlines.some((a) => a.has_cash)
   const hasPts  = selectedAirlines.some((a) => a.has_pts)
   const hasHyb  = selectedAirlines.some((a) => a.has_hyb)
@@ -405,29 +438,29 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               />
             </Box>
 
-            {!isEdit && (
-              <Box sx={formStyles.dateGroup}>
-                <Typography sx={formStyles.dateGroupLabel}>
-                  Volta
-                  <Typography component="span" sx={formStyles.optionalTag}>opcional · cria uma 2ª rotina</Typography>
+            <Box sx={formStyles.dateGroup}>
+              <Typography sx={formStyles.dateGroupLabel}>
+                Volta
+                <Typography component="span" sx={formStyles.optionalTag}>
+                  opcional · até {MAX_ROUNDTRIP_SPAN_MONTHS} meses depois da ida
                 </Typography>
-                <DateRangePickerField
-                  label="Período de volta"
-                  startDate={form.returnStart}
-                  endDate={form.returnEnd}
-                  onChange={(start, end) => {
-                    const updated: CreateTripInput = { ...form, returnStart: start || null, returnEnd: end || null }
-                    setForm(updated)
-                    touchField('returnStart', updated)
-                    touchField('returnEnd', updated)
-                  }}
-                  clearable
-                  maxRangeDays={30}
-                  error={!!errors.returnEnd}
-                  helperText={errors.returnEnd}
-                />
-              </Box>
-            )}
+              </Typography>
+              <DateRangePickerField
+                label="Período de volta"
+                startDate={form.returnStart}
+                endDate={form.returnEnd}
+                onChange={(start, end) => {
+                  const updated: CreateTripInput = { ...form, returnStart: start || null, returnEnd: end || null }
+                  setForm(updated)
+                  touchField('returnStart', updated)
+                  touchField('returnEnd', updated)
+                }}
+                clearable
+                maxRangeDays={30}
+                error={!!(errors.returnStart || errors.returnEnd)}
+                helperText={errors.returnStart || errors.returnEnd}
+              />
+            </Box>
           </Section>
 
           <Divider />
@@ -491,9 +524,15 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                       size="medium"
                     >
                       {(hasCash || !selectedAirlines.length) && <MenuItem value="cash">Dinheiro - Menor preço em moeda</MenuItem>}
-                      {(hasPts  || !selectedAirlines.length) && <MenuItem value="pts">Pontos - Menor preço em pontos</MenuItem>}
-                      {(hasHyb  || !selectedAirlines.length) && <MenuItem value="hyb">Híbrido - Menor em pontos + dinheiro</MenuItem>}
+                      {!isRoundTrip && (hasPts || !selectedAirlines.length) && <MenuItem value="pts">Pontos - Menor preço em pontos</MenuItem>}
+                      {!isRoundTrip && (hasHyb || !selectedAirlines.length) && <MenuItem value="hyb">Híbrido - Menor em pontos + dinheiro</MenuItem>}
                     </FormField>
+                    {isRoundTrip && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                        Ida e volta é monitorada só em dinheiro: com a ida escolhida em reais, a
+                        companhia não publica o preço da volta em pontos.
+                      </Typography>
+                    )}
                   </Box>
                   {form.priority === 'cash' && (
                     <Box sx={anim(140)}>
@@ -505,12 +544,12 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                         size="medium"
                         required
                         error={!!errors.targetCash}
-                        helperText={errors.targetCash ?? 'Notifica quando o preço atingir ou ficar abaixo deste valor'}
+                        helperText={errors.targetCash ?? 'Sempre em reais. Passagem em outra moeda é convertida pela cotação do dia.'}
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
                               <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
-                                {derivedCurrency}
+                                {TARGET_CURRENCY}
                               </Typography>
                             </InputAdornment>
                           ),
@@ -557,12 +596,12 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                         sx={{ flex: 1 }}
                         required
                         error={!!errors.targetHybCash}
-                        helperText={errors.targetHybCash ?? (derivedCurrency ? `Taxa em ${derivedCurrency} do modo híbrido` : 'Taxa do modo híbrido')}
+                        helperText={errors.targetHybCash ?? 'Taxa em reais do modo híbrido'}
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
                               <Typography variant="body2" sx={{ fontWeight: 500, mr: 0.5, color: 'text.secondary' }}>
-                                {derivedCurrency}
+                                {TARGET_CURRENCY}
                               </Typography>
                             </InputAdornment>
                           ),

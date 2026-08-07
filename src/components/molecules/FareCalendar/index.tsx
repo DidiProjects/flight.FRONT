@@ -4,7 +4,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import StarIcon from '@mui/icons-material/Star'
 import { FlightFaresService } from '@services/FlightFaresService'
 import { formatMoney } from '@utils/money'
-import type { PriceByDateEntry } from '@app-types/flightFares'
+import { computeVerdict, referenceFor, type Verdict } from '@utils/priceVerdict'
+import type { PriceByDateEntry, CurrentPrice } from '@app-types/flightFares'
 
 interface FareCalendarProps {
   airlines: string[]
@@ -13,9 +14,23 @@ interface FareCalendarProps {
   dateFrom: string
   dateTo: string
   currencyFallback: string | null
+  /** Janela de volta: presente, cada célula é o TOTAL do par daquela data de ida. */
+  inboundFrom?: string | null
+  inboundTo?: string | null
+  /**
+   * Régua histórica da rotina, para a cor significar o mesmo que no card.
+   * Ausente (ou sem dados) = células neutras: sem referência não há veredito.
+   */
+  summary?: CurrentPrice | null
 }
 
 type FareTrack = 'cash' | 'pts' | 'hyb'
+
+const VERDICT_LABEL: Record<Verdict, string> = {
+  low: 'Preço baixo para a rota',
+  typical: 'Preço típico',
+  high: 'Preço alto para a rota',
+}
 
 const TRACK_LABEL: Record<FareTrack, string> = {
   cash: 'Dinheiro',
@@ -36,22 +51,32 @@ function fmtCompact(value: number, track: FareTrack, currency: string | null): s
   return value >= 1000 ? `${Math.round(value / 1000)}k pts` : `${Math.round(value)} pts`
 }
 
-// t = 0 (mais barata) → verde; t = 1 (mais cara) → âmbar
-function tintBg(t: number): string {
-  return `hsl(${140 - t * 100}, 70%, 93%)`
+/**
+ * Cor pelo VEREDITO histórico, não pela posição na janela.
+ *
+ * A escala relativa antiga (`t = (v-min)/span`) sempre pintava algo de verde,
+ * mesmo numa janela inteira de preços ruins — e contradizia o card logo acima,
+ * que usa o histórico. Aqui verde quer dizer o mesmo nos dois lugares.
+ *
+ * Sem régua a célula fica neutra: inventar cor afirmaria algo não medido.
+ */
+const VERDICT_TINT: Record<Verdict, { bg: string; fg: string }> = {
+  low:     { bg: 'hsl(140, 70%, 93%)', fg: 'hsl(140, 60%, 26%)' },
+  typical: { bg: 'hsl(210, 16%, 95%)', fg: 'hsl(210, 12%, 32%)' },
+  high:    { bg: 'hsl(40, 85%, 93%)',  fg: 'hsl(30, 70%, 30%)' },
 }
-function tintFg(t: number): string {
-  return `hsl(${140 - t * 100}, 60%, 26%)`
-}
+const NEUTRAL_TINT = { bg: 'hsl(210, 16%, 95%)', fg: 'hsl(210, 12%, 32%)' }
 
 function FareSection({
   entries,
   track,
   currency,
+  summary,
 }: {
   entries: PriceByDateEntry[]
   track: FareTrack
   currency: string | null
+  summary?: CurrentPrice | null
 }) {
   const withValue = entries
     .map((e) => ({ e, v: valueFor(e, track) }))
@@ -59,9 +84,10 @@ function FareSection({
 
   if (withValue.length === 0) return null
 
+  // A estrela continua marcando o mais barato DA JANELA — informação de
+  // posição, que é útil e não conflita com a cor (que fala do histórico).
   const min = Math.min(...withValue.map((x) => x.v))
-  const max = Math.max(...withValue.map((x) => x.v))
-  const span = max - min || 1
+  const reference = summary ? referenceFor(track, summary) : { avg: null, threshold: null }
 
   return (
     <Box>
@@ -70,11 +96,17 @@ function FareSection({
       </Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(56px, 1fr))', gap: 0.75 }}>
         {withValue.map(({ e, v }) => {
-          const t = (v - min) / span
+          const verdict = computeVerdict(v, reference.avg, reference.threshold)
+          const tint = verdict ? VERDICT_TINT[verdict] : NEUTRAL_TINT
           const isCheapest = v === min
           const [, m, d] = e.flightDate.slice(0, 10).split('-')
           return (
-            <Tooltip key={e.flightDate} title={isCheapest ? 'Data mais barata' : ''}>
+            <Tooltip
+              key={e.flightDate}
+              title={[isCheapest ? 'Data mais barata da janela' : '', verdict ? VERDICT_LABEL[verdict] : '']
+                .filter(Boolean)
+                .join(' · ')}
+            >
               <Box
                 sx={{
                   display: 'flex',
@@ -85,7 +117,7 @@ function FareSection({
                   px: 0.5,
                   py: 0.5,
                   borderRadius: 1,
-                  backgroundColor: tintBg(t),
+                  backgroundColor: tint.bg,
                   border: isCheapest ? '1.5px solid' : '1.5px solid transparent',
                   borderColor: isCheapest ? 'success.main' : 'transparent',
                 }}
@@ -94,7 +126,7 @@ function FareSection({
                   {isCheapest && <StarIcon sx={{ fontSize: 10, color: 'success.main' }} />}
                   {d}/{m}
                 </Typography>
-                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: tintFg(t), lineHeight: 1.2 }}>
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: tint.fg, lineHeight: 1.2 }}>
                   {fmtCompact(v, track, currency)}
                 </Typography>
               </Box>
@@ -106,7 +138,7 @@ function FareSection({
   )
 }
 
-export function FareCalendar({ airlines, origin, destination, dateFrom, dateTo, currencyFallback }: FareCalendarProps) {
+export function FareCalendar({ airlines, origin, destination, dateFrom, dateTo, currencyFallback, inboundFrom, inboundTo, summary }: FareCalendarProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [entries, setEntries] = useState<PriceByDateEntry[] | null>(null)
@@ -118,12 +150,12 @@ export function FareCalendar({ airlines, origin, destination, dateFrom, dateTo, 
     if (!open || fetched) return
     setLoading(true)
     setError(false)
-    FlightFaresService.getPriceByDate({ airlines, origin, destination, dateFrom, dateTo })
+    FlightFaresService.getPriceByDate({ airlines, origin, destination, dateFrom, dateTo, inboundFrom, inboundTo })
       .then((d) => { setEntries(d); setFetched(true) })
       .catch(() => { setError(true); setFetched(true) })
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, fetched, airlinesKey, origin, destination, dateFrom, dateTo])
+  }, [open, fetched, airlinesKey, origin, destination, dateFrom, dateTo, inboundFrom, inboundTo])
 
   const list = entries ?? []
   // Mostra uma lista por tipo de tarifa com dados: dinheiro e pontos (e híbrido, quando houver),
@@ -179,7 +211,7 @@ export function FareCalendar({ airlines, origin, destination, dateFrom, dateTo, 
           {!loading && !error && tracks.length > 0 && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {tracks.map((track) => (
-                <FareSection key={track} entries={list} track={track} currency={currencyFallback} />
+                <FareSection key={track} entries={list} track={track} currency={currencyFallback} summary={summary} />
               ))}
             </Box>
           )}

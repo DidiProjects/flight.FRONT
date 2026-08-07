@@ -4,6 +4,8 @@ export type NotificationMode = 'target' | 'scheduled'
 
 export type NotificationFrequency = 'hourly' | 'daily' | 'monthly'
 
+export type TripType = 'one_way' | 'round_trip'
+
 export interface Routine {
   id: string
   userId: string
@@ -13,6 +15,9 @@ export interface Routine {
   destination: string
   outboundStart: string
   outboundEnd: string
+  tripType: TripType
+  inboundStart: string | null
+  inboundEnd: string | null
   passengers: number
   currency: string | null
   targetCash: number | null
@@ -37,9 +42,12 @@ export type CreateRoutineRequest = Omit<
 
 export type UpdateRoutineRequest = Partial<CreateRoutineRequest>
 
-// Entrada do formulário de criação: rotina one-way + datas de volta opcionais.
-// Quando há volta, o front divide em 2 rotinas one-way (IDA e VOLTA).
-export interface CreateTripInput extends CreateRoutineRequest {
+/**
+ * Entrada do formulário. Mantém o vocabulário da UI (`returnStart`/`returnEnd`);
+ * o RoutinesService traduz para `tripType` + `inboundStart`/`inboundEnd` ao enviar.
+ * Uma viagem de ida-e-volta é UMA rotina — não são mais duas.
+ */
+export interface CreateTripInput extends Omit<CreateRoutineRequest, 'tripType' | 'inboundStart' | 'inboundEnd'> {
   returnStart: string | null
   returnEnd: string | null
 }
