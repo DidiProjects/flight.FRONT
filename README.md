@@ -12,10 +12,11 @@ Frontend para gerenciar rotinas de monitoramento de preços de voos. O usuário 
 
 ```bash
 npm install
-npm start          # dev em http://localhost:3001
-npm run build      # build de produção (tsc -b && vite build)
-npm run preview    # preview do build
-npm test           # testes (watch); test:run / test:coverage
+npm start            # dev em http://localhost:3001
+npm run start:exposed # dev acessível pelo celular (ver abaixo)
+npm run build        # build de produção (tsc -b && vite build)
+npm run preview      # preview do build
+npm test             # testes (watch); test:run / test:coverage
 ```
 
 ### Variáveis de ambiente
@@ -23,9 +24,54 @@ npm test           # testes (watch); test:run / test:coverage
 Copie `.env.example` para `.env`:
 
 ```env
-VITE_API_URL=http://localhost:3011/flight   # base da flight.API (inclui o prefixo /flight)
-VITE_APP_URL=http://localhost:3001
+VITE_API_URL=/flight                     # relativo: o dev server proxia para a API
+VITE_APP_URL=http://100.77.40.44:3001    # onde o app é servido
 ```
+
+`VITE_API_URL` é **relativo de propósito**. O dev server faz proxy de `/flight`
+para `http://localhost:3011` (ver `vite.config.ts`), então front e API ficam na
+mesma origem e **não existe CORS em desenvolvimento**. Em produção o CI
+sobrescreve o `.env` com a URL absoluta da API, e aí o CORS do backend é o que
+vale.
+
+## Acessar pelo celular
+
+```bash
+npm run start:exposed
+```
+
+O script lê host e porta de `VITE_APP_URL` e faz o dev server escutar **só nesse
+endereço**. Basta o Tailscale ligado no celular — funciona em 4G, não precisa
+estar na mesma Wi-Fi.
+
+Não use `vite --host`: sem argumento ele escuta em *todas* as interfaces. Nesta
+máquina isso publicou o dev server no adaptador de uma VPN comercial e num
+loopback virtual com IP público.
+
+Como a API é proxiada pelo mesmo endereço, **nada mais precisa mudar** — o
+`.env` da flight.API não é tocado.
+
+### Depurar no celular
+
+No iOS não existe devtools: todo browser é WebKit por baixo, e o Web Inspector
+do Safari exige um Mac e só enxerga o Safari — não alcança Opera nem Chrome no
+iPhone. O `start:exposed` liga duas coisas para contornar isso:
+
+- **Overlay de erro** — script inline no `<head>`, injetado por plugin. Roda
+  antes de qualquer módulo e não depende de rede nem de cache, então aparece
+  mesmo quando o erro é no import e a tela fica preta. Erros surgem numa faixa
+  vermelha no topo.
+- **Eruda** — console completo (log, network, elementos) desenhado na página,
+  via botão flutuante. Só existe depois que o bundle carrega.
+
+O log do servidor mostra cada requisição com o **IP de origem**, o que distingue
+"não chegou ao PC" de "chegou e o app não montou" — duas causas com o mesmo
+sintoma de tela preta.
+
+> **Tela preta depois de instalar dependência nova:** o Vite reotimiza as deps e
+> troca o hash (`?v=...`). Um browser com o hash antigo em cache falha no import
+> e não mostra nada. Recarregue em aba anônima, ou apague `node_modules/.vite`
+> e reinicie.
 
 ## Estrutura
 

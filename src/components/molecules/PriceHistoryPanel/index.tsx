@@ -20,6 +20,13 @@ interface PriceHistoryPanelProps {
   dateFrom: string
   dateTo: string
   currencyFallback: string | null
+  /**
+   * Janela de volta. Presente, o histórico é o dos TOTAIS de par — a mesma
+   * grandeza que o card exibe. Sem isto, mínimo/média/P20 descreveriam a perna
+   * de ida e não teriam relação com o preço mostrado.
+   */
+  inboundFrom?: string | null
+  inboundTo?: string | null
 }
 
 function buildCashSparkline(summary: PriceHistorySummary): PriceSparklinePoint[] {
@@ -77,7 +84,7 @@ function Track({
   )
 }
 
-export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dateTo, currencyFallback }: PriceHistoryPanelProps) {
+export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dateTo, currencyFallback, inboundFrom, inboundTo }: PriceHistoryPanelProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [summary, setSummary] = useState<PriceHistorySummary | null>(null)
@@ -90,7 +97,7 @@ export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dat
     setLoading(true)
     setError(false)
 
-    FlightFaresService.getRoutineSummary({ airlines, origin, destination, dateFrom, dateTo })
+    FlightFaresService.getRoutineSummary({ airlines, origin, destination, dateFrom, dateTo, inboundFrom, inboundTo })
       .then((data) => {
         setSummary(data)
         setFetched(true)
@@ -100,7 +107,7 @@ export function PriceHistoryPanel({ airlines, origin, destination, dateFrom, dat
         setFetched(true)
       })
       .finally(() => setLoading(false))
-  }, [open, fetched, airlines, origin, destination, dateFrom, dateTo])
+  }, [open, fetched, airlines, origin, destination, dateFrom, dateTo, inboundFrom, inboundTo])
 
   const hasCash = summary != null && (summary.avgCash30d != null || summary.minCash30d != null)
   const hasPts  = summary != null && (summary.avgPts30d != null || summary.minPts30d != null)

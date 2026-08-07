@@ -24,45 +24,91 @@ import { FlightFaresService } from '@services/FlightFaresService'
 import { timeAgo } from '@utils/timeAgo'
 import { buildBookingLink } from '@utils/bookingLink'
 import { formatMoney } from '@utils/money'
+import { computeVerdict, verdictMeta, type Verdict } from '@utils/priceVerdict'
 import { cardStyles } from './style'
 import type { Routine } from '@app-types/routines'
-import type { CurrentPrice } from '@app-types/flightFares'
-
-type Verdict = 'low' | 'typical' | 'high'
-
-const verdictMeta: Record<Verdict, { label: string; color: 'success' | 'default' | 'warning' }> = {
-  low: { label: 'Preço baixo', color: 'success' },
-  typical: { label: 'Preço típico', color: 'default' },
-  high: { label: 'Preço alto', color: 'warning' },
-}
+import type { CurrentPrice, Journey } from '@app-types/flightFares'
 
 function fmtCurrency(value: number, currency: string | null): string {
   return formatMoney(value, currency)
 }
 
-function computeVerdict(value: number | null, avg: number | null, threshold: number | null): Verdict | null {
-  if (value == null || avg == null) return null
-  if (threshold != null && value <= threshold) return 'low'
-  if (value <= avg) return 'typical'
-  return 'high'
+function fmtPts(value: number): string {
+  return `${value.toLocaleString('pt-BR')} pts`
 }
 
-function currentForPriority(c: CurrentPrice, routine: Routine): { display: string | null; verdict: Verdict | null } {
+/**
+ * Total dividido em ida e volta.
+ *
+ * Só existe quando as DUAS parcelas vieram: metade da divisão é pior que nenhuma
+ * — o leitor completaria a outra de cabeça e erraria. Fica ausente em rotina
+ * one-way e quando o total é bundle da companhia (preço único, sem divisão).
+ */
+function breakdown(outbound: number | null, inbound: number | null, fmt: (v: number) => string): string | null {
+  if (outbound == null || inbound == null) return null
+  return `ida ${fmt(outbound)} · volta ${fmt(inbound)}`
+}
+
+/**
+ * O mesmo, mas cada jornada formatada na MOEDA DELA.
+ *
+ * A versão acima recebia um `fmt` só, com uma moeda herdada do par — era ela
+ * que fazia ida e volta aparecerem rotuladas iguais mesmo quando a companhia
+ * cobrou em moedas diferentes. Agora a moeda vem de dentro da jornada.
+ */
+function breakdownByJourney(
+  journeys: Journey[] | undefined,
+  pick: (j: Journey) => number | null,
+  fmt: (v: number, currency: string | null) => string,
+): string | null {
+  const out = journeys?.find((j) => j.direction === 'outbound')
+  const inb = journeys?.find((j) => j.direction === 'inbound')
+  if (!out || !inb) return null
+  const a = pick(out)
+  const b = pick(inb)
+  if (a == null || b == null) return null
+  return `ida ${fmt(a, out.currency)} · volta ${fmt(b, inb.currency)}`
+}
+
+function currentForPriority(
+  c: CurrentPrice,
+  routine: Routine,
+): { display: string | null; verdict: Verdict | null; legs: string | null } {
   const currency = c.currency ?? routine.currency
   if (routine.priority === 'pts') {
     const v = c.bestPts
-    return { display: v != null ? `${v.toLocaleString('pt-BR')} pts` : null, verdict: computeVerdict(v, c.avgPts30d, c.minPts30d) }
+    return {
+      display: v != null ? fmtPts(v) : null,
+      verdict: computeVerdict(v, c.avgPts30d, c.minPts30d),
+      legs: breakdownByJourney(c.journeys, (j) => j.pts, (v) => fmtPts(v))
+        ?? breakdown(c.bestPtsOutbound, c.bestPtsInbound, fmtPts),
+    }
   }
   if (routine.priority === 'hyb') {
     const pts = c.bestHybPts
     const cash = c.bestHybCash
     const display = pts != null
-      ? `${pts.toLocaleString('pt-BR')} pts${cash != null ? ` + ${fmtCurrency(cash, currency)}` : ''}`
+      ? `${fmtPts(pts)}${cash != null ? ` + ${fmtCurrency(cash, currency)}` : ''}`
       : null
-    return { display, verdict: null }
+    // No híbrido cada perna tem as duas componentes; juntá-las numa string só
+    // mantém a leitura "ida X · volta Y" idêntica às outras prioridades.
+    const legPts = (v: number) => fmtPts(v)
+    const legs = breakdown(c.bestHybPtsOutbound, c.bestHybPtsInbound, legPts)
+    const legsCash = breakdownByJourney(c.journeys, (j) => j.hybCash, fmtCurrency)
+      ?? breakdown(c.bestHybCashOutbound, c.bestHybCashInbound, (v) => fmtCurrency(v, currency))
+    return {
+      display,
+      verdict: null,
+      legs: legs && legsCash ? `${legs} (+ ${legsCash})` : legs,
+    }
   }
   const v = c.bestCash
-  return { display: v != null ? fmtCurrency(v, currency) : null, verdict: computeVerdict(v, c.avgCash30d, c.p20Cash30d) }
+  return {
+    display: v != null ? fmtCurrency(v, currency) : null,
+    verdict: computeVerdict(v, c.avgCash30d, c.p20Cash30d),
+    legs: breakdownByJourney(c.journeys, (j) => j.cash, fmtCurrency)
+      ?? breakdown(c.bestCashOutbound, c.bestCashInbound, (x) => fmtCurrency(x, currency)),
+  }
 }
 
 interface RoutineCardProps {
@@ -110,16 +156,21 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
       destination: routine.destination,
       dateFrom: routine.outboundStart,
       dateTo: routine.outboundEnd,
+      // Rotina RT: o preço do card é o TOTAL da viagem, não o da ida.
+      inboundFrom: routine.inboundStart,
+      inboundTo: routine.inboundEnd,
     })
       .then((d) => { if (!cancelled) setCurrent(d) })
       .catch(() => { if (!cancelled) setCurrent(null) })
       .finally(() => { if (!cancelled) setCurrentLoading(false) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [airlinesKey, routine.origin, routine.destination, routine.outboundStart, routine.outboundEnd])
+  }, [airlinesKey, routine.origin, routine.destination, routine.outboundStart, routine.outboundEnd, routine.inboundStart, routine.inboundEnd])
 
   const currentInfo = current ? currentForPriority(current, routine) : null
   const freshness = timeAgo(current?.scrapedAt ?? null)
+
+  const isRoundTrip = routine.tripType === 'round_trip'
 
   const [buyAnchor, setBuyAnchor] = useState<null | HTMLElement>(null)
   const bookingOptions = routine.airlines
@@ -131,6 +182,8 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
         date: routine.outboundStart,
         passengers: routine.passengers,
         fareType: routine.priority,
+        // Sem isto o botão de compra de uma rotina de par abre busca só-ida.
+        ...(isRoundTrip && routine.inboundStart ? { returnDate: routine.inboundStart } : {}),
       }),
     }))
     .filter((o): o is { airline: string; url: string } => o.url != null)
@@ -168,6 +221,15 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
               <Box sx={cardStyles.arrowLine} />
             </Box>
             <Typography sx={cardStyles.iata}>{routine.destination}</Typography>
+            {isRoundTrip && (
+              <>
+                <Box sx={{ ...cardStyles.flightArrow, transform: 'scaleX(-1)' }}>
+                  <FlightIcon sx={{ fontSize: 16 }} />
+                  <Box sx={cardStyles.arrowLine} />
+                </Box>
+                <Typography sx={cardStyles.iata}>{routine.origin}</Typography>
+              </>
+            )}
           </Box>
           {(originCity || destinationCity) && (
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
@@ -197,8 +259,18 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
               <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.15 }}>
                 {currentInfo.display}
               </Typography>
+              {currentInfo.legs && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', lineHeight: 1.3 }}
+                >
+                  {currentInfo.legs}
+                </Typography>
+              )}
               <Typography variant="caption" color="text.secondary">
-                preço atual{freshness ? ` · verificado ${freshness}` : ''}
+                {currentInfo.legs ? 'total ida e volta' : 'preço atual'}
+                {freshness ? ` · verificado ${freshness}` : ''}
               </Typography>
             </Box>
             <Box
@@ -241,6 +313,18 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
               ) : null}
             </Box>
           </Box>
+        ) : current?.inboundUnavailable ? (
+          // A ida foi coletada; a companhia é que não deixa ver a volta. Dizer
+          // "sem preço coletado" esconderia isso, e mostrar o preço da ida seria
+          // pior ainda: não é o preço da viagem.
+          <Box sx={{ py: 1, px: 1.5, borderRadius: 1.5, backgroundColor: 'action.hover' }}>
+            <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.15 }}>
+              —
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              volta não disponível{freshness ? ` · verificado ${freshness}` : ''}
+            </Typography>
+          </Box>
         ) : (
           <Typography variant="caption" color="text.secondary">
             Sem preço coletado ainda
@@ -265,7 +349,13 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
 
         {/* Meta grid */}
         <Box sx={cardStyles.meta}>
-          <MetaItem label="Datas" value={formatDateRange(routine.outboundStart, routine.outboundEnd)} />
+          <MetaItem
+            label={isRoundTrip ? 'Ida' : 'Datas'}
+            value={formatDateRange(routine.outboundStart, routine.outboundEnd)}
+          />
+          {isRoundTrip && (
+            <MetaItem label="Volta" value={formatDateRange(routine.inboundStart, routine.inboundEnd)} />
+          )}
 
           <MetaItem label="Passageiros" value={`${routine.passengers} pax`} />
           <MetaItem label="Notificações" value={routine.notificationModes.map((m) => modeLabels[m] ?? m).join(', ')} />
@@ -310,6 +400,8 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
           dateFrom={routine.outboundStart}
           dateTo={routine.outboundEnd}
           currencyFallback={routine.currency}
+          inboundFrom={routine.inboundStart}
+          inboundTo={routine.inboundEnd}
         />
 
         <FareCalendar
@@ -319,6 +411,12 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
           dateFrom={routine.outboundStart}
           dateTo={routine.outboundEnd}
           currencyFallback={routine.currency}
+          // Em RT cada célula é o total da viagem naquela data de ida.
+          inboundFrom={routine.inboundStart}
+          inboundTo={routine.inboundEnd}
+          // Régua já carregada pelo card: a cor da célula significa o mesmo que
+          // o chip de veredito, sem uma segunda requisição.
+          summary={current}
         />
 
       </CardContent>

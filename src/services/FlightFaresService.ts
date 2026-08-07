@@ -25,6 +25,17 @@ type RawCurrent = RawPriceHistory & {
   best_hyb_pts:  number | string | null
   best_hyb_cash: number | string | null
   scraped_at:    string | null
+  /** RT sem total porque a volta é indefinida (a ida foi coletada, o par não fecha). */
+  inbound_unavailable?: boolean | null
+  /** Parcelas do par vencedor de cada dimensão; nulas em one-way e em bundle. */
+  best_cash_outbound?:     number | string | null
+  best_cash_inbound?:      number | string | null
+  best_pts_outbound?:      number | string | null
+  best_pts_inbound?:       number | string | null
+  best_hyb_pts_outbound?:  number | string | null
+  best_hyb_pts_inbound?:   number | string | null
+  best_hyb_cash_outbound?: number | string | null
+  best_hyb_cash_inbound?:  number | string | null
 }
 
 function currentFromApi(raw: RawCurrent): CurrentPrice {
@@ -40,6 +51,15 @@ function currentFromApi(raw: RawCurrent): CurrentPrice {
     p20Cash30d:  toNum(raw.p20_cash_30d),
     avgPts30d:   toNum(raw.avg_pts_30d),
     minPts30d:   toNum(raw.min_pts_30d),
+    inboundUnavailable: raw.inbound_unavailable === true,
+    bestCashOutbound:    toNum(raw.best_cash_outbound),
+    bestCashInbound:     toNum(raw.best_cash_inbound),
+    bestPtsOutbound:     toNum(raw.best_pts_outbound),
+    bestPtsInbound:      toNum(raw.best_pts_inbound),
+    bestHybPtsOutbound:  toNum(raw.best_hyb_pts_outbound),
+    bestHybPtsInbound:   toNum(raw.best_hyb_pts_inbound),
+    bestHybCashOutbound: toNum(raw.best_hyb_cash_outbound),
+    bestHybCashInbound:  toNum(raw.best_hyb_cash_inbound),
   }
 }
 
@@ -56,6 +76,9 @@ interface RoutineSummaryParams {
   destination: string
   dateFrom: string
   dateTo: string
+  /** Janela de volta. Presente = rotina round_trip, e /current devolve o TOTAL do par. */
+  inboundFrom?: string | null
+  inboundTo?: string | null
 }
 
 type RawPriceHistory = {
@@ -84,6 +107,16 @@ function fromApi(raw: RawPriceHistory): PriceHistorySummary {
   }
 }
 
+/**
+ * Janela de volta na query. Presente = rotina de par, e a API passa a falar em
+ * TOTAL: preço atual, régua do veredito e calendário, todos na mesma grandeza.
+ */
+function inboundParams(p: RoutineSummaryParams): Record<string, string> {
+  return p.inboundFrom && p.inboundTo
+    ? { inbound_from: p.inboundFrom, inbound_to: p.inboundTo }
+    : {}
+}
+
 class FlightFaresServiceClass extends ApiService {
   async getPriceHistory(params: PriceHistoryParams): Promise<PriceHistorySummary> {
     const qs = new URLSearchParams({
@@ -104,6 +137,9 @@ class FlightFaresServiceClass extends ApiService {
       destination: params.destination,
       date_from:   params.dateFrom,
       date_to:     params.dateTo,
+      // Sem isto a régua sairia de UMA perna e o total do par pareceria caro
+      // para sempre — o card diria "Preço alto" na melhor oferta da rota.
+      ...inboundParams(params),
     }).toString()
 
     const raw = await this.get<RawPriceHistory>(`/fares/summary?${qs}`)
@@ -117,6 +153,9 @@ class FlightFaresServiceClass extends ApiService {
       destination: params.destination,
       date_from:   params.dateFrom,
       date_to:     params.dateTo,
+      // Sem isto o card de rotina RT mostraria o preço da perna de ida como se
+      // fosse o da viagem.
+      ...inboundParams(params),
     }).toString()
 
     const raw = await this.get<RawCurrent>(`/fares/current?${qs}`)
@@ -130,6 +169,9 @@ class FlightFaresServiceClass extends ApiService {
       destination: params.destination,
       date_from:   params.dateFrom,
       date_to:     params.dateTo,
+      // Sem isto o calendário vem VAZIO em rotina de par: a coleta grava as
+      // duas pernas com return_date, e o ramo avulso filtra return_date IS NULL.
+      ...inboundParams(params),
     }).toString()
 
     const raw = await this.get<{ dates: RawByDate[] }>(`/fares/by-date?${qs}`)

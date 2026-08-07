@@ -1,7 +1,6 @@
 import { ApiService } from './ApiService'
 import type { Routine, CreateRoutineRequest, UpdateRoutineRequest, CreateTripInput } from '@app-types/routines'
 
-const MAX_ROUTINES = 10
 import type { AnalysisRun, AnalysisRunStatus } from '@app-types/analysisRuns'
 
 function analysisRunFromApi(raw: RawRoutine): AnalysisRun {
@@ -28,6 +27,12 @@ function toDate(val: unknown): string {
   return String(val).substring(0, 10)
 }
 
+// Diferente de toDate: ausência vira null (one-way não tem janela de volta),
+// não string vazia — o back rejeita '' e aceita null.
+function toNullableDate(val: unknown): string | null {
+  return val ? String(val).substring(0, 10) : null
+}
+
 function toNum(val: unknown): number | null {
   if (val == null) return null
   const n = Number(val)
@@ -44,6 +49,9 @@ function fromApi(raw: RawRoutine): Routine {
     destination: raw.destination as string,
     outboundStart: toDate(raw.outbound_start ?? raw.outboundStart),
     outboundEnd: toDate(raw.outbound_end ?? raw.outboundEnd),
+    tripType: ((raw.trip_type ?? raw.tripType) ?? 'one_way') as Routine['tripType'],
+    inboundStart: toNullableDate(raw.inbound_start ?? raw.inboundStart),
+    inboundEnd: toNullableDate(raw.inbound_end ?? raw.inboundEnd),
     passengers: Number(raw.passengers),
     currency: (raw.currency ?? null) as string | null,
     targetCash: toNum(raw.target_cash ?? raw.targetCash),
@@ -78,34 +86,33 @@ class RoutinesServiceClass extends ApiService {
   }
 
   /**
-   * Criação de viagem. Sem volta → 1 rotina one-way. Com volta → 2 rotinas
-   * one-way (IDA e VOLTA, com sufixo no nome). Pré-checa o limite de 10 rotinas.
+   * Criação de viagem: SEMPRE uma rotina só. Com volta, ela vai como
+   * `round_trip` carregando a janela de volta — antes isso virava 2 rotinas
+   * one-way e queimava 2 das 10 vagas do usuário.
    */
-  async createTrip(input: CreateTripInput, currentCount: number): Promise<Routine[]> {
+  async createTrip(input: CreateTripInput): Promise<Routine> {
     const { returnStart, returnEnd, ...base } = input
     const hasReturn = !!returnStart && !!returnEnd
 
-    if (!hasReturn) {
-      return [await this.create(base)]
-    }
-
-    if (currentCount + 2 > MAX_ROUTINES) {
-      const free = Math.max(0, MAX_ROUTINES - currentCount)
-      throw new Error(
-        `Ida e volta cria 2 rotinas e você tem só ${free} vaga(s) livre(s) (limite ${MAX_ROUTINES}). Crie só a ida ou libere espaço primeiro.`,
-      )
-    }
-
-    const ida = await this.create({ ...base, name: `${base.name} (IDA)` })
-    const volta = await this.create({
+    return this.create({
       ...base,
-      name: `${base.name} (VOLTA)`,
-      origin: base.destination,
-      destination: base.origin,
-      outboundStart: returnStart,
-      outboundEnd: returnEnd,
+      tripType: hasReturn ? 'round_trip' : 'one_way',
+      inboundStart: hasReturn ? returnStart : null,
+      inboundEnd: hasReturn ? returnEnd : null,
     })
-    return [ida, volta]
+  }
+
+  /** Update traduzindo o vocabulário do formulário para o contrato da API. */
+  updateTrip(id: string, input: CreateTripInput): Promise<Routine> {
+    const { returnStart, returnEnd, ...base } = input
+    const hasReturn = !!returnStart && !!returnEnd
+
+    return this.update(id, {
+      ...base,
+      tripType: hasReturn ? 'round_trip' : 'one_way',
+      inboundStart: hasReturn ? returnStart : null,
+      inboundEnd: hasReturn ? returnEnd : null,
+    })
   }
 
   update(id: string, data: UpdateRoutineRequest): Promise<Routine> {
