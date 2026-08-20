@@ -1,5 +1,18 @@
 import { z } from 'zod'
-import { MAX_ROUNDTRIP_SPAN_MONTHS, maxInboundDate } from './roundtrip'
+import { MAX_ROUNDTRIP_RANGE_DAYS, MAX_DATE_RANGE_DAYS, MAX_ROUNDTRIP_SPAN_MONTHS, maxInboundDate } from './roundtrip'
+
+function diffEmDias(start: string, end: string): number {
+  return (new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)
+}
+
+/**
+ * Ida-e-volta tem teto menor porque a coleta é por PAR: o número de buscas é o
+ * PRODUTO das duas janelas. Preencher a volta é o que caracteriza o par aqui —
+ * o `tripType` é derivado disso no envio.
+ */
+function tetoDeJanela(d: { returnStart?: string | null; returnEnd?: string | null }): number {
+  return d.returnStart && d.returnEnd ? MAX_ROUNDTRIP_RANGE_DAYS : MAX_DATE_RANGE_DAYS
+}
 
 const email = z
   .string()
@@ -90,15 +103,23 @@ export const routineSchema = z
     (d) => !d.outboundStart || !d.outboundEnd || d.outboundEnd >= d.outboundStart,
     { message: 'Deve ser após a data de início', path: ['outboundEnd'] },
   )
+  // Duas refines em vez de uma com mensagem dinâmica: no zod 4 o segundo
+  // argumento não aceita mais função, então o teto entra no texto de cada uma.
   .refine(
     (d) => {
       if (!d.outboundStart || !d.outboundEnd) return true
-      const start = new Date(d.outboundStart)
-      const end = new Date(d.outboundEnd)
-      const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-      return diffDays <= 30
+      if (tetoDeJanela(d) !== MAX_DATE_RANGE_DAYS) return true
+      return diffEmDias(d.outboundStart, d.outboundEnd) <= MAX_DATE_RANGE_DAYS
     },
-    { message: 'O range de datas de ida não pode exceder 30 dias', path: ['outboundEnd'] },
+    { message: `O range de datas de ida não pode exceder ${MAX_DATE_RANGE_DAYS} dias`, path: ['outboundEnd'] },
+  )
+  .refine(
+    (d) => {
+      if (!d.outboundStart || !d.outboundEnd) return true
+      if (tetoDeJanela(d) !== MAX_ROUNDTRIP_RANGE_DAYS) return true
+      return diffEmDias(d.outboundStart, d.outboundEnd) <= MAX_ROUNDTRIP_RANGE_DAYS
+    },
+    { message: `O range de datas de ida não pode exceder ${MAX_ROUNDTRIP_RANGE_DAYS} dias`, path: ['outboundEnd'] },
   )
   .refine(
     (d) => !d.returnStart || !d.returnEnd || d.returnEnd >= d.returnStart,
@@ -107,12 +128,9 @@ export const routineSchema = z
   .refine(
     (d) => {
       if (!d.returnStart || !d.returnEnd) return true
-      const start = new Date(d.returnStart)
-      const end = new Date(d.returnEnd)
-      const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-      return diffDays <= 30
+      return diffEmDias(d.returnStart, d.returnEnd) <= MAX_ROUNDTRIP_RANGE_DAYS
     },
-    { message: 'O range de datas de volta não pode exceder 30 dias', path: ['returnEnd'] },
+    { message: `O range de datas de volta não pode exceder ${MAX_ROUNDTRIP_RANGE_DAYS} dias`, path: ['returnEnd'] },
   )
   .refine(
     (d) => !d.returnStart || !d.outboundStart || d.returnStart >= d.outboundStart,
