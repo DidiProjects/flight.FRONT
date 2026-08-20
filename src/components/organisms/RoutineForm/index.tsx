@@ -426,32 +426,45 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
           <Divider />
 
           <Section icon={<CalendarTodayOutlinedIcon sx={formStyles.sectionIcon} />} title="Períodos">
-            <FormField
-              select
-              label="Tipo de viagem"
-              value={tripMode}
-              onChange={(e) => {
-                const modo = e.target.value as 'one_way' | 'round_trip'
-                setTripMode(modo)
-                // Trocar para só-ida limpa a volta: deixá-la preenchida e
-                // escondida mandaria uma rotina de par sem o usuário ver.
-                if (modo === 'one_way') {
-                  const updated: CreateTripInput = { ...form, returnStart: null, returnEnd: null }
-                  setForm(updated)
-                  touchField('returnStart', updated)
-                  touchField('returnEnd', updated)
-                }
-              }}
-              size="medium"
-              helperText={
-                tripMode === 'round_trip'
+            <Box sx={{ mb: 0.5 }}>
+              {/* Os dois estados ficam rotulados dos lados: um switch sozinho
+                  mostraria só um nome e deixaria o outro implícito. */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  sx={{ fontSize: '0.85rem', fontWeight: tripMode === 'one_way' ? 600 : 400,
+                        color: tripMode === 'one_way' ? 'text.primary' : 'text.secondary' }}
+                >
+                  Apenas ida
+                </Typography>
+                <Switch
+                  checked={tripMode === 'round_trip'}
+                  onChange={(e) => {
+                    const modo = e.target.checked ? 'round_trip' : 'one_way'
+                    setTripMode(modo)
+                    // Voltar para só-ida limpa a volta: deixá-la preenchida e
+                    // escondida mandaria uma rotina de par sem o usuário ver.
+                    if (modo === 'one_way') {
+                      const updated: CreateTripInput = { ...form, returnStart: null, returnEnd: null }
+                      setForm(updated)
+                      touchField('returnStart', updated)
+                      touchField('returnEnd', updated)
+                    }
+                  }}
+                  inputProps={{ 'aria-label': 'Tipo de viagem' }}
+                />
+                <Typography
+                  sx={{ fontSize: '0.85rem', fontWeight: tripMode === 'round_trip' ? 600 : 400,
+                        color: tripMode === 'round_trip' ? 'text.primary' : 'text.secondary' }}
+                >
+                  Ida e volta
+                </Typography>
+              </Box>
+              <FormHelperText>
+                {tripMode === 'round_trip'
                   ? `Cada janela aceita no máximo ${MAX_ROUNDTRIP_RANGE_DAYS} dias — a busca é feita por par de datas`
-                  : 'Só a janela de ida é coletada'
-              }
-            >
-              <MenuItem value="one_way">Apenas ida</MenuItem>
-              <MenuItem value="round_trip">Ida e volta</MenuItem>
-            </FormField>
+                  : 'Só a janela de ida é coletada'}
+              </FormHelperText>
+            </Box>
 
             <Box sx={formStyles.dateGroup}>
               <Typography sx={formStyles.dateGroupLabel}>
