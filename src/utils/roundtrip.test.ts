@@ -26,8 +26,9 @@ describe('routineSchema — janela de volta', () => {
     airlines: ['azul'],
     origin: 'GRU',
     destination: 'LIS',
+    // 5 dias: é o teto de janela quando há volta, e estes casos todos a têm.
     outboundStart: '2026-06-01',
-    outboundEnd: '2026-06-07',
+    outboundEnd: '2026-06-06',
     returnStart: null as string | null,
     returnEnd: null as string | null,
     passengers: 1,
@@ -66,6 +67,26 @@ describe('routineSchema — janela de volta', () => {
   })
 
   it('volta no limite exato de 3 meses é aceita', () => {
-    expect(parse({ returnStart: '2026-09-07', returnEnd: '2026-09-10' }).success).toBe(true)
+    expect(parse({ returnStart: '2026-09-06', returnEnd: '2026-09-10' }).success).toBe(true)
+  })
+
+  /**
+   * O teto de 5 dias existe porque a coleta de ida-e-volta é por PAR: o número
+   * de buscas é o PRODUTO das duas janelas, não a soma.
+   */
+  it('com volta, janela de ida acima de 5 dias é rejeitada', () => {
+    expect(firstError(parse({
+      outboundStart: '2026-06-01', outboundEnd: '2026-06-07',
+      returnStart: '2026-07-01', returnEnd: '2026-07-05',
+    }))).toMatch(/ida não pode exceder 5 dias/)
+  })
+
+  it('com volta, janela de volta acima de 5 dias é rejeitada', () => {
+    expect(firstError(parse({ returnStart: '2026-07-01', returnEnd: '2026-07-07' })))
+      .toMatch(/volta não pode exceder 5 dias/)
+  })
+
+  it('sem volta, a ida continua aceitando 30 dias', () => {
+    expect(parse({ outboundStart: '2026-06-01', outboundEnd: '2026-07-01' }).success).toBe(true)
   })
 })

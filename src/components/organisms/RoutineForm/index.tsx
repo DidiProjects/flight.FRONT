@@ -33,7 +33,7 @@ import { useAuth } from '@hooks/useAuth'
 import { useZodForm } from '@hooks/useZodForm'
 import { useCoverage } from '@hooks/useCoverage'
 import { routineSchema } from '@utils/schemas'
-import { MAX_ROUNDTRIP_SPAN_MONTHS } from '@utils/roundtrip'
+import { MAX_ROUNDTRIP_SPAN_MONTHS, MAX_ROUNDTRIP_RANGE_DAYS, MAX_DATE_RANGE_DAYS } from '@utils/roundtrip'
 import { formStyles } from './style'
 import type { Airline } from '@app-types/airlines'
 import { toastEmitter } from '@utils/toast'
@@ -151,6 +151,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   const { user } = useAuth()
   const userEmail = user?.email
   const [form, setForm] = useState<CreateTripInput>(EMPTY)
+  // Intenção do usuário, explícita. As datas de volta continuam sendo a fonte
+  // do `tripType` no envio — este estado governa o que a tela mostra e garante
+  // que só-ida não deixe janela de volta preenchida para trás.
+  const [tripMode, setTripMode] = useState<'one_way' | 'round_trip'>('one_way')
   const [loading, setLoading] = useState(false)
   const [ccEmailInput, setCcEmailInput] = useState('')
   const { errors, validate, touchField, reset } = useZodForm<CreateTripInput>(routineSchema, 0)
@@ -184,8 +188,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
         ccEmails: routine.ccEmails,
         isActive: routine.isActive,
       })
+      setTripMode(routine.inboundStart && routine.inboundEnd ? 'round_trip' : 'one_way')
     } else {
       setForm({ ...EMPTY })
+      setTripMode('one_way')
     }
     setCcEmailInput('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,6 +215,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   // A rotina vira round_trip ao ter as duas datas de volta — é o que o
   // RoutinesService traduz para `tripType` no envio.
   const isRoundTrip = !!form.returnStart && !!form.returnEnd
+
+  // O teto da janela segue a INTENÇÃO, não o preenchimento: em ida-e-volta o
+  // calendário já precisa limitar a ida a 5 dias antes de a volta existir.
+  const maxJanela = tripMode === 'round_trip' ? MAX_ROUNDTRIP_RANGE_DAYS : MAX_DATE_RANGE_DAYS
 
   /**
    * Preencher a volta força a prioridade para dinheiro.
@@ -416,6 +426,33 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
           <Divider />
 
           <Section icon={<CalendarTodayOutlinedIcon sx={formStyles.sectionIcon} />} title="Períodos">
+            <FormField
+              select
+              label="Tipo de viagem"
+              value={tripMode}
+              onChange={(e) => {
+                const modo = e.target.value as 'one_way' | 'round_trip'
+                setTripMode(modo)
+                // Trocar para só-ida limpa a volta: deixá-la preenchida e
+                // escondida mandaria uma rotina de par sem o usuário ver.
+                if (modo === 'one_way') {
+                  const updated: CreateTripInput = { ...form, returnStart: null, returnEnd: null }
+                  setForm(updated)
+                  touchField('returnStart', updated)
+                  touchField('returnEnd', updated)
+                }
+              }}
+              size="medium"
+              helperText={
+                tripMode === 'round_trip'
+                  ? `Cada janela aceita no máximo ${MAX_ROUNDTRIP_RANGE_DAYS} dias — a busca é feita por par de datas`
+                  : 'Só a janela de ida é coletada'
+              }
+            >
+              <MenuItem value="one_way">Apenas ida</MenuItem>
+              <MenuItem value="round_trip">Ida e volta</MenuItem>
+            </FormField>
+
             <Box sx={formStyles.dateGroup}>
               <Typography sx={formStyles.dateGroupLabel}>
                 Ida{' '}
@@ -432,35 +469,37 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   touchField('outboundEnd', updated)
                 }}
                 required
-                maxRangeDays={30}
+                maxRangeDays={maxJanela}
                 error={!!(errors.outboundStart || errors.outboundEnd)}
                 helperText={errors.outboundStart || errors.outboundEnd}
               />
             </Box>
 
-            <Box sx={formStyles.dateGroup}>
-              <Typography sx={formStyles.dateGroupLabel}>
-                Volta
-                <Typography component="span" sx={formStyles.optionalTag}>
-                  opcional · até {MAX_ROUNDTRIP_SPAN_MONTHS} meses depois da ida
+            {tripMode === 'round_trip' && (
+              <Box sx={formStyles.dateGroup}>
+                <Typography sx={formStyles.dateGroupLabel}>
+                  Volta
+                  <Typography component="span" sx={formStyles.optionalTag}>
+                    obrigatório · até {MAX_ROUNDTRIP_SPAN_MONTHS} meses depois da ida
+                  </Typography>
                 </Typography>
-              </Typography>
-              <DateRangePickerField
-                label="Período de volta"
-                startDate={form.returnStart}
-                endDate={form.returnEnd}
-                onChange={(start, end) => {
-                  const updated: CreateTripInput = { ...form, returnStart: start || null, returnEnd: end || null }
-                  setForm(updated)
-                  touchField('returnStart', updated)
-                  touchField('returnEnd', updated)
-                }}
-                clearable
-                maxRangeDays={30}
-                error={!!(errors.returnStart || errors.returnEnd)}
-                helperText={errors.returnStart || errors.returnEnd}
-              />
-            </Box>
+                <DateRangePickerField
+                  label="Período de volta"
+                  startDate={form.returnStart}
+                  endDate={form.returnEnd}
+                  onChange={(start, end) => {
+                    const updated: CreateTripInput = { ...form, returnStart: start || null, returnEnd: end || null }
+                    setForm(updated)
+                    touchField('returnStart', updated)
+                    touchField('returnEnd', updated)
+                  }}
+                  clearable
+                  maxRangeDays={MAX_ROUNDTRIP_RANGE_DAYS}
+                  error={!!(errors.returnStart || errors.returnEnd)}
+                  helperText={errors.returnStart || errors.returnEnd}
+                />
+              </Box>
+            )}
           </Section>
 
           <Divider />

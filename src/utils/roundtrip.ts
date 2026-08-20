@@ -5,6 +5,18 @@
  */
 export const MAX_ROUNDTRIP_SPAN_MONTHS = 3
 
+/** Teto de cada janela em só-ida. Espelha `MAX_DATE_RANGE_DAYS` do flight.API. */
+export const MAX_DATE_RANGE_DAYS = 30
+
+/**
+ * Teto de cada janela em ida-e-volta. Espelha `MAX_ROUNDTRIP_RANGE_DAYS`.
+ *
+ * Bem menor que o de só-ida porque a coleta RT é por PAR de datas: o número de
+ * buscas é o PRODUTO das duas janelas. Com 30 dias dos dois lados seriam 900
+ * buscas por ciclo e por companhia; com 5, no máximo 25.
+ */
+export const MAX_ROUNDTRIP_RANGE_DAYS = 5
+
 /** Última data de volta aceita para uma ida, em YYYY-MM-DD. */
 export function maxInboundDate(outbound: string): string {
   const d = new Date(`${outbound.slice(0, 10)}T00:00:00Z`)
