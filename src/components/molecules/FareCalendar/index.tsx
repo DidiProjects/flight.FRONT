@@ -211,7 +211,18 @@ export function FareCalendar({ airlines, origin, destination, dateFrom, dateTo, 
           {!loading && !error && tracks.length > 0 && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {tracks.map((track) => (
-                <FareSection key={track} entries={list} track={track} currency={currencyFallback} summary={summary} />
+                <FareSection
+                  key={track}
+                  entries={list}
+                  track={track}
+                  // A moeda vem do que a API mediu, não da rotina. `routine.currency`
+                  // é a unidade do ALVO — fixa em Real — então usá-la aqui rotulava
+                  // £ 25,99 como "R$ 26". O card já resolve assim (`c.currency ??
+                  // routine.currency`), e o PriceHistoryPanel também; o calendário
+                  // era o único que ignorava o summary que ele mesmo recebe.
+                  currency={summary?.currency ?? currencyFallback}
+                  summary={summary}
+                />
               ))}
             </Box>
           )}
