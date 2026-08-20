@@ -81,6 +81,24 @@ export const components: Components<Omit<Theme, 'components'>> = {
       },
       input: {
         padding: '10px 14px',
+        /**
+         * Sem as setinhas de incremento/decremento em campos numéricos.
+         *
+         * No tema, e não campo a campo: são passageiros, alvos em dinheiro,
+         * pontos e margem — o spinner nativo é minúsculo, muda de lado conforme
+         * o navegador e convida ao clique repetido num valor que se digita.
+         *
+         * Firefox precisa de `appearance: textfield`; os baseados em WebKit
+         * precisam do pseudo-elemento. Sem os dois, um dos lados continua
+         * mostrando.
+         */
+        '&[type=number]': {
+          MozAppearance: 'textfield',
+        },
+        '&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button': {
+          WebkitAppearance: 'none',
+          margin: 0,
+        },
       },
     },
   },
