@@ -1,5 +1,5 @@
 import { ApiService } from './ApiService'
-import type { PriceHistorySummary, CurrentPrice, PriceByDateEntry } from '@app-types/flightFares'
+import type { PriceHistorySummary, CurrentPrice, PriceByDateEntry, Journey } from '@app-types/flightFares'
 
 type RawByDate = {
   flight_date:   string
@@ -27,15 +27,11 @@ type RawCurrent = RawPriceHistory & {
   scraped_at:    string | null
   /** RT sem total porque a volta é indefinida (a ida foi coletada, o par não fecha). */
   inbound_unavailable?: boolean | null
-  /** Parcelas do par vencedor de cada dimensão; nulas em one-way e em bundle. */
-  best_cash_outbound?:     number | string | null
-  best_cash_inbound?:      number | string | null
-  best_pts_outbound?:      number | string | null
-  best_pts_inbound?:       number | string | null
-  best_hyb_pts_outbound?:  number | string | null
-  best_hyb_pts_inbound?:   number | string | null
-  best_hyb_cash_outbound?: number | string | null
-  best_hyb_cash_inbound?:  number | string | null
+  /**
+   * Uma jornada em one-way, duas em ida-e-volta. Já vem em camelCase e coagido
+   * pela API — é a única parte da resposta que não passa por `toNum` aqui.
+   */
+  journeys?: Journey[]
 }
 
 function currentFromApi(raw: RawCurrent): CurrentPrice {
@@ -52,14 +48,7 @@ function currentFromApi(raw: RawCurrent): CurrentPrice {
     avgPts30d:   toNum(raw.avg_pts_30d),
     minPts30d:   toNum(raw.min_pts_30d),
     inboundUnavailable: raw.inbound_unavailable === true,
-    bestCashOutbound:    toNum(raw.best_cash_outbound ?? null),
-    bestCashInbound:     toNum(raw.best_cash_inbound ?? null),
-    bestPtsOutbound:     toNum(raw.best_pts_outbound ?? null),
-    bestPtsInbound:      toNum(raw.best_pts_inbound ?? null),
-    bestHybPtsOutbound:  toNum(raw.best_hyb_pts_outbound ?? null),
-    bestHybPtsInbound:   toNum(raw.best_hyb_pts_inbound ?? null),
-    bestHybCashOutbound: toNum(raw.best_hyb_cash_outbound ?? null),
-    bestHybCashInbound:  toNum(raw.best_hyb_cash_inbound ?? null),
+    journeys: raw.journeys,
   }
 }
 
