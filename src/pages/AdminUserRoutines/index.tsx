@@ -16,6 +16,10 @@ import {
   Button,
   LinearProgress,
   Collapse,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -24,6 +28,9 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox'
+import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useLiveRuns } from '@hooks/useLiveRuns'
@@ -33,6 +40,7 @@ import { ConfirmDialog } from '@atomic-components/molecules/ConfirmDialog'
 import { EmptyState } from '@atomic-components/molecules/EmptyState'
 import { RoutineForm } from '@atomic-components/organisms/RoutineForm'
 import { RoutinesService } from '@services/RoutinesService'
+import { AdminRoutinesService } from '@services/AdminRoutinesService'
 import { AirlinesService } from '@services/AirlinesService'
 import { useAdminUser } from '@contexts/AdminUserContext'
 import { toastEmitter } from '@utils/toast'
@@ -79,6 +87,9 @@ export function AdminUserRoutinesPage() {
   const [editTarget, setEditTarget] = useState<Routine | null>(null)
   const [airlines, setAirlines] = useState<Airline[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [menuFor, setMenuFor] = useState<{ anchor: HTMLElement; routine: Routine } | null>(null)
+  const [resetTarget, setResetTarget] = useState<Routine | null>(null)
+  const [resetLoading, setResetLoading] = useState(false)
 
   function toggleExpand(routineId: string) {
     setExpanded((prev) => {
@@ -146,6 +157,42 @@ export function AdminUserRoutinesPage() {
       toastEmitter.error('Falha ao disparar rotina.')
     } finally {
       endAction(routine.id)
+    }
+  }
+
+  async function handleResendLast(routine: Routine) {
+    setMenuFor(null)
+    startAction(routine.id)
+    try {
+      const res = await AdminRoutinesService.resendLastNotification(routine.id)
+      const label = res.type === 'alert' ? 'Alerta de target' : 'Resumo do dia'
+      if (res.sent) toastEmitter.success(`${label} de "${routine.name}" reenviado.`)
+      else toastEmitter.warning(`Nada reenviado: ${res.reason ?? 'sem dados para montar o e-mail'}.`)
+    } catch {
+      toastEmitter.error('Falha ao reenviar o último e-mail.')
+    } finally {
+      endAction(routine.id)
+    }
+  }
+
+  async function handleResetAnalyses() {
+    if (!resetTarget) return
+    setResetLoading(true)
+    try {
+      const res = await AdminRoutinesService.resetAnalyses(resetTarget.id)
+      // O que ficou importa tanto quanto o que saiu: execução e job são por ROTA,
+      // então parte do que a tela mostra pode pertencer a outra rotina.
+      const kept = res.analysisRuns.keptShared + res.scrapingJobs.keptShared
+      const keptNote = kept > 0 ? ` ${kept} preservado(s) por serem de outra rotina.` : ''
+      toastEmitter.success(
+        `"${resetTarget.name}": ${res.analysisRuns.deleted} execução(ões) e ${res.scrapingJobs.reset} job(s) zerados.${keptNote}`,
+      )
+      void loadRoutines()
+    } catch {
+      toastEmitter.error('Falha ao resetar as análises.')
+    } finally {
+      setResetLoading(false)
+      setResetTarget(null)
     }
   }
 
@@ -479,6 +526,18 @@ export function AdminUserRoutinesPage() {
                             </IconButton>
                           </span>
                         </Tooltip>
+                        <Tooltip title="Mais ações">
+                          <span>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => setMenuFor({ anchor: e.currentTarget, routine })}
+                              disabled={isActing}
+                              aria-label="Mais ações"
+                            >
+                              <MoreVertIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
 
@@ -516,6 +575,48 @@ export function AdminUserRoutinesPage() {
         loading={deleteLoading}
         onConfirm={handleBulkDelete}
         onCancel={() => setBulkDeleteOpen(false)}
+      />
+
+      <Menu
+        open={!!menuFor}
+        anchorEl={menuFor?.anchor ?? null}
+        onClose={() => setMenuFor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem onClick={() => menuFor && handleResendLast(menuFor.routine)}>
+          <ListItemIcon><ForwardToInboxIcon fontSize="small" /></ListItemIcon>
+          <ListItemText
+            primary="Reenviar último e-mail"
+            secondary="Remontado com as tarifas de agora"
+            slotProps={{ secondary: { variant: 'caption' } }}
+          />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setResetTarget(menuFor?.routine ?? null)
+            setMenuFor(null)
+          }}
+        >
+          <ListItemIcon><RestartAltIcon fontSize="small" color="warning" /></ListItemIcon>
+          <ListItemText
+            primary="Resetar análises"
+            secondary="Mantém o histórico de preços"
+            slotProps={{ secondary: { variant: 'caption' } }}
+          />
+        </MenuItem>
+      </Menu>
+
+      <ConfirmDialog
+        open={!!resetTarget}
+        title="Resetar análises"
+        message={`Apaga as execuções e o watermark de alerta de "${resetTarget?.name}", e devolve os jobs ao estado inicial.`}
+        warningMessage="O histórico de preços é mantido. Execuções em andamento e o que outra rotina também usa não são tocados."
+        confirmLabel="Resetar"
+        confirmColor="warning"
+        loading={resetLoading}
+        onConfirm={handleResetAnalyses}
+        onCancel={() => setResetTarget(null)}
       />
 
       <RoutineForm
