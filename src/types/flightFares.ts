@@ -66,21 +66,4 @@ export interface CurrentPrice {
    * "sem preço coletado" quando o motivo é outro.
    */
   inboundUnavailable?: boolean
-  /**
-   * Parcelas do melhor par, para exibir o total segregado em ida e volta.
-   *
-   * São as parcelas da combinação vencedora de CADA dimensão — o par mais barato
-   * em dinheiro não é necessariamente o mais barato em pontos.
-   *
-   * Nulas em rotina one-way (não há par) e quando o total veio do bundle da
-   * companhia, que é um preço único sem divisão publicada.
-   */
-  bestCashOutbound: number | null
-  bestCashInbound: number | null
-  bestPtsOutbound: number | null
-  bestPtsInbound: number | null
-  bestHybPtsOutbound: number | null
-  bestHybPtsInbound: number | null
-  bestHybCashOutbound: number | null
-  bestHybCashInbound: number | null
 }

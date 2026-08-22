@@ -38,23 +38,15 @@ function fmtPts(value: number): string {
 }
 
 /**
- * Total dividido em ida e volta.
+ * Total dividido em ida e volta, cada jornada formatada na MOEDA DELA.
  *
  * Só existe quando as DUAS parcelas vieram: metade da divisão é pior que nenhuma
  * — o leitor completaria a outra de cabeça e erraria. Fica ausente em rotina
  * one-way e quando o total é bundle da companhia (preço único, sem divisão).
- */
-function breakdown(outbound: number | null, inbound: number | null, fmt: (v: number) => string): string | null {
-  if (outbound == null || inbound == null) return null
-  return `ida ${fmt(outbound)} · volta ${fmt(inbound)}`
-}
-
-/**
- * O mesmo, mas cada jornada formatada na MOEDA DELA.
  *
- * A versão acima recebia um `fmt` só, com uma moeda herdada do par — era ela
- * que fazia ida e volta aparecerem rotuladas iguais mesmo quando a companhia
- * cobrou em moedas diferentes. Agora a moeda vem de dentro da jornada.
+ * A moeda sai de dentro da jornada, nunca do nível do par: herdá-la de cima era
+ * o que fazia ida e volta aparecerem rotuladas iguais mesmo quando a companhia
+ * cobrou em moedas diferentes.
  */
 function breakdownByJourney(
   journeys: Journey[] | undefined,
@@ -80,8 +72,7 @@ function currentForPriority(
     return {
       display: v != null ? fmtPts(v) : null,
       verdict: computeVerdict(v, c.avgPts30d, c.minPts30d),
-      legs: breakdownByJourney(c.journeys, (j) => j.pts, (v) => fmtPts(v))
-        ?? breakdown(c.bestPtsOutbound, c.bestPtsInbound, fmtPts),
+      legs: breakdownByJourney(c.journeys, (j) => j.pts, (v) => fmtPts(v)),
     }
   }
   if (routine.priority === 'hyb') {
@@ -92,10 +83,8 @@ function currentForPriority(
       : null
     // No híbrido cada perna tem as duas componentes; juntá-las numa string só
     // mantém a leitura "ida X · volta Y" idêntica às outras prioridades.
-    const legPts = (v: number) => fmtPts(v)
-    const legs = breakdown(c.bestHybPtsOutbound, c.bestHybPtsInbound, legPts)
+    const legs = breakdownByJourney(c.journeys, (j) => j.hybPts, (v) => fmtPts(v))
     const legsCash = breakdownByJourney(c.journeys, (j) => j.hybCash, fmtCurrency)
-      ?? breakdown(c.bestHybCashOutbound, c.bestHybCashInbound, (v) => fmtCurrency(v, currency))
     return {
       display,
       verdict: null,
@@ -106,8 +95,7 @@ function currentForPriority(
   return {
     display: v != null ? fmtCurrency(v, currency) : null,
     verdict: computeVerdict(v, c.avgCash30d, c.p20Cash30d),
-    legs: breakdownByJourney(c.journeys, (j) => j.cash, fmtCurrency)
-      ?? breakdown(c.bestCashOutbound, c.bestCashInbound, (x) => fmtCurrency(x, currency)),
+    legs: breakdownByJourney(c.journeys, (j) => j.cash, fmtCurrency),
   }
 }
 
