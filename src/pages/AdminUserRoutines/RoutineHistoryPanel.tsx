@@ -11,9 +11,15 @@ import { AnalysisRunsTable } from './AnalysisRunsTable'
 interface Props {
   routine: Routine
   live: JobView[]
+  /**
+   * Muda quando o histórico da rotina foi zerado por fora. A busca é por
+   * `routine.id`, que não muda no reset — sem isto o painel aberto seguiria
+   * listando execuções que já não existem até um F5.
+   */
+  reloadKey?: number
 }
 
-export function RoutineHistoryPanel({ routine, live }: Props) {
+export function RoutineHistoryPanel({ routine, live, reloadKey = 0 }: Props) {
   const [history, setHistory] = useState<AnalysisRun[] | null>(null)
 
   useEffect(() => {
@@ -27,7 +33,7 @@ export function RoutineHistoryPanel({ routine, live }: Props) {
         toastEmitter.error('Falha ao carregar histórico de análises.')
       })
     return () => { active = false }
-  }, [routine.id])
+  }, [routine.id, reloadKey])
 
   const runs = useMemo(
     () => (history === null ? null : mergeRuns(history, live.filter((job) => matchesRoutine(job, routine)))),

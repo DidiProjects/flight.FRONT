@@ -90,6 +90,7 @@ export function AdminUserRoutinesPage() {
   const [menuFor, setMenuFor] = useState<{ anchor: HTMLElement; routine: Routine } | null>(null)
   const [resetTarget, setResetTarget] = useState<Routine | null>(null)
   const [resetLoading, setResetLoading] = useState(false)
+  const [historyVersion, setHistoryVersion] = useState<Record<string, number>>({})
 
   function toggleExpand(routineId: string) {
     setExpanded((prev) => {
@@ -187,6 +188,9 @@ export function AdminUserRoutinesPage() {
       toastEmitter.success(
         `"${resetTarget.name}": ${res.analysisRuns.deleted} execução(ões) e ${res.scrapingJobs.reset} job(s) zerados.${keptNote}`,
       )
+      // O painel de histórico busca por routine.id, que o reset não muda: sem
+      // este empurrão ele seguiria listando o que acabou de ser apagado.
+      setHistoryVersion((prev) => ({ ...prev, [resetTarget.id]: (prev[resetTarget.id] ?? 0) + 1 }))
       void loadRoutines()
     } catch {
       toastEmitter.error('Falha ao resetar as análises.')
@@ -544,7 +548,11 @@ export function AdminUserRoutinesPage() {
                     <TableRow>
                       <TableCell colSpan={9} sx={{ py: 0, borderBottom: isExpanded ? undefined : 'none' }}>
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                          <RoutineHistoryPanel routine={routine} live={live} />
+                          <RoutineHistoryPanel
+                            routine={routine}
+                            live={live}
+                            reloadKey={historyVersion[routine.id] ?? 0}
+                          />
                         </Collapse>
                       </TableCell>
                     </TableRow>
