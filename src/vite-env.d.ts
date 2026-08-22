@@ -6,7 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_AUTHOR_NAME: string
   readonly VITE_AUTHOR_GITHUB: string
   readonly VITE_FEEDBACK_EMAIL: string
-  /** '1' liga o console na tela (Eruda). Definido pelo `start:exposed`. */
+  /** '1' turns on the on-screen console (Eruda). Set by `start:exposed`. */
   readonly VITE_MOBILE_CONSOLE?: string
 }
 

@@ -227,9 +227,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
    * airline does not publish the return price in points. Leaving the routine on
    * points or hybrid would keep it active promising an alert that never comes.
    *
-   * The points targets are cleared along with it — keeping them would leave a
-   * value invisible on screen being sent to the back, which now rejects the
-   * whole routine.
+   * The points targets are cleared with it — keeping them would leave a value
+   * invisible on screen being sent to the back, which now rejects the whole routine.
+   */
   useEffect(() => {
     if (!isRoundTrip) return
     if (form.priority === 'cash' && form.targetPts == null &&

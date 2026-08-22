@@ -91,7 +91,6 @@ export const components: Components<Omit<Theme, 'components'>> = {
          * Firefox needs `appearance: textfield`; WebKit-based browsers need the
          * pseudo-element. Without both, one of the sides keeps showing.
          */
-         */
         '&[type=number]': {
           MozAppearance: 'textfield',
         },

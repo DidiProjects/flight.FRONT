@@ -147,8 +147,8 @@ describe('FlightFaresService', () => {
       const { FlightFaresService } = await import('./FlightFaresService')
       const result = await FlightFaresService.getCurrent(rtParams)
 
-      // Sem total, mas com motivo conhecido: o card mostra "—", nao
-      // "sem preco coletado".
+      // No total, but with a known reason: the card shows "—", not
+      // "no price collected".
       expect(result.bestCash).toBeNull()
       expect(result.inboundUnavailable).toBe(true)
     })

@@ -1,7 +1,7 @@
 export interface Airline {
   code: string
   name: string
-  /** Moeda fixa da companhia (opcional). Quando definida, prevalece na moeda da rotina. */
+  /** Fixed airline currency (optional). When set, it prevails over the routine currency. */
   currency: string | null
   active: boolean
   has_cash: boolean
