@@ -181,15 +181,15 @@ export function AdminUserRoutinesPage() {
     setResetLoading(true)
     try {
       const res = await AdminRoutinesService.resetAnalyses(resetTarget.id)
-      // O que ficou importa tanto quanto o que saiu: execução e job são por ROTA,
-      // então parte do que a tela mostra pode pertencer a outra rotina.
+      // What stayed matters as much as what went: runs and jobs are per ROUTE,
+      // so part of what the screen shows may belong to another routine.
       const kept = res.analysisRuns.keptShared + res.scrapingJobs.keptShared
       const keptNote = kept > 0 ? ` ${kept} preservado(s) por serem de outra rotina.` : ''
       toastEmitter.success(
         `"${resetTarget.name}": ${res.analysisRuns.deleted} execução(ões) e ${res.scrapingJobs.reset} job(s) zerados.${keptNote}`,
       )
-      // O painel de histórico busca por routine.id, que o reset não muda: sem
-      // este empurrão ele seguiria listando o que acabou de ser apagado.
+      // The history panel queries by routine.id, which the reset does not change:
+      // without this nudge it would keep listing what was just deleted.
       setHistoryVersion((prev) => ({ ...prev, [resetTarget.id]: (prev[resetTarget.id] ?? 0) + 1 }))
       void loadRoutines()
     } catch {

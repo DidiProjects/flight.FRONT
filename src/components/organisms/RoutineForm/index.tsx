@@ -151,9 +151,9 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   const { user } = useAuth()
   const userEmail = user?.email
   const [form, setForm] = useState<CreateTripInput>(EMPTY)
-  // Intenção do usuário, explícita. As datas de volta continuam sendo a fonte
-  // do `tripType` no envio — este estado governa o que a tela mostra e garante
-  // que só-ida não deixe janela de volta preenchida para trás.
+  // Explicit user intent. The return dates remain the source of `tripType` on
+  // submit — this state governs what the screen shows and keeps one-way from
+  // leaving a filled return window behind.
   const [tripMode, setTripMode] = useState<'one_way' | 'round_trip'>('one_way')
   const [loading, setLoading] = useState(false)
   const [ccEmailInput, setCcEmailInput] = useState('')
@@ -212,24 +212,24 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.airlines])
 
-  // A rotina vira round_trip ao ter as duas datas de volta — é o que o
-  // RoutinesService traduz para `tripType` no envio.
+  // The routine becomes round_trip once both return dates exist — that is what
+  // RoutinesService translates into `tripType` on submit.
   const isRoundTrip = !!form.returnStart && !!form.returnEnd
 
-  // O teto da janela segue a INTENÇÃO, não o preenchimento: em ida-e-volta o
-  // calendário já precisa limitar a ida a 5 dias antes de a volta existir.
+  // The window ceiling follows the INTENT, not what is filled in: on round-trip
+  // the calendar must cap the outbound to 5 days before a return even exists.
   const maxJanela = tripMode === 'round_trip' ? MAX_ROUNDTRIP_RANGE_DAYS : MAX_DATE_RANGE_DAYS
 
   /**
-   * Preencher a volta força a prioridade para dinheiro.
+   * Filling the return forces priority to cash.
    *
-   * Ida-e-volta só fecha total em dinheiro: com a ida escolhida em reais, a
-   * companhia não publica o preço da volta em pontos. Deixar a rotina em pts ou
-   * híbrido a manteria ligada prometendo um alerta que nunca chega.
+   * A round-trip only totals in cash: with the outbound chosen in Real, the
+   * airline does not publish the return price in points. Leaving the routine on
+   * points or hybrid would keep it active promising an alert that never comes.
    *
-   * Os alvos em pontos são limpos junto — guardá-los deixaria um valor invisível
-   * na tela sendo enviado ao back, que agora recusa a rotina inteira.
-   */
+   * The points targets are cleared along with it — keeping them would leave a
+   * value invisible on screen being sent to the back, which now rejects the
+   * whole routine.
   useEffect(() => {
     if (!isRoundTrip) return
     if (form.priority === 'cash' && form.targetPts == null &&
@@ -288,14 +288,14 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
   const isEdit = !!routine
   const selectedAirlines = airlines.filter((a) => form.airlines.includes(a.code))
   /**
-   * O alvo é SEMPRE em Real — máscara fixa, não mais deduzida.
+   * The target is ALWAYS in Real — a fixed mask, no longer deduced.
    *
-   * Antes saía do cadastro (moeda da companhia, senão a do aeroporto de origem),
-   * e o cadastro está errado: a BA tem GBP em todos os aeroportos, inclusive os
-   * brasileiros. O campo dizia "GBP" enquanto a coleta trazia real.
-   *
-   * Agora cada tarifa guarda a moeda em que a companhia cobrou, e o sistema
-   * converte para comparar com este alvo.
+   * It used to come from registration (airline currency, else the origin
+   * airport's), and that registration is wrong: BA has GBP on every airport,
+   * the Brazilian ones included. The field said "GBP" while collection brought
+   * Real.
+   * Each fare now stores the currency the airline charged in, and the system
+   * converts to compare against this target.
    */
   const TARGET_CURRENCY = 'R$'
   const hasCash = selectedAirlines.some((a) => a.has_cash)
@@ -392,8 +392,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               {sortedAirlines.map((a) => {
                 const status = getAirlineCoverageStatus(a.code, form.origin, form.destination, coverageIndex)
                 const isSelected = form.airlines.includes(a.code)
-                // Empresa sem cobertura no trajeto fica desabilitada (não dá pra raspar).
-                // Mas se já estava selecionada, mantemos habilitada para permitir desmarcar.
+                // An airline with no coverage on the route is disabled (cannot be scraped).
+                // If it was already selected, it stays enabled so it can be unselected.
                 const disabled = status === 'uncovered' && !isSelected && !coverageLoading
                 return (
                   <MenuItem
@@ -441,8 +441,8 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
                   onChange={(e) => {
                     const modo = e.target.checked ? 'round_trip' : 'one_way'
                     setTripMode(modo)
-                    // Voltar para só-ida limpa a volta: deixá-la preenchida e
-                    // escondida mandaria uma rotina de par sem o usuário ver.
+                    // Going back to one-way clears the return: leaving it filled
+                    // and hidden would submit a pair routine the user never saw.
                     if (modo === 'one_way') {
                       const updated: CreateTripInput = { ...form, returnStart: null, returnEnd: null }
                       setForm(updated)

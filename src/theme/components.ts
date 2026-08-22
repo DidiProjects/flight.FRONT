@@ -82,15 +82,15 @@ export const components: Components<Omit<Theme, 'components'>> = {
       input: {
         padding: '10px 14px',
         /**
-         * Sem as setinhas de incremento/decremento em campos numéricos.
+         * No increment/decrement arrows on numeric fields.
          *
-         * No tema, e não campo a campo: são passageiros, alvos em dinheiro,
-         * pontos e margem — o spinner nativo é minúsculo, muda de lado conforme
-         * o navegador e convida ao clique repetido num valor que se digita.
+         * In the theme, not field by field: passengers, cash targets, points and
+         * margin — the native spinner is tiny, changes side depending on the
+         * browser, and invites repeated clicking on a value meant to be typed.
          *
-         * Firefox precisa de `appearance: textfield`; os baseados em WebKit
-         * precisam do pseudo-elemento. Sem os dois, um dos lados continua
-         * mostrando.
+         * Firefox needs `appearance: textfield`; WebKit-based browsers need the
+         * pseudo-element. Without both, one of the sides keeps showing.
+         */
          */
         '&[type=number]': {
           MozAppearance: 'textfield',

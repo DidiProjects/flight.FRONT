@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { computeVerdict, referenceFor } from './priceVerdict'
 
 /**
- * Esta regra é compartilhada entre o card e o calendário de propósito: enquanto
- * cada um decidia a cor por conta própria, o calendário normalizava pela janela
- * (sempre pintava algo de verde) e o card usava o histórico — os dois se
- * contradiziam na mesma tela.
+ * This rule is shared between the card and the calendar on purpose: while each
+ * decided the colour on its own, the calendar normalised by window (always
+ * painting something green) and the card used history — the two contradicted
+ * each other on the same screen.
  */
 describe('computeVerdict', () => {
   it('abaixo do P20 é preço baixo', () => {
@@ -25,8 +25,8 @@ describe('computeVerdict', () => {
   })
 
   it('sem régua não emite veredito', () => {
-    // Chutar "típico" afirmaria algo que não foi medido — e pintaria a célula
-    // com uma cor que o usuário leria como informação.
+    // Guessing "typical" would assert something never measured — and paint the
+    // cell a colour the user would read as information.
     expect(computeVerdict(450, null, null)).toBeNull()
     expect(computeVerdict(null, 500, 350)).toBeNull()
   })

@@ -24,18 +24,18 @@ export interface PriceByDateEntry {
   bestHybCash: number | null
 }
 
-/** Um TRAJETO voado. Hoje um por jornada; a conexão modelada dará N. */
+/** One flown SEGMENT. One per journey today; modelling connections will give N. */
 export interface Segment {
   origin: string
   destination: string
 }
 
 /**
- * O que a companhia VENDE e precifica: a ida, ou a volta.
+ * What the airline SELLS and prices: the outbound, or the return.
  *
- * A moeda mora AQUI, não no card: herdar do nível de cima é o que fazia ida e
- * volta aparecerem rotuladas iguais quando a coleta foi em moedas diferentes.
- */
+ * The currency lives HERE, not on the card: inheriting it from the level above
+ * is what made outbound and return show the same label when collection happened
+ * in different currencies.
 export interface Journey {
   direction: 'outbound' | 'inbound'
   currency: string | null
@@ -47,7 +47,7 @@ export interface Journey {
 }
 
 export interface CurrentPrice {
-  /** Uma em só-ida, duas em ida-e-volta. */
+  /** One on one-way, two on round-trip. */
   journeys?: Journey[]
   currency: string | null
   bestCash: number | null
@@ -61,9 +61,9 @@ export interface CurrentPrice {
   avgPts30d: number | null
   minPts30d: number | null
   /**
-   * Rotina ida-e-volta cuja volta é indefinida (a companhia não deixa vê-la).
-   * A ida FOI coletada — só não é o preço da viagem. Serve para o card não dizer
-   * "sem preço coletado" quando o motivo é outro.
+   * Round-trip routine whose return is undefined (the airline will not show it).
+   * The outbound WAS collected — it is just not the trip price. It keeps the card
+   * from saying "no price collected" when the reason is another.
    */
   inboundUnavailable?: boolean
 }

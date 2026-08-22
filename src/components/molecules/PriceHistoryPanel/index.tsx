@@ -21,9 +21,9 @@ interface PriceHistoryPanelProps {
   dateTo: string
   currencyFallback: string | null
   /**
-   * Janela de volta. Presente, o histórico é o dos TOTAIS de par — a mesma
-   * grandeza que o card exibe. Sem isto, mínimo/média/P20 descreveriam a perna
-   * de ida e não teriam relação com o preço mostrado.
+   * Return window. When present, the history is of pair TOTALS — the same
+   * quantity the card shows. Without it, min/average/P20 would describe the
+   * outbound leg and bear no relation to the displayed price.
    */
   inboundFrom?: string | null
   inboundTo?: string | null

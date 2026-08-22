@@ -26,7 +26,7 @@ describe('routineSchema — janela de volta', () => {
     airlines: ['azul'],
     origin: 'GRU',
     destination: 'LIS',
-    // 5 dias: é o teto de janela quando há volta, e estes casos todos a têm.
+    // 5 days: the window ceiling when a return exists, and all these cases have one.
     outboundStart: '2026-06-01',
     outboundEnd: '2026-06-06',
     returnStart: null as string | null,
@@ -71,8 +71,8 @@ describe('routineSchema — janela de volta', () => {
   })
 
   /**
-   * O teto de 5 dias existe porque a coleta de ida-e-volta é por PAR: o número
-   * de buscas é o PRODUTO das duas janelas, não a soma.
+   * The 5-day ceiling exists because round-trip collection goes by PAIR: the
+   * number of searches is the PRODUCT of the two windows, not the sum.
    */
   it('com volta, janela de ida acima de 5 dias é rejeitada', () => {
     expect(firstError(parse({

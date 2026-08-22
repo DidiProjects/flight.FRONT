@@ -7,7 +7,7 @@ export type JobStatus =
   | 'blocked'
   | 'cancelled'
 
-/** Visão consolidada de um job para a tabela do Admin (camelCase). */
+/** Consolidated view of a job for the Admin table (camelCase). */
 export interface JobView {
   requestId: string | null
   jobId: string
@@ -21,15 +21,15 @@ export interface JobView {
   finishedAt: string | null
   lastStep?: string
   lastError: string | null
-  /** Tarifas encontradas (vem no job.finished). undefined enquanto não finalizou. */
+  /** Fares found (arrives on job.finished). undefined while it has not finished. */
   faresFound?: number | null
-  /** Donos derivados por rota (rotinas ativas que cobrem rota+data). Vazio = sem dono. */
+  /** Owners derived by route (active routines covering route+date). Empty = ownerless. */
   userEmails: string[]
-  /** Setado quando a rota perdeu a rotina ativa (aposentado). null = ativo. */
+  /** Set when the route lost its active routine (retired). null = active. */
   orphanedAt: string | null
 }
 
-/** Linha de timeline/log de uma execução. */
+/** Timeline/log row of a run. */
 export interface JobEventLine {
   requestId: string
   seq: number

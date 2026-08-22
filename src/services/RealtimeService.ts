@@ -13,9 +13,9 @@ export interface RealtimeHandlers {
 }
 
 /**
- * Wrapper do EventSource para o stream SSE do Admin. O EventSource reconecta
- * sozinho (com Last-Event-ID); aqui só ligamos os handlers tipados. O access
- * token vai por query param porque o EventSource não envia header Authorization.
+ * EventSource wrapper for the Admin SSE stream. EventSource reconnects on its
+ * own (with Last-Event-ID); here we only wire the typed handlers. The access
+ * token goes as a query param because EventSource sends no Authorization header.
  */
 export class RealtimeService {
   private es: EventSource | null = null
