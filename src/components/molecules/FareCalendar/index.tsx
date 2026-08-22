@@ -58,8 +58,8 @@ function fmtCompact(value: number, track: FareTrack, currency: string | null): s
  * even across a window of bad prices — and contradicted the card just above,
  * which uses history. Here green means the same thing in both places.
  *
- * Without a baseline the cell stays neutral: inventing a colour would assert
- * something never measured.
+ * Without a baseline the cell stays neutral: inventing a colour asserts nothing measured.
+ */
 const VERDICT_TINT: Record<Verdict, { bg: string; fg: string }> = {
   low:     { bg: 'hsl(140, 70%, 93%)', fg: 'hsl(140, 60%, 26%)' },
   typical: { bg: 'hsl(210, 16%, 95%)', fg: 'hsl(210, 12%, 32%)' },

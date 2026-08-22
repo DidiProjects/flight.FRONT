@@ -33,9 +33,9 @@ export interface Segment {
 /**
  * What the airline SELLS and prices: the outbound, or the return.
  *
- * The currency lives HERE, not on the card: inheriting it from the level above
- * is what made outbound and return show the same label when collection happened
- * in different currencies.
+ * The currency lives HERE, not on the card: inheriting it from above is what made
+ * outbound and return show the same label on collections in different currencies.
+ */
 export interface Journey {
   direction: 'outbound' | 'inbound'
   currency: string | null
