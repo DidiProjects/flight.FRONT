@@ -48,7 +48,7 @@ function currentFromApi(raw: RawCurrent): CurrentPrice {
     avgPts30d:   toNum(raw.avg_pts_30d),
     minPts30d:   toNum(raw.min_pts_30d),
     inboundUnavailable: raw.inbound_unavailable === true,
-    journeys: raw.journeys ?? [],
+    journeys: raw.journeys,
     bestCashOutbound:    toNum(raw.best_cash_outbound ?? null),
     bestCashInbound:     toNum(raw.best_cash_inbound ?? null),
     bestPtsOutbound:     toNum(raw.best_pts_outbound ?? null),
