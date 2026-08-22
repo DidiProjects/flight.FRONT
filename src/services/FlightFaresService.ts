@@ -49,6 +49,14 @@ function currentFromApi(raw: RawCurrent): CurrentPrice {
     minPts30d:   toNum(raw.min_pts_30d),
     inboundUnavailable: raw.inbound_unavailable === true,
     journeys: raw.journeys,
+    bestCashOutbound:    toNum(raw.best_cash_outbound ?? null),
+    bestCashInbound:     toNum(raw.best_cash_inbound ?? null),
+    bestPtsOutbound:     toNum(raw.best_pts_outbound ?? null),
+    bestPtsInbound:      toNum(raw.best_pts_inbound ?? null),
+    bestHybPtsOutbound:  toNum(raw.best_hyb_pts_outbound ?? null),
+    bestHybPtsInbound:   toNum(raw.best_hyb_pts_inbound ?? null),
+    bestHybCashOutbound: toNum(raw.best_hyb_cash_outbound ?? null),
+    bestHybCashInbound:  toNum(raw.best_hyb_cash_inbound ?? null),
   }
 }
 
