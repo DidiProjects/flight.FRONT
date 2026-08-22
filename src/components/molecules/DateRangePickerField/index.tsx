@@ -114,14 +114,14 @@ export function DateRangePickerField({
   }
 
   /**
-   * `triggerDate` é o dia que o usuário clicou — o `selected` do react-day-picker
-   * já vem com o intervalo que ELE decidiu, estendendo o que existia.
+   * `triggerDate` is the day the user clicked — the `selected` from
+   * react-day-picker already carries the range IT decided, extending what existed.
    *
-   * Com o intervalo completo, clicar de novo estendia ou encolhia a seleção
-   * anterior, e não havia como escolher um período novo sem limpar o campo
-   * antes. Agora o clique seguinte recomeça: o dia vira a data inicial e a final
-   * fica em aberto. Vale tanto ao reabrir o calendário preenchido quanto logo
-   * depois de fechar as duas pontas.
+   * With a complete range, clicking again extended or shrank the previous
+   * selection, and there was no way to pick a new period without clearing the
+   * field first. Now the next click restarts: the day becomes the start date and
+   * the end is left open. This holds both when reopening a filled calendar and
+   * right after closing both ends.
    */
   function handleSelect(selected: DateRange | undefined, triggerDate: Date) {
     if (!selecting && range.from && range.to) {

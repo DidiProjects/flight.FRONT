@@ -1,15 +1,15 @@
 /**
- * Veredito de preço — a régua única do sistema.
+ * Price verdict — the single baseline of the system.
  *
- * Vive aqui porque o card e o calendário PRECISAM concordar. Antes cada um
- * decidia a cor à sua maneira: o card comparava com o histórico (p20 e média de
- * 30 dias) e o calendário normalizava entre o menor e o maior da janela
- * exibida. O calendário então sempre pintava algo de verde — mesmo numa janela
- * inteira de preços ruins — e o card, logo acima, dizia "Preço alto".
+ * It lives here because the card and the calendar MUST agree. Each used to
+ * decide the colour its own way: the card compared against history (p20 and a
+ * 30-day average) and the calendar normalised between the lowest and the
+ * highest of the displayed window. The calendar then always painted something
+ * green — even in a window of bad prices — while the card above said "high".
  *
- * Agora verde significa a mesma coisa nos dois lugares: barato em relação ao
- * histórico da rota. "O mais barato da janela" continua sinalizado, mas por
- * estrela e borda, que é informação de posição — não de preço.
+ * Now green means the same thing in both places: cheap against the route's
+ * history. "Cheapest in the window" is still flagged, but by star and border,
+ * which is positional information — not price.
  */
 export type Verdict = 'low' | 'typical' | 'high'
 
@@ -20,9 +20,9 @@ export const verdictMeta: Record<Verdict, { label: string; color: 'success' | 'd
 }
 
 /**
- * `threshold` é o p20 (ou o mínimo, em pontos): abaixo dele o preço é
- * historicamente baixo. Sem régua não há veredito — `null` é "não sei", e
- * chutar "típico" afirmaria algo que não foi medido.
+ * `threshold` is the p20 (or the minimum, in points): below it the price is
+ * historically low. Without a baseline there is no verdict — `null` means "I
+ * do not know", and guessing "typical" would assert something never measured.
  */
 export function computeVerdict(
   value: number | null,
@@ -35,7 +35,7 @@ export function computeVerdict(
   return 'high'
 }
 
-/** Régua da dimensão exibida. Em híbrido não há série histórica para comparar. */
+/** Baseline of the displayed dimension. Hybrid has no history to compare against. */
 export function referenceFor(
   track: 'cash' | 'pts' | 'hyb',
   summary: {

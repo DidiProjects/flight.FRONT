@@ -14,7 +14,7 @@ const q = (url: string) => new URL(url).searchParams
 
 describe('buildBookingLink — só-ida', () => {
   it('não inventa volta em nenhuma companhia', () => {
-    // O contrário do bug: sem returnDate o link tem de continuar só-ida.
+    // The inverse of the bug: with no returnDate the link must stay one-way.
     expect(buildBookingLink('azul', base)).not.toContain('c[1]')
     expect(q(buildBookingLink('latam', base)!).get('trip')).toBe('OW')
     expect(q(buildBookingLink('britishairways', base)!).get('trip')).toBe('oneWay')
@@ -40,7 +40,7 @@ describe('buildBookingLink — ida-e-volta', () => {
     const p = q(buildBookingLink('ryanair', rt)!)
     expect(p.get('isReturn')).toBe('true')
     expect(p.get('dateIn')).toBe('2026-09-25')
-    // Os `tp*` acompanham a busca no site; sem eles a volta não é pré-preenchida.
+    // The `tp*` params follow the search on the site; without them the return is not prefilled.
     expect(p.get('tpEndDate')).toBe('2026-09-25')
   })
 

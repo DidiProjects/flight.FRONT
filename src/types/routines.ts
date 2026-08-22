@@ -43,9 +43,9 @@ export type CreateRoutineRequest = Omit<
 export type UpdateRoutineRequest = Partial<CreateRoutineRequest>
 
 /**
- * Entrada do formulário. Mantém o vocabulário da UI (`returnStart`/`returnEnd`);
- * o RoutinesService traduz para `tripType` + `inboundStart`/`inboundEnd` ao enviar.
- * Uma viagem de ida-e-volta é UMA rotina — não são mais duas.
+ * Form input. Keeps the UI vocabulary (`returnStart`/`returnEnd`); RoutinesService
+ * translates it into `tripType` + `inboundStart`/`inboundEnd` on submit.
+ * A round-trip journey is ONE routine — no longer two.
  */
 export interface CreateTripInput extends Omit<CreateRoutineRequest, 'tripType' | 'inboundStart' | 'inboundEnd'> {
   returnStart: string | null

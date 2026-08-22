@@ -2,12 +2,12 @@ import { ApiService } from './ApiService'
 import type { ResendResult, ResetAnalysesResult } from '@app-types/adminRoutines'
 
 class AdminRoutinesServiceClass extends ApiService {
-  /** Reenvia o último e-mail da rotina — alerta de target ou resumo do dia. */
+  /** Resends the routine's last email — target alert or daily summary. */
   resendLastNotification(routineId: string): Promise<ResendResult> {
     return this.post<ResendResult>(`/admin/routines/${routineId}/resend-last-notification`)
   }
 
-  /** Zera execuções, jobs e watermark da rotina. Preserva o histórico de preços. */
+  /** Clears runs, jobs and watermark of the routine. Price history is preserved. */
   resetAnalyses(routineId: string): Promise<ResetAnalysesResult> {
     return this.post<ResetAnalysesResult>(`/admin/routines/${routineId}/reset-analyses`)
   }

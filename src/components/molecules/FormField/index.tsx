@@ -13,19 +13,19 @@ export const FormField = forwardRef<HTMLDivElement, FormFieldProps>(
     const isNumero = props.type === 'number'
 
     /**
-     * Campo numérico não muda de valor por scroll nem por seta.
+     * A number field must not change value by scroll or arrow key.
      *
-     * Esconder o spinner no tema tirou só os botões: o `input[type=number]`
-     * continua incrementando com a roda do mouse enquanto está focado e com
-     * ArrowUp/ArrowDown. Passar o mouse sobre um alvo de preço e rolar a página
-     * alterava o valor sem o usuário perceber.
+     * Hiding the spinner in the theme only removed the buttons: `input[type=number]`
+     * still increments with the mouse wheel while focused, and with
+     * ArrowUp/ArrowDown. Hovering a price target and scrolling the page changed
+     * the value without the user noticing.
      *
-     * O scroll é resolvido com `blur` em vez de `preventDefault`: o React
-     * registra `wheel` como passivo, então o preventDefault não teria efeito.
-     * Sem foco, o input ignora a roda. As setas são canceladas no keydown, que
-     * não é passivo.
+     * Scroll is handled with `blur` instead of `preventDefault`: React registers
+     * `wheel` as passive, so preventDefault would have no effect. Unfocused, the
+     * input ignores the wheel. The arrows are cancelled on keydown, which is not
+     * passive.
      *
-     * `type="number"` fica: é ele que traz o teclado numérico no celular.
+     * `type="number"` stays: it is what brings the numeric keypad on mobile.
      */
     const bloqueiaScroll = (e: React.WheelEvent<HTMLDivElement>) => {
       if (isNumero) (e.target as HTMLElement).blur()

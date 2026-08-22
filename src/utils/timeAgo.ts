@@ -1,4 +1,4 @@
-/** Tempo relativo curto em pt-BR: "agora", "há 5min", "há 2h", "há 3d". */
+/** Short relative time in pt-BR: "agora", "há 5min", "há 2h", "há 3d". */
 export function timeAgo(iso: string | null): string | null {
   if (!iso) return null
   const then = new Date(iso).getTime()

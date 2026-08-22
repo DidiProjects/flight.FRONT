@@ -3,15 +3,15 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 
 /**
- * Console dentro da própria página, para depurar no celular.
+ * A console inside the page itself, to debug on mobile.
  *
- * No iOS não existe devtools: todo browser é WebKit por baixo, e o Web
- * Inspector do Safari exige um Mac e só enxerga o Safari — nada disso alcança
- * Opera ou Chrome no iPhone. O Eruda desenha o console na tela, então funciona
- * em qualquer um deles.
+ * iOS has no devtools: every browser is WebKit underneath, and Safari Web
+ * Inspector needs a Mac and only sees Safari — none of that reaches Opera or
+ * Chrome on an iPhone. Eruda draws the console on screen, so it works in any
+ * of them.
  *
- * Import dinâmico para não entrar no bundle de produção, e ligado apenas pelo
- * `start:exposed` (VITE_MOBILE_CONSOLE=1) — no desktop atrapalharia.
+ * Dynamically imported to stay out of the production bundle, and enabled only
+ * by `start:exposed` (VITE_MOBILE_CONSOLE=1) — on desktop it gets in the way.
  */
 if (import.meta.env.DEV && import.meta.env.VITE_MOBILE_CONSOLE === '1') {
   import('eruda').then(({ default: eruda }) => eruda.init())

@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { formatMoney } from './money'
 
 /**
- * O `Intl.NumberFormat` separa o símbolo do número com ESPAÇO NÃO-QUEBRÁVEL
- * (U+00A0), não com espaço comum — é o que impede "R$" de ficar sozinho no fim
- * de uma linha. Os testes escrevem `\u00A0` explicitamente porque a diferença é
- * invisível no editor: colar "R$ 2.600,00" com espaço normal falha, e a
- * mensagem do vitest mostra duas strings idênticas na tela.
+ * `Intl.NumberFormat` separates the symbol from the number with a NON-BREAKING
+ * SPACE (U+00A0), not an ordinary one — that is what keeps "R$" from being left
+ * alone at the end of a line. The tests spell `\u00A0` out because the
+ * difference is invisible in the editor: pasting "R$ 2.600,00" with a normal
+ * space fails, and vitest then shows two identical-looking strings.
  */
 const NBSP = '\u00A0'
 
@@ -17,16 +17,16 @@ describe('formatMoney', () => {
     })
 
     it('mantém a locale pt-BR mesmo com moeda estrangeira', () => {
-      // A locale é do LEITOR, não da moeda: quem lê é brasileiro, então o
-      // símbolo muda mas a pontuação continua brasileira.
+      // The locale belongs to the READER, not to the currency: the reader is
+      // Brazilian, so the symbol changes but the punctuation stays Brazilian.
       expect(formatMoney(26, 'GBP')).toBe(`£${NBSP}26,00`)
       expect(formatMoney(26, 'USD')).toBe(`US$${NBSP}26,00`)
       expect(formatMoney(26, 'EUR')).toBe(`€${NBSP}26,00`)
     })
 
     it('respeita moedas sem casa decimal', () => {
-      // Iene e peso chileno não têm centavos; forçar ",00" inventaria precisão
-      // que a moeda não tem. Quem decide isso é o Intl, não a função.
+      // Yen and Chilean peso have no cents; forcing ",00" would invent precision
+      // the currency does not have. Intl decides that, not this function.
       expect(formatMoney(26, 'JPY')).toBe(`JP¥${NBSP}26`)
       expect(formatMoney(26, 'CLP')).toBe(`CLP${NBSP}26`)
     })
@@ -51,21 +51,21 @@ describe('formatMoney', () => {
 
   describe('sem moeda resolvida', () => {
     it('exibe só o número, sem símbolo no lugar', () => {
-      // Regra de negócio: enquanto a moeda não chegou, não se chuta "R$".
-      // Um preço em libras rotulado como real é pior que um preço sem rótulo.
+      // Business rule: while the currency has not arrived, never guess "R$".
+      // A price in pounds labelled as Real is worse than one with no label.
       expect(formatMoney(2600, null)).toBe('2.600')
       expect(formatMoney(2600, undefined)).toBe('2.600')
     })
 
     it('trata string vazia como moeda ausente', () => {
-      // A API devolve '' quando ainda não resolveu a moeda da rota; cair no
-      // `Intl` com '' lançaria RangeError e derrubaria o card inteiro.
+      // The API returns '' while the route currency is unresolved; reaching
+      // `Intl` with '' throws RangeError and takes the whole card down.
       expect(formatMoney(2600, '')).toBe('2.600')
     })
 
     it('omite os centavos quando o valor é inteiro', () => {
-      // `minimumFractionDigits: 0` é o que separa este caminho do outro:
-      // com moeda, 2600 vira "R$ 2.600,00"; sem moeda, vira "2.600".
+      // `minimumFractionDigits: 0` is what separates this path from the other:
+      // with a currency 2600 becomes "R$ 2.600,00"; without one, "2.600".
       expect(formatMoney(2600, null)).toBe('2.600')
       expect(formatMoney(0, null)).toBe('0')
     })
@@ -92,9 +92,9 @@ describe('formatMoney', () => {
     })
 
     it('respeita o zero explícito em vez de descartá-lo como falsy', () => {
-      // O guarda é `!= null`, não um truthy check. Se fosse truthy,
-      // `{ maximumFractionDigits: 0 }` seria silenciosamente descartado e o
-      // valor voltaria com centavos — exatamente o bug que se quer evitar.
+      // The guard is `!= null`, not a truthy check. With truthy,
+      // `{ maximumFractionDigits: 0 }` would be silently discarded and the value
+      // would come back with cents — exactly the bug this avoids.
       expect(formatMoney(2600, 'BRL', { maximumFractionDigits: 0 })).not.toContain(',')
     })
 
@@ -106,8 +106,8 @@ describe('formatMoney', () => {
 
   describe('entradas degeneradas', () => {
     it('propaga NaN em vez de fingir um valor', () => {
-      // Um "R$ 0,00" no lugar de NaN esconderia o dado quebrado e viraria um
-      // bug de leitura; "R$ NaN" na tela denuncia a origem.
+      // An "R$ 0,00" in place of NaN would hide the broken data and become a
+      // reading bug; "R$ NaN" on screen points at where it came from.
       expect(formatMoney(NaN, 'BRL')).toBe(`R$${NBSP}NaN`)
       expect(formatMoney(NaN, null)).toBe('NaN')
     })
@@ -117,9 +117,9 @@ describe('formatMoney', () => {
     })
 
     it('deixa o zero negativo vazar com sinal', () => {
-      // Conhecido e aceito: -0 vem de subtrações de preços iguais e o Intl o
-      // formata como negativo. Se algum dia incomodar na tela, o conserto é
-      // normalizar o valor na origem (`value || 0`), não aqui.
+      // Known and accepted: -0 comes from subtracting equal prices and Intl
+      // formats it as negative. If it ever bothers on screen, the fix is to
+      // normalise at the source (`value || 0`), not here.
       expect(formatMoney(-0, 'BRL')).toBe(`-R$${NBSP}0,00`)
     })
 
@@ -132,10 +132,10 @@ describe('formatMoney', () => {
     })
 
     it('LANÇA quando o código tem formato inválido', () => {
-      // Documenta o limite da função: ela protege contra moeda AUSENTE
-      // (null/undefined/''), não contra moeda MALFORMADA. Um 'BR' vindo da API
-      // derruba o componente — quem consome dado não confiável precisa validar
-      // antes, ou este teste vira a especificação de um try/catch aqui dentro.
+      // Documents the limit of this function: it guards against a MISSING
+      // currency (null/undefined/''), not a MALFORMED one. A 'BR' from the API
+      // takes the component down — whoever consumes untrusted data must validate
+      // first, or this test becomes the spec for a try/catch in here.
       expect(() => formatMoney(26, 'BR')).toThrow(RangeError)
     })
   })

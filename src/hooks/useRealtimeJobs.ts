@@ -5,9 +5,9 @@ import type { JobView, JobEventLine } from '@app-types/jobs'
 const key = (j: JobView): string => j.requestId ?? j.jobId
 
 /**
- * Conecta ao stream SSE do Admin e mantém o mapa de jobs ao vivo (sem refresh).
- * O 1º evento (job.snapshot) popula a tabela; depois job.upsert/removed aplicam
- * deltas. Mantém também as últimas linhas de timeline por requestId.
+ * Connects to the Admin SSE stream and keeps the job map live (no refresh).
+ * The first event (job.snapshot) populates the table; job.upsert/removed then
+ * apply deltas. Also keeps the latest timeline rows per requestId.
  */
 export function useRealtimeJobs() {
   const [jobs, setJobs] = useState<Map<string, JobView>>(new Map())

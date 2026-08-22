@@ -4,14 +4,14 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
 
 /**
- * Registra cada requisição com o IP de origem.
+ * Logs every request with its source IP.
  *
- * O Vite não loga requisições HTTP, então "o celular não abre" fica sem
- * evidência: não dá para saber se o tráfego chega à máquina ou morre antes.
- * Com isto, uma linha vinda de um IP `100.x` prova que chegou — e a ausência
- * dela prova que não.
+ * Vite does not log HTTP requests, so "the phone won't open it" has no
+ * evidence: there is no telling whether traffic reaches the machine or dies
+ * before it. With this, a line from a `100.x` IP proves it arrived — and the
+ * absence of one proves it did not.
  *
- * Ligado só pelo `start:exposed`, senão polui o dev normal.
+ * Enabled only by `start:exposed`, otherwise it pollutes normal dev.
  */
 function requestLogger() {
   return {
@@ -29,13 +29,13 @@ function requestLogger() {
 }
 
 /**
- * Mostra erros de JS na própria tela.
+ * Shows JS errors on the screen itself.
  *
- * O Eruda só ajuda depois que o bundle carrega — se o erro é no import de um
- * módulo, ele nunca inicializa e a tela fica preta sem nenhuma pista. Este
- * script é INLINE no <head>: roda antes de qualquer módulo, não depende de
- * rede nem de cache, e por isso sobrevive justamente aos erros que apagam a
- * tela. É a única forma de ler a mensagem num iPhone, onde não há devtools.
+ * Eruda only helps once the bundle loads — if the error is in a module import
+ * it never initialises and the screen stays black with no clue. This script is
+ * INLINE in the <head>: it runs before any module, depends on neither network
+ * nor cache, and so survives exactly the errors that blank the screen. It is
+ * the only way to read the message on an iPhone, where there are no devtools.
  */
 function mobileErrorOverlay() {
   return {
@@ -107,25 +107,25 @@ export default defineConfig({
   server: {
     port: 3001,
     /**
-     * A API é servida pela MESMA origem do front em desenvolvimento.
+     * In development the API is served from the SAME origin as the front.
      *
-     * Com `VITE_API_URL=/flight`, o browser só conversa com o dev server e o
-     * proxy fala com a API server-side, onde CORS não se aplica. É o que
-     * permite `npm run start:exposed` funcionar sem tocar no `FRONTEND_URL` da
-     * API: acessado por Tailscale, o front chama o próprio host e a origem
-     * continua batendo.
+     * With `VITE_API_URL=/flight` the browser only talks to the dev server and
+     * the proxy talks to the API server-side, where CORS does not apply. That is
+     * what lets `npm run start:exposed` work without touching the API's
+     * `FRONTEND_URL`: reached over Tailscale, the front calls its own host and
+     * the origin still matches.
      *
-     * Em produção não há proxy — o CI sobrescreve o .env com a URL absoluta da
-     * API (`vars.VITE_API_URL`), então o build sai com origem cruzada e o CORS
-     * do backend volta a ser o que manda.
+     * There is no proxy in production — CI overwrites .env with the absolute API
+     * URL (`vars.VITE_API_URL`), so the build ships cross-origin and the
+     * backend CORS is what rules again.
      */
     proxy: {
       '/flight': {
         target: process.env.API_PROXY_TARGET ?? 'http://localhost:3011',
         changeOrigin: true,
-        // O Admin consome SSE (`/flight/admin/stream`). Sem desligar a
-        // compressão, a resposta é bufferizada e os eventos só chegam em lote —
-        // o painel fica "vivo" mas parado.
+        // Admin consumes SSE (`/flight/admin/stream`). Without disabling
+        // compression the response is buffered and events arrive in batches —
+        // the panel looks alive but sits still.
         headers: { 'Accept-Encoding': 'identity' },
       },
     },

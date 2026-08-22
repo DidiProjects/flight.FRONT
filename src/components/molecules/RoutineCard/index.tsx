@@ -38,15 +38,15 @@ function fmtPts(value: number): string {
 }
 
 /**
- * Total dividido em ida e volta, cada jornada formatada na MOEDA DELA.
+ * Total split into outbound and return, each journey formatted in ITS OWN currency.
  *
- * Só existe quando as DUAS parcelas vieram: metade da divisão é pior que nenhuma
- * — o leitor completaria a outra de cabeça e erraria. Fica ausente em rotina
- * one-way e quando o total é bundle da companhia (preço único, sem divisão).
- *
- * A moeda sai de dentro da jornada, nunca do nível do par: herdá-la de cima era
- * o que fazia ida e volta aparecerem rotuladas iguais mesmo quando a companhia
- * cobrou em moedas diferentes.
+ * It only exists when BOTH parts arrived: half the split is worse than none —
+ * the reader would complete the other half from memory and get it wrong. Absent
+ * on one-way routines and when the total is an airline bundle (single price,
+ * no split).
+ * The currency comes from inside the journey, never from the pair level:
+ * inheriting it from above is what made outbound and return show the same label
+ * even when the airline charged in different currencies.
  */
 function breakdownByJourney(
   journeys: Journey[] | undefined,
@@ -81,8 +81,8 @@ function currentForPriority(
     const display = pts != null
       ? `${fmtPts(pts)}${cash != null ? ` + ${fmtCurrency(cash, currency)}` : ''}`
       : null
-    // No híbrido cada perna tem as duas componentes; juntá-las numa string só
-    // mantém a leitura "ida X · volta Y" idêntica às outras prioridades.
+    // On hybrid each leg carries both components; joining them into one string
+    // keeps the "outbound X · return Y" reading identical to other priorities.
     const legs = breakdownByJourney(c.journeys, (j) => j.hybPts, (v) => fmtPts(v))
     const legsCash = breakdownByJourney(c.journeys, (j) => j.hybCash, fmtCurrency)
     return {
@@ -144,7 +144,7 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
       destination: routine.destination,
       dateFrom: routine.outboundStart,
       dateTo: routine.outboundEnd,
-      // Rotina RT: o preço do card é o TOTAL da viagem, não o da ida.
+      // RT routine: the card price is the TRIP total, not the outbound.
       inboundFrom: routine.inboundStart,
       inboundTo: routine.inboundEnd,
     })
@@ -170,7 +170,7 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
         date: routine.outboundStart,
         passengers: routine.passengers,
         fareType: routine.priority,
-        // Sem isto o botão de compra de uma rotina de par abre busca só-ida.
+        // Without this, the buy button of a pair routine opens a one-way search.
         ...(isRoundTrip && routine.inboundStart ? { returnDate: routine.inboundStart } : {}),
       }),
     }))
@@ -302,9 +302,9 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
             </Box>
           </Box>
         ) : current?.inboundUnavailable ? (
-          // A ida foi coletada; a companhia é que não deixa ver a volta. Dizer
-          // "sem preço coletado" esconderia isso, e mostrar o preço da ida seria
-          // pior ainda: não é o preço da viagem.
+          // The outbound was collected; it is the airline that hides the return.
+          // Saying "no price collected" would conceal that, and showing the
+          // outbound price would be worse: it is not the price of the trip.
           <Box sx={{ py: 1, px: 1.5, borderRadius: 1.5, backgroundColor: 'action.hover' }}>
             <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.15 }}>
               —
@@ -399,11 +399,11 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
           dateFrom={routine.outboundStart}
           dateTo={routine.outboundEnd}
           currencyFallback={routine.currency}
-          // Em RT cada célula é o total da viagem naquela data de ida.
+          // On RT each cell is the trip total for that outbound date.
           inboundFrom={routine.inboundStart}
           inboundTo={routine.inboundEnd}
-          // Régua já carregada pelo card: a cor da célula significa o mesmo que
-          // o chip de veredito, sem uma segunda requisição.
+          // Baseline already loaded by the card: the cell colour means the same
+          // as the verdict chip, with no second request.
           summary={current}
         />
 
