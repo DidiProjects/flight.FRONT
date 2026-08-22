@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { AirportsService } from '@services/AirportsService'
 
 /**
- * Mapa IATA -> cidade (fallback: nome) agregado a partir dos aeroportos das
- * companhias informadas. Usado para exibir nomes amigáveis no lugar de só o código.
+ * IATA -> city map (fallback: name), aggregated from the airports of the given
+ * airlines. Used to show friendly names instead of the bare code.
  */
 export function useAirportNames(airlineCodes: string[]): Map<string, string> {
   const [names, setNames] = useState<Map<string, string>>(new Map())

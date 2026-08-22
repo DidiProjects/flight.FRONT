@@ -6,9 +6,9 @@ function diffEmDias(start: string, end: string): number {
 }
 
 /**
- * Ida-e-volta tem teto menor porque a coleta é por PAR: o número de buscas é o
- * PRODUTO das duas janelas. Preencher a volta é o que caracteriza o par aqui —
- * o `tripType` é derivado disso no envio.
+ * Round-trip has a lower ceiling because collection goes by PAIR: the number of
+ * searches is the PRODUCT of the two windows. Filling the return is what makes
+ * it a pair here — `tripType` is derived from that on submit.
  */
 function tetoDeJanela(d: { returnStart?: string | null; returnEnd?: string | null }): number {
   return d.returnStart && d.returnEnd ? MAX_ROUNDTRIP_RANGE_DAYS : MAX_DATE_RANGE_DAYS
@@ -103,8 +103,8 @@ export const routineSchema = z
     (d) => !d.outboundStart || !d.outboundEnd || d.outboundEnd >= d.outboundStart,
     { message: 'Deve ser após a data de início', path: ['outboundEnd'] },
   )
-  // Duas refines em vez de uma com mensagem dinâmica: no zod 4 o segundo
-  // argumento não aceita mais função, então o teto entra no texto de cada uma.
+  // Two refines instead of one with a dynamic message: in zod 4 the second
+  // argument no longer takes a function, so each text carries its own ceiling.
   .refine(
     (d) => {
       if (!d.outboundStart || !d.outboundEnd) return true

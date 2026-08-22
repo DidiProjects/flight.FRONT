@@ -1,6 +1,6 @@
 /**
- * Formata um valor monetário. Quando a moeda ainda não foi resolvida (null/undefined),
- * exibe apenas o número, sem símbolo de moeda no lugar (regra de negócio: nada no lugar).
+ * Formats a monetary value. When the currency is not resolved yet
+ * (null/undefined), shows the number alone — business rule: nothing in its place.
  */
 export function formatMoney(
   value: number,

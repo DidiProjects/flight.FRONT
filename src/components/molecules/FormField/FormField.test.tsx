@@ -3,9 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { FormField } from '@atomic-components/molecules/FormField'
 
 /**
- * Esconder o spinner no tema tira só os BOTÕES. O `input[type=number]` continua
- * mudando de valor com a roda do mouse e com ArrowUp/ArrowDown — foi assim que
- * o primeiro ajuste passou por completo sem estar.
+ * Hiding the spinner in the theme only removes the BUTTONS. `input[type=number]`
+ * keeps changing value with the mouse wheel and with ArrowUp/ArrowDown — which
+ * is how the first fix shipped looking complete without being.
  */
 describe('FormField — campo numérico não muda por scroll nem por seta', () => {
   it('ArrowUp e ArrowDown são cancelados no type=number', () => {
@@ -30,8 +30,8 @@ describe('FormField — campo numérico não muda por scroll nem por seta', () =
   })
 
   it('campo de texto não é afetado', () => {
-    // A trava é só do numérico: cancelar seta em texto quebraria a navegação
-    // por teclado em qualquer campo comum.
+    // The guard is numeric-only: cancelling arrows on text would break keyboard
+    // navigation in any ordinary field.
     render(<FormField label="Nome" type="text" />)
     const input = screen.getByLabelText('Nome')
 

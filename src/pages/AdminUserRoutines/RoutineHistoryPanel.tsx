@@ -12,9 +12,9 @@ interface Props {
   routine: Routine
   live: JobView[]
   /**
-   * Muda quando o histórico da rotina foi zerado por fora. A busca é por
-   * `routine.id`, que não muda no reset — sem isto o painel aberto seguiria
-   * listando execuções que já não existem até um F5.
+   * Changes when the routine history was cleared elsewhere. The query is by
+   * `routine.id`, which a reset does not change — without this an open panel
+   * would keep listing runs that no longer exist until an F5.
    */
   reloadKey?: number
 }

@@ -25,11 +25,11 @@ type RawCurrent = RawPriceHistory & {
   best_hyb_pts:  number | string | null
   best_hyb_cash: number | string | null
   scraped_at:    string | null
-  /** RT sem total porque a volta é indefinida (a ida foi coletada, o par não fecha). */
+  /** RT with no total because the return is undefined (outbound collected, pair open). */
   inbound_unavailable?: boolean | null
   /**
-   * Uma jornada em one-way, duas em ida-e-volta. Já vem em camelCase e coagido
-   * pela API — é a única parte da resposta que não passa por `toNum` aqui.
+   * One journey on one-way, two on round-trip. Already camelCase and coerced by
+   * the API — the only part of the response that does not go through `toNum` here.
    */
   journeys?: Journey[]
 }
@@ -73,7 +73,7 @@ interface RoutineSummaryParams {
   destination: string
   dateFrom: string
   dateTo: string
-  /** Janela de volta. Presente = rotina round_trip, e /current devolve o TOTAL do par. */
+  /** Return window. Present = round_trip routine, and /current returns the pair TOTAL. */
   inboundFrom?: string | null
   inboundTo?: string | null
 }
@@ -105,8 +105,8 @@ function fromApi(raw: RawPriceHistory): PriceHistorySummary {
 }
 
 /**
- * Janela de volta na query. Presente = rotina de par, e a API passa a falar em
- * TOTAL: preço atual, régua do veredito e calendário, todos na mesma grandeza.
+ * Return window in the query. Present = pair routine, and the API switches to
+ * TOTAL: current price, verdict baseline and calendar, all in the same quantity.
  */
 function inboundParams(p: RoutineSummaryParams): Record<string, string> {
   return p.inboundFrom && p.inboundTo
@@ -134,8 +134,8 @@ class FlightFaresServiceClass extends ApiService {
       destination: params.destination,
       date_from:   params.dateFrom,
       date_to:     params.dateTo,
-      // Sem isto a régua sairia de UMA perna e o total do par pareceria caro
-      // para sempre — o card diria "Preço alto" na melhor oferta da rota.
+      // Without this the baseline would come from ONE leg and the pair total
+      // would look expensive forever — the card would call the best offer high.
       ...inboundParams(params),
     }).toString()
 
@@ -150,8 +150,8 @@ class FlightFaresServiceClass extends ApiService {
       destination: params.destination,
       date_from:   params.dateFrom,
       date_to:     params.dateTo,
-      // Sem isto o card de rotina RT mostraria o preço da perna de ida como se
-      // fosse o da viagem.
+      // Without this an RT routine card would show the outbound leg price as if
+      // it were the trip price.
       ...inboundParams(params),
     }).toString()
 
@@ -166,8 +166,8 @@ class FlightFaresServiceClass extends ApiService {
       destination: params.destination,
       date_from:   params.dateFrom,
       date_to:     params.dateTo,
-      // Sem isto o calendário vem VAZIO em rotina de par: a coleta grava as
-      // duas pernas com return_date, e o ramo avulso filtra return_date IS NULL.
+      // Without this the calendar comes back EMPTY on a pair routine: collection
+      // writes both legs with return_date, and the loose branch filters IS NULL.
       ...inboundParams(params),
     }).toString()
 

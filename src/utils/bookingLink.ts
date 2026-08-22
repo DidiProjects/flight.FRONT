@@ -1,5 +1,5 @@
-// Deep links de compra por companhia — espelha o buildDeepLink do flight.API
-// (EmailService) para manter os mesmos destinos de checkout.
+// Per-airline booking deep links — mirrors buildDeepLink in flight.API
+// (EmailService) so both land on the same checkout.
 
 export type BookingFareType = 'cash' | 'pts' | 'hyb'
 
@@ -9,7 +9,7 @@ interface BookingParams {
   date: string // YYYY-MM-DD
   passengers: number
   fareType: BookingFareType
-  /** Rotina ida-e-volta: leva o link para a MESMA busca que originou o preço. */
+  /** Round-trip routine: the link goes to the SAME search that produced the price. */
   returnDate?: string
 }
 
@@ -29,15 +29,15 @@ function azulLink({ origin, destination, date, passengers, fareType, returnDate 
 
 function latamLink({ origin, destination, date, passengers, fareType, returnDate }: BookingParams): string {
   const redemption = fareType === 'cash' ? 'false' : 'true'
-  // `trip=RT&inbound=<data>` conferido contra o site em 2026-08-05.
+  // `trip=RT&inbound=<date>` checked against the site on 2026-08-05.
   const inbound = returnDate ?? 'undefined'
   const trip = returnDate ? 'RT' : 'OW'
   return `https://www.latamairlines.com/br/pt/oferta-voos?origin=${origin}&outbound=${date}&destination=${destination}&inbound=${inbound}&adt=${passengers}&chd=0&inf=0&trip=${trip}&cabin=Economy&redemption=${redemption}&sort=RECOMMENDED`
 }
 
 /**
- * Só-ida na UI nova; ida-e-volta na velha (`flightList`, `onds` de duas pernas
- * + `ond=2`) — o único fluxo de RT da BA que foi medido contra o site.
+ * One-way on the new UI; round-trip on the old one (`flightList`, two-leg `onds`
+ * + `ond=2`) — the only BA round-trip flow measured against the site.
  */
 function britishAirwaysLink({ origin, destination, date, passengers, returnDate }: BookingParams): string {
   if (returnDate) {
@@ -69,7 +69,7 @@ function britishAirwaysLink({ origin, destination, date, passengers, returnDate 
   return `https://www.britishairways.com/nx/b/airselect/en/gbr/book/search/?${p.toString()}`
 }
 
-/** Espelha o `buildSearchUrl` do scraper: os `tp*` acompanham a busca. */
+/** Mirrors the scraper `buildSearchUrl`: the `tp*` params follow the search. */
 function ryanairLink({ origin, destination, date, passengers, returnDate }: BookingParams): string {
   const p = new URLSearchParams({
     adults: String(passengers),

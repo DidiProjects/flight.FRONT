@@ -14,12 +14,12 @@ interface FareCalendarProps {
   dateFrom: string
   dateTo: string
   currencyFallback: string | null
-  /** Janela de volta: presente, cada célula é o TOTAL do par daquela data de ida. */
+  /** Return window: when present, each cell is the pair TOTAL for that outbound date. */
   inboundFrom?: string | null
   inboundTo?: string | null
   /**
-   * Régua histórica da rotina, para a cor significar o mesmo que no card.
-   * Ausente (ou sem dados) = células neutras: sem referência não há veredito.
+   * Historical baseline of the routine, so the colour means what it means on the card.
+   * Absent (or without data) = neutral cells: no reference, no verdict.
    */
   summary?: CurrentPrice | null
 }
@@ -52,14 +52,14 @@ function fmtCompact(value: number, track: FareTrack, currency: string | null): s
 }
 
 /**
- * Cor pelo VEREDITO histórico, não pela posição na janela.
+ * Colour by historical VERDICT, not by position in the window.
  *
- * A escala relativa antiga (`t = (v-min)/span`) sempre pintava algo de verde,
- * mesmo numa janela inteira de preços ruins — e contradizia o card logo acima,
- * que usa o histórico. Aqui verde quer dizer o mesmo nos dois lugares.
+ * The old relative scale (`t = (v-min)/span`) always painted something green,
+ * even across a window of bad prices — and contradicted the card just above,
+ * which uses history. Here green means the same thing in both places.
  *
- * Sem régua a célula fica neutra: inventar cor afirmaria algo não medido.
- */
+ * Without a baseline the cell stays neutral: inventing a colour would assert
+ * something never measured.
 const VERDICT_TINT: Record<Verdict, { bg: string; fg: string }> = {
   low:     { bg: 'hsl(140, 70%, 93%)', fg: 'hsl(140, 60%, 26%)' },
   typical: { bg: 'hsl(210, 16%, 95%)', fg: 'hsl(210, 12%, 32%)' },
@@ -84,8 +84,8 @@ function FareSection({
 
   if (withValue.length === 0) return null
 
-  // A estrela continua marcando o mais barato DA JANELA — informação de
-  // posição, que é útil e não conflita com a cor (que fala do histórico).
+  // The star still marks the cheapest OF THE WINDOW — positional information,
+  // which is useful and does not clash with the colour (which speaks of history).
   const min = Math.min(...withValue.map((x) => x.v))
   const reference = summary ? referenceFor(track, summary) : { avg: null, threshold: null }
 
@@ -158,8 +158,8 @@ export function FareCalendar({ airlines, origin, destination, dateFrom, dateTo, 
   }, [open, fetched, airlinesKey, origin, destination, dateFrom, dateTo, inboundFrom, inboundTo])
 
   const list = entries ?? []
-  // Mostra uma lista por tipo de tarifa com dados: dinheiro e pontos (e híbrido, quando houver),
-  // empilhadas. Rotina só com pontos → só a lista de pontos.
+  // Shows one list per fare type with data: cash and points (and hybrid, when present),
+  // stacked. A points-only routine gets only the points list.
   const tracks: FareTrack[] = (['cash', 'pts', 'hyb'] as FareTrack[]).filter((track) =>
     list.some((e) => valueFor(e, track) != null),
   )
@@ -215,11 +215,11 @@ export function FareCalendar({ airlines, origin, destination, dateFrom, dateTo, 
                   key={track}
                   entries={list}
                   track={track}
-                  // A moeda vem do que a API mediu, não da rotina. `routine.currency`
-                  // é a unidade do ALVO — fixa em Real — então usá-la aqui rotulava
-                  // £ 25,99 como "R$ 26". O card já resolve assim (`c.currency ??
-                  // routine.currency`), e o PriceHistoryPanel também; o calendário
-                  // era o único que ignorava o summary que ele mesmo recebe.
+                  // The currency comes from what the API measured, not from the
+                  // routine. `routine.currency` is the TARGET unit — fixed in Real —
+                  // so using it here labelled £ 25.99 as "R$ 26". The card already
+                  // resolves it as `c.currency ?? routine.currency`, and so does
+                  // PriceHistoryPanel; the calendar ignored the summary it receives.
                   currency={summary?.currency ?? currencyFallback}
                   summary={summary}
                 />

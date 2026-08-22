@@ -27,8 +27,8 @@ function toDate(val: unknown): string {
   return String(val).substring(0, 10)
 }
 
-// Diferente de toDate: ausência vira null (one-way não tem janela de volta),
-// não string vazia — o back rejeita '' e aceita null.
+// Unlike toDate: absence becomes null (one-way has no return window), not an
+// empty string — the back end rejects '' and accepts null.
 function toNullableDate(val: unknown): string | null {
   return val ? String(val).substring(0, 10) : null
 }
@@ -86,9 +86,9 @@ class RoutinesServiceClass extends ApiService {
   }
 
   /**
-   * Criação de viagem: SEMPRE uma rotina só. Com volta, ela vai como
-   * `round_trip` carregando a janela de volta — antes isso virava 2 rotinas
-   * one-way e queimava 2 das 10 vagas do usuário.
+   * Trip creation: ALWAYS a single routine. With a return it goes as
+   * `round_trip` carrying the return window — this used to become 2 one-way
+   * routines and burn 2 of the user's 10 slots.
    */
   async createTrip(input: CreateTripInput): Promise<Routine> {
     const { returnStart, returnEnd, ...base } = input
@@ -102,7 +102,7 @@ class RoutinesServiceClass extends ApiService {
     })
   }
 
-  /** Update traduzindo o vocabulário do formulário para o contrato da API. */
+  /** Update, translating the form's vocabulary into the API contract. */
   updateTrip(id: string, input: CreateTripInput): Promise<Routine> {
     const { returnStart, returnEnd, ...base } = input
     const hasReturn = !!returnStart && !!returnEnd

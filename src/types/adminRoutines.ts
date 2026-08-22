@@ -1,16 +1,16 @@
-/** Resultado do reenvio do último e-mail de uma rotina (ação de admin). */
+/** Result of resending a routine's last email (an admin action). */
 export interface ResendResult {
-  /** Tipo do último e-mail enviado — é o que foi reenviado. */
+  /** Type of the last email sent — that is what got resent. */
   type: 'alert' | 'scheduled'
   sent: boolean
-  /** Preenchido quando `sent` é false: por que nada saiu. */
+  /** Filled when `sent` is false: why nothing went out. */
   reason?: string
   lastSentAt: string
 }
 
 /**
- * Saldo do reset de análises. Execuções e jobs são chaveados por ROTA, então
- * `keptShared` conta o que outra rotina também enxerga — e por isso ficou.
+ * Balance of an analysis reset. Runs and jobs are keyed by ROUTE, so
+ * `keptShared` counts what another routine also sees — which is why it stayed.
  */
 export interface ResetAnalysesResult {
   analysisRuns: { deleted: number; events: number; keptRunning: number; keptShared: number }
