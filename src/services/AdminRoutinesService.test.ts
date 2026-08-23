@@ -46,6 +46,8 @@ describe('AdminRoutinesService', () => {
       analysisRuns:    { deleted: 12, events: 40, keptRunning: 1, keptShared: 2 },
       scrapingJobs:    { reset: 5, keptRunning: 0, keptShared: 3 },
       alertWatermarks: { deleted: 4 },
+      fares:           { deleted: 340, keptShared: 7 },
+      priceHistory:    { itineraries: 18, segments: 96, keptShared: 1 },
     }))
     const { AdminRoutinesService } = await import('./AdminRoutinesService')
 
@@ -56,5 +58,7 @@ describe('AdminRoutinesService', () => {
     expect(init.method).toBe('POST')
     expect(res.analysisRuns.deleted).toBe(12)
     expect(res.scrapingJobs.keptShared).toBe(3)
+    expect(res.fares.deleted).toBe(340)
+    expect(res.priceHistory.segments).toBe(96)
   })
 })
