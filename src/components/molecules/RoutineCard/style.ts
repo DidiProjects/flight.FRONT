@@ -5,7 +5,7 @@ export const cardStyles = {
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
-    height: '100%',
+    width: '100%',
     borderLeft: '3px solid',
     borderLeftColor: isActive ? 'primary.main' : 'divider',
     transition: 'border-color 0.2s ease',
@@ -13,21 +13,42 @@ export const cardStyles = {
 
   content: (isActive: boolean): SxProps => ({
     flex: 1,
-    pt: 2.5,
-    px: 2.5,
-    pb: '12px !important',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
+    p: 0,
+    pb: '0 !important',
     opacity: isActive ? 1 : 0.85,
     transition: 'opacity 0.2s ease',
   }),
+
+  /**
+   * Every block is a section of the same vertical stack, separated by a rule.
+   * The two-column split that came before put price and chart side by side and
+   * left the details wrapping into ragged gaps under them; stacking makes the
+   * reading order the same on a phone and on a desktop.
+   */
+  section: (first = false): SxProps => ({
+    px: { xs: 2, sm: 2.5 },
+    py: { xs: 1.75, sm: 2 },
+    ...(first ? {} : { borderTop: '1px solid', borderColor: 'divider' }),
+  }),
+
+  sectionLabel: {
+    display: 'block',
+    fontSize: '0.625rem',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+    color: 'text.disabled',
+    mb: 1,
+  } as SxProps,
+
+  // ── header ──────────────────────────────────────────────────────────────
 
   topRow: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 1,
+    mb: 1.25,
   } as SxProps,
 
   airlineBadge: {
@@ -46,12 +67,13 @@ export const cardStyles = {
   routeHero: {
     display: 'flex',
     alignItems: 'center',
-    gap: 1.5,
+    gap: { xs: 1, sm: 1.5 },
+    flexWrap: 'wrap',
   } as SxProps,
 
   iata: {
-    fontWeight: 500,
-    fontSize: '1.125rem',
+    fontWeight: 600,
+    fontSize: { xs: '1.125rem', sm: '1.25rem' },
     letterSpacing: '0.5px',
     lineHeight: 1,
     textTransform: 'uppercase' as const,
@@ -67,60 +89,103 @@ export const cardStyles = {
   } as SxProps,
 
   arrowLine: {
-    width: 36,
+    width: { xs: 24, sm: 36 },
     height: 1,
     backgroundColor: 'divider',
   } as SxProps,
 
+  cities: {
+    display: 'block',
+    mt: 0.5,
+  } as SxProps,
+
   routineName: {
-    fontWeight: 400,
-    color: 'text.secondary',
+    fontWeight: 500,
+    color: 'text.primary',
     fontSize: '0.875rem',
-    mt: -0.5,
+    mt: 0.25,
   } as SxProps,
 
-  meta: {
+  // ── price ───────────────────────────────────────────────────────────────
+
+  priceRow: {
+    display: 'flex',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    gap: 1,
+  } as SxProps,
+
+  price: {
+    fontSize: { xs: '1.75rem', sm: '2rem' },
+    fontWeight: 700,
+    lineHeight: 1.1,
+    letterSpacing: '-0.02em',
+  } as SxProps,
+
+  priceCaption: {
+    display: 'block',
+    mt: 0.5,
+    lineHeight: 1.4,
+  } as SxProps,
+
+  // Full width on a phone, where a small right-aligned link is a poor target;
+  // shrinks to its content once there is room beside the price.
+  buyButton: {
+    mt: 1.5,
+    width: { xs: '100%', sm: 'auto' },
+    alignSelf: 'flex-start',
+  } as SxProps,
+
+  // ── details ─────────────────────────────────────────────────────────────
+
+  /**
+   * `auto-fit` instead of a fixed column count: the items spread to fill the
+   * row on a wide card and fall to two per row on a phone, with no ragged gap
+   * left by a wrapping flex.
+   */
+  details: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '12px 16px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(132px, 1fr))',
+    gap: { xs: '14px 12px', sm: '16px 20px' },
   } as SxProps,
 
-  metaItem: {
+  detailItem: {
     display: 'flex',
     flexDirection: 'column',
     gap: 0.25,
     minWidth: 0,
   } as SxProps,
 
-  metaLabel: {
+  detailLabel: {
     fontSize: '0.625rem',
     fontWeight: 600,
-    letterSpacing: '0.1em',
+    letterSpacing: '0.08em',
     textTransform: 'uppercase' as const,
     color: 'text.disabled',
   } as SxProps,
 
-  metaValue: {
+  detailValue: {
     fontSize: '0.8125rem',
     fontWeight: 500,
     color: 'text.primary',
-    whiteSpace: 'nowrap' as const,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    lineHeight: 1.4,
   } as SxProps,
 
   targetValue: {
-    fontSize: '0.875rem',
+    fontSize: '0.8125rem',
     fontWeight: 700,
     color: 'primary.main',
+    lineHeight: 1.4,
   } as SxProps,
+
+  // ── footer ──────────────────────────────────────────────────────────────
 
   footer: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    px: 2,
-    py: 1,
+    px: { xs: 1.5, sm: 2 },
+    py: 0.75,
     borderTop: '1px solid',
     borderColor: 'divider',
   } as SxProps,
