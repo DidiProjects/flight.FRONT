@@ -16,4 +16,8 @@ export interface ResetAnalysesResult {
   analysisRuns: { deleted: number; events: number; keptRunning: number; keptShared: number }
   scrapingJobs: { reset: number; keptRunning: number; keptShared: number }
   alertWatermarks: { deleted: number }
+  /** Collections behind the card price. */
+  fares: { deleted: number; keptShared: number }
+  /** Curated series behind the chart. */
+  priceHistory: { itineraries: number; segments: number; keptShared: number }
 }
