@@ -121,7 +121,19 @@ export default defineConfig({
      */
     proxy: {
       '/flight': {
-        target: process.env.API_PROXY_TARGET ?? 'http://localhost:3011',
+        /**
+         * `127.0.0.1`, never `localhost`.
+         *
+         * On Windows, `localhost` resolves to `::1` before `127.0.0.1`, and Node
+         * resolves verbatim — it does not reorder. Docker Desktop's WSL relay can
+         * be left holding an orphaned forward on `::1:3011` after a container is
+         * recreated: it ACCEPTS the connection and never answers, so every proxied
+         * request hangs until timeout. Measured here — `127.0.0.1` replied 200 in
+         * 6ms while `::1` timed out at 6s, with the same container. Happy Eyeballs
+         * does not save it: the IPv4 fallback covers a failed CONNECT, and this
+         * connect succeeds.
+         */
+        target: process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:3011',
         changeOrigin: true,
         // Admin consumes SSE (`/flight/admin/stream`). Without disabling
         // compression the response is buffered and events arrive in batches —

@@ -2,7 +2,6 @@ import {
   Box,
   Typography,
   Button,
-  Grid2 as Grid,
   LinearProgress,
   Tooltip,
 } from '@mui/material'
@@ -131,19 +130,18 @@ export function DashboardPage() {
       )}
 
       {!loading && routines.length > 0 && (
-        <Grid container spacing={2}>
+        <Box sx={pageStyles.list}>
           {routines.map((routine) => (
-            <Grid key={routine.id} size={{ xs: 12, sm: 6, xl: 4 }}>
-              <RoutineCard
-                routine={routine}
-                airportNames={airportNames}
-                onEdit={handleEdit}
-                onDelete={(id) => setDeleteTarget(id)}
-                onToggleActive={handleToggleActive}
-              />
-            </Grid>
+            <RoutineCard
+              key={routine.id}
+              routine={routine}
+              airportNames={airportNames}
+              onEdit={handleEdit}
+              onDelete={(id) => setDeleteTarget(id)}
+              onToggleActive={handleToggleActive}
+            />
           ))}
-        </Grid>
+        </Box>
       )}
 
       <RoutineForm
