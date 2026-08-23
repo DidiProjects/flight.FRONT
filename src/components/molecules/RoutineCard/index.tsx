@@ -128,11 +128,11 @@ const modeLabels: Record<string, string> = {
   scheduled: 'Horário agendado',
 }
 
-function MetaItem({ label, value, target }: { label: string; value: string; target?: boolean }) {
+function DetailItem({ label, value, target }: { label: string; value: string; target?: boolean }) {
   return (
-    <Box sx={cardStyles.metaItem}>
-      <Typography sx={cardStyles.metaLabel}>{label}</Typography>
-      <Typography sx={target ? cardStyles.targetValue : cardStyles.metaValue}>{value}</Typography>
+    <Box sx={cardStyles.detailItem}>
+      <Typography sx={cardStyles.detailLabel}>{label}</Typography>
+      <Typography sx={target ? cardStyles.targetValue : cardStyles.detailValue}>{value}</Typography>
     </Box>
   )
 }
@@ -199,8 +199,8 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
     <Card sx={cardStyles.root(routine.isActive)}>
       <CardContent sx={cardStyles.content(routine.isActive)}>
 
-        {/* Identity: airline, route, status */}
-        <Box>
+        {/* Identidade */}
+        <Box sx={cardStyles.section(true)}>
           <Box sx={cardStyles.topRow}>
             <Box sx={{ ...cardStyles.airlineBadge, filter: routine.isActive ? 'none' : 'grayscale(1)' }}>
               {routine.airlines.map(a => a.toUpperCase()).join(' · ')}
@@ -211,7 +211,7 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
             />
           </Box>
 
-          <Box sx={{ ...cardStyles.routeHero, mt: 1 }}>
+          <Box sx={cardStyles.routeHero}>
             <Typography sx={cardStyles.iata}>{routine.origin}</Typography>
             <Box sx={cardStyles.flightArrow}>
               <FlightIcon sx={{ fontSize: 16 }} />
@@ -230,114 +230,87 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
           </Box>
 
           {(originCity || destinationCity) && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+            <Typography variant="caption" color="text.secondary" sx={cardStyles.cities}>
               {originCity ?? routine.origin} → {destinationCity ?? routine.destination}
             </Typography>
           )}
           <Typography sx={cardStyles.routineName}>{routine.name}</Typography>
         </Box>
 
-        {/* Price on the left, behaviour on the right — stacked on a phone. */}
-        <Box sx={cardStyles.body}>
-          <Box sx={cardStyles.priceBlock}>
-            {currentLoading ? (
-              <Skeleton variant="rounded" height={72} sx={{ borderRadius: 1.5 }} />
-            ) : currentInfo?.display ? (
-              <Box sx={cardStyles.priceBox}>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={cardStyles.price}>{currentInfo.display}</Typography>
-                  {currentInfo.legs && (
-                    <Typography variant="caption" color="text.secondary" sx={cardStyles.priceLegs}>
-                      {currentInfo.legs}
-                    </Typography>
-                  )}
-                  <Typography variant="caption" color="text.secondary">
-                    {currentInfo.legs ? 'total ida e volta' : 'preço atual'}
-                    {freshness ? ` · verificado ${freshness}` : ''}
-                  </Typography>
-                </Box>
-                <Box sx={cardStyles.priceSide}>
-                  {currentInfo.verdict && (
-                    <Chip
-                      size="small"
-                      color={verdictMeta[currentInfo.verdict].color}
-                      label={verdictMeta[currentInfo.verdict].label}
-                      sx={{ fontWeight: 600, width: '100%' }}
-                    />
-                  )}
-                  {bookingOptions.length === 1 ? (
-                    <Button
-                      size="small"
-                      variant="text"
-                      href={bookingOptions[0].url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
-                      sx={{ py: 0.25, px: 1.25, fontSize: '0.75rem' }}
-                    >
-                      Comprar
-                    </Button>
-                  ) : bookingOptions.length > 1 ? (
-                    <Button
-                      size="small"
-                      variant="text"
-                      onClick={(e) => setBuyAnchor(e.currentTarget)}
-                      endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
-                      sx={{ py: 0.25, px: 1.25, fontSize: '0.75rem' }}
-                    >
-                      Comprar
-                    </Button>
-                  ) : null}
-                </Box>
+        {/* Preço */}
+        <Box sx={cardStyles.section()}>
+          <Typography sx={cardStyles.sectionLabel}>
+            {currentInfo?.legs ? 'Total ida e volta' : 'Preço atual'}
+          </Typography>
+
+          {currentLoading ? (
+            <Skeleton variant="rounded" height={64} sx={{ borderRadius: 1.5 }} />
+          ) : currentInfo?.display ? (
+            <>
+              <Box sx={cardStyles.priceRow}>
+                <Typography sx={cardStyles.price}>{currentInfo.display}</Typography>
+                {currentInfo.verdict && (
+                  <Chip
+                    size="small"
+                    color={verdictMeta[currentInfo.verdict].color}
+                    label={verdictMeta[currentInfo.verdict].label}
+                    sx={{ fontWeight: 600 }}
+                  />
+                )}
               </Box>
-            ) : current?.inboundUnavailable ? (
-              // The outbound was collected; it is the airline that hides the return.
-              // Saying "no price collected" would conceal that, and showing the
-              // outbound price would be worse: it is not the price of the trip.
-              <Box sx={cardStyles.priceBox}>
-                <Box>
-                  <Typography sx={cardStyles.price}>—</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    volta não disponível{freshness ? ` · verificado ${freshness}` : ''}
-                  </Typography>
-                </Box>
-              </Box>
-            ) : (
-              <Typography variant="caption" color="text.secondary">
-                Sem preço coletado ainda
+              {currentInfo.legs && (
+                <Typography variant="caption" color="text.secondary" sx={cardStyles.priceCaption}>
+                  {currentInfo.legs}
+                </Typography>
+              )}
+              {freshness && (
+                <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
+                  verificado {freshness}
+                </Typography>
+              )}
+              {bookingOptions.length === 1 ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  href={bookingOptions[0].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+                  sx={cardStyles.buyButton}
+                >
+                  Comprar
+                </Button>
+              ) : bookingOptions.length > 1 ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={(e) => setBuyAnchor(e.currentTarget)}
+                  endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+                  sx={cardStyles.buyButton}
+                >
+                  Comprar
+                </Button>
+              ) : null}
+            </>
+          ) : current?.inboundUnavailable ? (
+            // The outbound was collected; it is the airline that hides the return.
+            // Saying "no price collected" would conceal that, and showing the
+            // outbound price would be worse: it is not the price of the trip.
+            <>
+              <Typography sx={cardStyles.price}>—</Typography>
+              <Typography variant="caption" color="text.secondary" sx={cardStyles.priceCaption}>
+                volta não disponível{freshness ? ` · verificado ${freshness}` : ''}
               </Typography>
-            )}
+            </>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Sem preço coletado ainda
+            </Typography>
+          )}
+        </Box>
 
-            <Box sx={cardStyles.meta}>
-              <MetaItem
-                label={isRoundTrip ? 'Ida' : 'Datas'}
-                value={formatDateRange(routine.outboundStart, routine.outboundEnd)}
-              />
-              {isRoundTrip && (
-                <MetaItem label="Volta" value={formatDateRange(routine.inboundStart, routine.inboundEnd)} />
-              )}
-              <MetaItem label="Passageiros" value={`${routine.passengers} pax`} />
-              {routine.targetCash != null && (
-                <MetaItem label="Alvo" value={formatMoney(routine.targetCash, routine.currency)} target />
-              )}
-              {routine.targetPts != null && (
-                <MetaItem label="Alvo" value={`${routine.targetPts.toLocaleString('pt-BR')} pts`} target />
-              )}
-              {routine.targetHybPts != null && routine.targetHybCash != null && (
-                <MetaItem
-                  label="Alvo híbrido"
-                  value={`${routine.targetHybPts.toLocaleString('pt-BR')} pts + ${formatMoney(routine.targetHybCash, routine.currency)}`}
-                  target
-                />
-              )}
-              <MetaItem label="Prioridade" value={priorityLabels[routine.priority] ?? routine.priority} />
-              <MetaItem
-                label="Notificações"
-                value={routine.notificationModes.map((m) => modeLabels[m] ?? m).join(', ')}
-              />
-            </Box>
-          </Box>
-
+        {/* Comportamento do preço */}
+        <Box sx={cardStyles.section()}>
           <PriceTrend
             airlines={routine.airlines}
             origin={routine.origin}
@@ -349,6 +322,57 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
             inboundTo={routine.inboundEnd}
             metric={routine.priority as ChartMetric}
             baseline={baselineFor(current, routine.priority)}
+          />
+        </Box>
+
+        {/* Configuração da rotina */}
+        <Box sx={cardStyles.section()}>
+          <Typography sx={cardStyles.sectionLabel}>Configuração</Typography>
+          <Box sx={cardStyles.details}>
+            <DetailItem
+              label={isRoundTrip ? 'Ida' : 'Datas'}
+              value={formatDateRange(routine.outboundStart, routine.outboundEnd)}
+            />
+            {isRoundTrip && (
+              <DetailItem label="Volta" value={formatDateRange(routine.inboundStart, routine.inboundEnd)} />
+            )}
+            <DetailItem label="Passageiros" value={`${routine.passengers} pax`} />
+            {routine.targetCash != null && (
+              <DetailItem label="Alvo" value={formatMoney(routine.targetCash, routine.currency)} target />
+            )}
+            {routine.targetPts != null && (
+              <DetailItem label="Alvo" value={`${routine.targetPts.toLocaleString('pt-BR')} pts`} target />
+            )}
+            {routine.targetHybPts != null && routine.targetHybCash != null && (
+              <DetailItem
+                label="Alvo híbrido"
+                value={`${routine.targetHybPts.toLocaleString('pt-BR')} pts + ${formatMoney(routine.targetHybCash, routine.currency)}`}
+                target
+              />
+            )}
+            <DetailItem label="Prioridade" value={priorityLabels[routine.priority] ?? routine.priority} />
+            <DetailItem
+              label="Notificações"
+              value={routine.notificationModes.map((m) => modeLabels[m] ?? m).join(', ')}
+            />
+          </Box>
+        </Box>
+
+        {/* Preços por data */}
+        <Box sx={cardStyles.section()}>
+          <FareCalendar
+            airlines={routine.airlines}
+            origin={routine.origin}
+            destination={routine.destination}
+            dateFrom={routine.outboundStart}
+            dateTo={routine.outboundEnd}
+            currencyFallback={routine.currency}
+            // On RT each cell is the trip total for that outbound date.
+            inboundFrom={routine.inboundStart}
+            inboundTo={routine.inboundEnd}
+            // Baseline already loaded by the card: the cell colour means the same
+            // as the verdict chip, with no second request.
+            summary={current}
           />
         </Box>
 
@@ -367,21 +391,6 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
             </MenuItem>
           ))}
         </Menu>
-
-        <FareCalendar
-          airlines={routine.airlines}
-          origin={routine.origin}
-          destination={routine.destination}
-          dateFrom={routine.outboundStart}
-          dateTo={routine.outboundEnd}
-          currencyFallback={routine.currency}
-          // On RT each cell is the trip total for that outbound date.
-          inboundFrom={routine.inboundStart}
-          inboundTo={routine.inboundEnd}
-          // Baseline already loaded by the card: the cell colour means the same
-          // as the verdict chip, with no second request.
-          summary={current}
-        />
 
       </CardContent>
 

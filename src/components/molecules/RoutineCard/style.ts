@@ -13,22 +13,42 @@ export const cardStyles = {
 
   content: (isActive: boolean): SxProps => ({
     flex: 1,
-    // Tighter on a phone: horizontal padding is width taken from the chart.
-    pt: { xs: 2, sm: 2.5 },
-    px: { xs: 1.75, sm: 2.5 },
-    pb: '12px !important',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: { xs: 1.75, sm: 2 },
+    p: 0,
+    pb: '0 !important',
     opacity: isActive ? 1 : 0.85,
     transition: 'opacity 0.2s ease',
   }),
 
+  /**
+   * Every block is a section of the same vertical stack, separated by a rule.
+   * The two-column split that came before put price and chart side by side and
+   * left the details wrapping into ragged gaps under them; stacking makes the
+   * reading order the same on a phone and on a desktop.
+   */
+  section: (first = false): SxProps => ({
+    px: { xs: 2, sm: 2.5 },
+    py: { xs: 1.75, sm: 2 },
+    ...(first ? {} : { borderTop: '1px solid', borderColor: 'divider' }),
+  }),
+
+  sectionLabel: {
+    display: 'block',
+    fontSize: '0.625rem',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+    color: 'text.disabled',
+    mb: 1,
+  } as SxProps,
+
+  // ── header ──────────────────────────────────────────────────────────────
+
   topRow: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 1,
-    flexWrap: 'wrap',
+    mb: 1.25,
   } as SxProps,
 
   airlineBadge: {
@@ -53,7 +73,7 @@ export const cardStyles = {
 
   iata: {
     fontWeight: 600,
-    fontSize: { xs: '1.0625rem', sm: '1.125rem' },
+    fontSize: { xs: '1.125rem', sm: '1.25rem' },
     letterSpacing: '0.5px',
     lineHeight: 1,
     textTransform: 'uppercase' as const,
@@ -69,85 +89,74 @@ export const cardStyles = {
   } as SxProps,
 
   arrowLine: {
-    width: { xs: 22, sm: 36 },
+    width: { xs: 24, sm: 36 },
     height: 1,
     backgroundColor: 'divider',
   } as SxProps,
 
+  cities: {
+    display: 'block',
+    mt: 0.5,
+  } as SxProps,
+
   routineName: {
-    fontWeight: 400,
-    color: 'text.secondary',
+    fontWeight: 500,
+    color: 'text.primary',
     fontSize: '0.875rem',
+    mt: 0.25,
   } as SxProps,
 
-  /**
-   * The full-width row's payload. One column on a phone (price first, then the
-   * chart); two from `md`, where the extra width goes to the chart instead of
-   * stretching a line of text across 1200px.
-   */
-  body: {
-    display: 'grid',
-    gridTemplateColumns: { xs: '1fr', md: 'minmax(220px, 300px) 1fr' },
-    gap: { xs: 1.75, md: 3 },
-    alignItems: 'start',
-  } as SxProps,
+  // ── price ───────────────────────────────────────────────────────────────
 
-  priceBlock: {
+  priceRow: {
     display: 'flex',
-    flexDirection: 'column',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
     gap: 1,
-    minWidth: 0,
-  } as SxProps,
-
-  priceBox: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 1,
-    py: 1.25,
-    px: 1.5,
-    borderRadius: 1.5,
-    backgroundColor: 'action.hover',
   } as SxProps,
 
   price: {
-    fontSize: { xs: '1.375rem', sm: '1.25rem' },
+    fontSize: { xs: '1.75rem', sm: '2rem' },
     fontWeight: 700,
-    lineHeight: 1.15,
+    lineHeight: 1.1,
+    letterSpacing: '-0.02em',
   } as SxProps,
 
-  priceLegs: {
+  priceCaption: {
     display: 'block',
-    lineHeight: 1.3,
+    mt: 0.5,
+    lineHeight: 1.4,
   } as SxProps,
 
-  priceSide: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: 0.5,
-    flexShrink: 0,
+  // Full width on a phone, where a small right-aligned link is a poor target;
+  // shrinks to its content once there is room beside the price.
+  buyButton: {
+    mt: 1.5,
+    width: { xs: '100%', sm: 'auto' },
+    alignSelf: 'flex-start',
   } as SxProps,
+
+  // ── details ─────────────────────────────────────────────────────────────
 
   /**
-   * Meta as a wrapping row, not a two-column grid: on a 360px screen the grid
-   * left half the labels truncated, and full width made its second column a
-   * stretch of empty space.
+   * `auto-fit` instead of a fixed column count: the items spread to fill the
+   * row on a wide card and fall to two per row on a phone, with no ragged gap
+   * left by a wrapping flex.
    */
-  meta: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '10px 20px',
+  details: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(132px, 1fr))',
+    gap: { xs: '14px 12px', sm: '16px 20px' },
   } as SxProps,
 
-  metaItem: {
+  detailItem: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 0.125,
+    gap: 0.25,
     minWidth: 0,
   } as SxProps,
 
-  metaLabel: {
+  detailLabel: {
     fontSize: '0.625rem',
     fontWeight: 600,
     letterSpacing: '0.08em',
@@ -155,25 +164,27 @@ export const cardStyles = {
     color: 'text.disabled',
   } as SxProps,
 
-  metaValue: {
+  detailValue: {
     fontSize: '0.8125rem',
     fontWeight: 500,
     color: 'text.primary',
-    whiteSpace: 'nowrap' as const,
+    lineHeight: 1.4,
   } as SxProps,
 
   targetValue: {
     fontSize: '0.8125rem',
     fontWeight: 700,
     color: 'primary.main',
-    whiteSpace: 'nowrap' as const,
+    lineHeight: 1.4,
   } as SxProps,
+
+  // ── footer ──────────────────────────────────────────────────────────────
 
   footer: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    px: { xs: 1.25, sm: 2 },
+    px: { xs: 1.5, sm: 2 },
     py: 0.75,
     borderTop: '1px solid',
     borderColor: 'divider',
