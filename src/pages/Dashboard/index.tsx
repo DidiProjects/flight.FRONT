@@ -130,8 +130,6 @@ export function DashboardPage() {
       )}
 
       {!loading && routines.length > 0 && (
-        // One routine per row: the chart needs the width, and side-by-side cards
-        // left it too narrow to read a 30-day series on any screen.
         <Box sx={pageStyles.list}>
           {routines.map((routine) => (
             <RoutineCard

@@ -10,9 +10,15 @@ export const pageStyles = {
     mb: 3,
   } as SxProps,
 
+  // Two cards per row from `md` up; a single column below it, where half a
+  // viewport is not enough for the 30-day chart inside the card.
   list: {
-    display: 'flex',
-    flexDirection: 'column',
+    display: 'grid',
+    gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+    // `start`, not the default `stretch`: with stretch, opening the fare
+    // calendar on one card grew the whole grid row and dragged the card beside
+    // it to the same height, which read as both having expanded.
+    alignItems: 'start',
     gap: { xs: 2, sm: 2.5 },
   } as SxProps,
 
