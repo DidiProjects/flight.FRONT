@@ -184,9 +184,11 @@ export function AdminUserRoutinesPage() {
       // What stayed matters as much as what went: runs and jobs are per ROUTE,
       // so part of what the screen shows may belong to another routine.
       const kept = res.analysisRuns.keptShared + res.scrapingJobs.keptShared
+        + res.fares.keptShared + res.priceHistory.keptShared
       const keptNote = kept > 0 ? ` ${kept} preservado(s) por serem de outra rotina.` : ''
       toastEmitter.success(
-        `"${resetTarget.name}": ${res.analysisRuns.deleted} execução(ões) e ${res.scrapingJobs.reset} job(s) zerados.${keptNote}`,
+        `"${resetTarget.name}": ${res.analysisRuns.deleted} execução(ões), ${res.scrapingJobs.reset} job(s) e `
+        + `${res.fares.deleted} tarifa(s) zeradas, com ${res.priceHistory.segments} ponto(s) do gráfico.${keptNote}`,
       )
       // The history panel queries by routine.id, which the reset does not change:
       // without this nudge it would keep listing what was just deleted.
@@ -609,7 +611,7 @@ export function AdminUserRoutinesPage() {
           <ListItemIcon><RestartAltIcon fontSize="small" color="warning" /></ListItemIcon>
           <ListItemText
             primary="Resetar análises"
-            secondary="Mantém o histórico de preços"
+            secondary="Apaga também o histórico de preços"
             slotProps={{ secondary: { variant: 'caption' } }}
           />
         </MenuItem>
@@ -618,8 +620,8 @@ export function AdminUserRoutinesPage() {
       <ConfirmDialog
         open={!!resetTarget}
         title="Resetar análises"
-        message={`Apaga as execuções e o watermark de alerta de "${resetTarget?.name}", e devolve os jobs ao estado inicial.`}
-        warningMessage="O histórico de preços é mantido. Execuções em andamento e o que outra rotina também usa não são tocados."
+        message={`Apaga as execuções, o watermark de alerta, as tarifas coletadas e o histórico de preços de "${resetTarget?.name}", e devolve os jobs ao estado inicial.`}
+        warningMessage="A rotina fica sem preço no card e sem gráfico até a próxima coleta. Execuções em andamento e o que outra rotina também usa não são tocados."
         confirmLabel="Resetar"
         confirmColor="warning"
         loading={resetLoading}
