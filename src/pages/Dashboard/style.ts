@@ -10,6 +10,12 @@ export const pageStyles = {
     mb: 3,
   } as SxProps,
 
+  list: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: { xs: 2, sm: 2.5 },
+  } as SxProps,
+
   pagination: {
     display: 'flex',
     justifyContent: 'center',

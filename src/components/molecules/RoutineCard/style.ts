@@ -5,7 +5,7 @@ export const cardStyles = {
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
-    height: '100%',
+    width: '100%',
     borderLeft: '3px solid',
     borderLeftColor: isActive ? 'primary.main' : 'divider',
     transition: 'border-color 0.2s ease',
@@ -13,12 +13,13 @@ export const cardStyles = {
 
   content: (isActive: boolean): SxProps => ({
     flex: 1,
-    pt: 2.5,
-    px: 2.5,
+    // Tighter on a phone: horizontal padding is width taken from the chart.
+    pt: { xs: 2, sm: 2.5 },
+    px: { xs: 1.75, sm: 2.5 },
     pb: '12px !important',
     display: 'flex',
     flexDirection: 'column',
-    gap: 2,
+    gap: { xs: 1.75, sm: 2 },
     opacity: isActive ? 1 : 0.85,
     transition: 'opacity 0.2s ease',
   }),
@@ -26,8 +27,8 @@ export const cardStyles = {
   topRow: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 1,
+    flexWrap: 'wrap',
   } as SxProps,
 
   airlineBadge: {
@@ -46,12 +47,13 @@ export const cardStyles = {
   routeHero: {
     display: 'flex',
     alignItems: 'center',
-    gap: 1.5,
+    gap: { xs: 1, sm: 1.5 },
+    flexWrap: 'wrap',
   } as SxProps,
 
   iata: {
-    fontWeight: 500,
-    fontSize: '1.125rem',
+    fontWeight: 600,
+    fontSize: { xs: '1.0625rem', sm: '1.125rem' },
     letterSpacing: '0.5px',
     lineHeight: 1,
     textTransform: 'uppercase' as const,
@@ -67,7 +69,7 @@ export const cardStyles = {
   } as SxProps,
 
   arrowLine: {
-    width: 36,
+    width: { xs: 22, sm: 36 },
     height: 1,
     backgroundColor: 'divider',
   } as SxProps,
@@ -76,26 +78,79 @@ export const cardStyles = {
     fontWeight: 400,
     color: 'text.secondary',
     fontSize: '0.875rem',
-    mt: -0.5,
   } as SxProps,
 
-  meta: {
+  /**
+   * The full-width row's payload. One column on a phone (price first, then the
+   * chart); two from `md`, where the extra width goes to the chart instead of
+   * stretching a line of text across 1200px.
+   */
+  body: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '12px 16px',
+    gridTemplateColumns: { xs: '1fr', md: 'minmax(220px, 300px) 1fr' },
+    gap: { xs: 1.75, md: 3 },
+    alignItems: 'start',
+  } as SxProps,
+
+  priceBlock: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 1,
+    minWidth: 0,
+  } as SxProps,
+
+  priceBox: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 1,
+    py: 1.25,
+    px: 1.5,
+    borderRadius: 1.5,
+    backgroundColor: 'action.hover',
+  } as SxProps,
+
+  price: {
+    fontSize: { xs: '1.375rem', sm: '1.25rem' },
+    fontWeight: 700,
+    lineHeight: 1.15,
+  } as SxProps,
+
+  priceLegs: {
+    display: 'block',
+    lineHeight: 1.3,
+  } as SxProps,
+
+  priceSide: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 0.5,
+    flexShrink: 0,
+  } as SxProps,
+
+  /**
+   * Meta as a wrapping row, not a two-column grid: on a 360px screen the grid
+   * left half the labels truncated, and full width made its second column a
+   * stretch of empty space.
+   */
+  meta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px 20px',
   } as SxProps,
 
   metaItem: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 0.25,
+    gap: 0.125,
     minWidth: 0,
   } as SxProps,
 
   metaLabel: {
     fontSize: '0.625rem',
     fontWeight: 600,
-    letterSpacing: '0.1em',
+    letterSpacing: '0.08em',
     textTransform: 'uppercase' as const,
     color: 'text.disabled',
   } as SxProps,
@@ -105,22 +160,21 @@ export const cardStyles = {
     fontWeight: 500,
     color: 'text.primary',
     whiteSpace: 'nowrap' as const,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
   } as SxProps,
 
   targetValue: {
-    fontSize: '0.875rem',
+    fontSize: '0.8125rem',
     fontWeight: 700,
     color: 'primary.main',
+    whiteSpace: 'nowrap' as const,
   } as SxProps,
 
   footer: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    px: 2,
-    py: 1,
+    px: { xs: 1.25, sm: 2 },
+    py: 0.75,
     borderTop: '1px solid',
     borderColor: 'divider',
   } as SxProps,
