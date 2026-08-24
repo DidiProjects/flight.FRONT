@@ -54,7 +54,17 @@ export interface CurrentPrice {
   bestPts: number | null
   bestHybPts: number | null
   bestHybCash: number | null
+  /** Newest collection of the grid — when we last looked, not how old the price is. */
   scrapedAt: string | null
+  /**
+   * When the fare behind each price was collected. The card stamps "verificado
+   * há x" with the one matching the routine priority: a single grid timestamp
+   * dated the winning fare by the hour of another date's collection.
+   */
+  bestCashAt: string | null
+  bestPtsAt: string | null
+  bestHybPtsAt: string | null
+  bestHybCashAt: string | null
   avgCash30d: number | null
   minCash30d: number | null
   p20Cash30d: number | null
