@@ -137,6 +137,21 @@ describe('FlightFaresService', () => {
       expect(calledUrl).not.toContain('inbound_from')
     })
 
+    // O card carimba "verificado ha x" com a idade da tarifa exibida; scraped_at
+    // e a coleta mais nova da grade, que pode ser de outra data.
+    it('idade por dimensao chega separada de scraped_at', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true, status: 200,
+        json: async () => ({ ...rawResponse, best_cash: 500,
+          scraped_at: '2026-07-25T10:00:00Z', best_cash_at: '2026-07-25T00:00:00Z' }),
+      })
+      const { FlightFaresService } = await import('./FlightFaresService')
+      const result = await FlightFaresService.getCurrent(summaryParams)
+
+      expect(result.bestCashAt).toBe('2026-07-25T00:00:00Z')
+      expect(result.scrapedAt).toBe('2026-07-25T10:00:00Z')
+    })
+
     it('volta indefinida chega como inboundUnavailable', async () => {
       mockFetch.mockResolvedValue({
         ok: true, status: 200,
