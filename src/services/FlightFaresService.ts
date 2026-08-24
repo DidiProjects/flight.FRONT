@@ -25,6 +25,10 @@ type RawCurrent = RawPriceHistory & {
   best_hyb_pts:  number | string | null
   best_hyb_cash: number | string | null
   scraped_at:    string | null
+  best_cash_at:     string | null
+  best_pts_at:      string | null
+  best_hyb_pts_at:  string | null
+  best_hyb_cash_at: string | null
   /** RT with no total because the return is undefined (outbound collected, pair open). */
   inbound_unavailable?: boolean | null
   /**
@@ -42,6 +46,10 @@ function currentFromApi(raw: RawCurrent): CurrentPrice {
     bestHybPts:  toNum(raw.best_hyb_pts),
     bestHybCash: toNum(raw.best_hyb_cash),
     scrapedAt:   raw.scraped_at ?? null,
+    bestCashAt:    raw.best_cash_at ?? null,
+    bestPtsAt:     raw.best_pts_at ?? null,
+    bestHybPtsAt:  raw.best_hyb_pts_at ?? null,
+    bestHybCashAt: raw.best_hyb_cash_at ?? null,
     avgCash30d:  toNum(raw.avg_cash_30d),
     minCash30d:  toNum(raw.min_cash_30d),
     p20Cash30d:  toNum(raw.p20_cash_30d),

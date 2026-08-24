@@ -66,7 +66,7 @@ function breakdownByJourney(
 function currentForPriority(
   c: CurrentPrice,
   routine: Routine,
-): { display: string | null; verdict: Verdict | null; legs: string | null } {
+): { display: string | null; verdict: Verdict | null; legs: string | null; checkedAt: string | null } {
   const currency = c.currency ?? routine.currency
   if (routine.priority === 'pts') {
     const v = c.bestPts
@@ -74,6 +74,7 @@ function currentForPriority(
       display: v != null ? fmtPts(v) : null,
       verdict: computeVerdict(v, c.avgPts30d, c.minPts30d),
       legs: breakdownByJourney(c.journeys, (j) => j.pts, (v) => fmtPts(v)),
+      checkedAt: c.bestPtsAt,
     }
   }
   if (routine.priority === 'hyb') {
@@ -90,6 +91,7 @@ function currentForPriority(
       display,
       verdict: null,
       legs: legs && legsCash ? `${legs} (+ ${legsCash})` : legs,
+      checkedAt: c.bestHybPtsAt ?? c.bestHybCashAt,
     }
   }
   const v = c.bestCash
@@ -97,6 +99,7 @@ function currentForPriority(
     display: v != null ? fmtCurrency(v, currency) : null,
     verdict: computeVerdict(v, c.avgCash30d, c.p20Cash30d),
     legs: breakdownByJourney(c.journeys, (j) => j.cash, fmtCurrency),
+    checkedAt: c.bestCashAt,
   }
 }
 
@@ -166,7 +169,9 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
   }, [airlinesKey, routine.origin, routine.destination, routine.outboundStart, routine.outboundEnd, routine.inboundStart, routine.inboundEnd])
 
   const currentInfo = current ? currentForPriority(current, routine) : null
-  const freshness = timeAgo(current?.scrapedAt ?? null)
+  // The age of the PRICE on screen, not of the last collection: they differ
+  // whenever the winning date stopped collecting while the others kept going.
+  const freshness = timeAgo(currentInfo?.checkedAt ?? current?.scrapedAt ?? null)
 
   const isRoundTrip = routine.tripType === 'round_trip'
 
