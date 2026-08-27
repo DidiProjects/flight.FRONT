@@ -32,6 +32,7 @@ import { AirportAutocomplete } from '@atomic-components/molecules/AirportAutocom
 import { useAuth } from '@hooks/useAuth'
 import { useZodForm } from '@hooks/useZodForm'
 import { useCoverage } from '@hooks/useCoverage'
+import { useAirlineRecommendation } from '@hooks/useAirlineRecommendation'
 import { routineSchema } from '@utils/schemas'
 import { MAX_ROUNDTRIP_SPAN_MONTHS, MAX_ROUNDTRIP_RANGE_DAYS, MAX_DATE_RANGE_DAYS } from '@utils/roundtrip'
 import { formStyles } from './style'
@@ -99,22 +100,13 @@ function FareBadge({ label }: { label: string }) {
   )
 }
 
-type CoverageStatus = 'covered' | 'uncovered'
-
-function getAirlineCoverageStatus(
-  airlineCode: string,
-  origin: string,
-  destination: string,
-  coverageIndex: Map<string, Set<string>>,
-): CoverageStatus {
-  if (!origin && !destination) return 'covered'
-  const covered = coverageIndex.get(airlineCode) ?? new Set<string>()
-  const hasOrigin = !origin || covered.has(origin.toUpperCase())
-  const hasDest   = !destination || covered.has(destination.toUpperCase())
-  return hasOrigin && hasDest ? 'covered' : 'uncovered'
+/** Legenda do motivo, para quem abrir o seletor e quiser saber por quê. */
+const REASON_LABEL: Record<string, string> = {
+  // Cabotagem: companhia estrangeira não opera voo doméstico em outro país.
+  // Ela até lista os dois aeroportos — o que ela não tem é direito de voar isso.
+  outside_market: 'Sem direito de tráfego neste trajeto',
+  no_route:       'Não atende uma das pontas',
 }
-
-const coverageOrder: Record<CoverageStatus, number> = { covered: 0, uncovered: 1 }
 
 interface RoutineFormProps {
   open: boolean
@@ -161,7 +153,12 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
 
   const activeAirlines = airlines.filter((a) => a.active)
   const airlineCodes = useMemo(() => activeAirlines.map((a) => a.code), [activeAirlines])
-  const { airports, coverageIndex, loading: coverageLoading } = useCoverage(airlineCodes)
+  const { airports, loading: coverageLoading } = useCoverage(airlineCodes)
+  const recommendation = useAirlineRecommendation(form.origin, form.destination)
+  // Enquanto o usuário não mexer no seletor, ele acompanha a recomendação. Do
+  // primeiro clique dele em diante a escolha é dele, e o trajeto pode mudar à
+  // vontade que a seleção não é reescrita por baixo.
+  const escolhaDoUsuarioRef = useRef(false)
 
   useEffect(() => {
     reset()
@@ -194,8 +191,24 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
       setTripMode('one_way')
     }
     setCcEmailInput('')
+    escolhaDoUsuarioRef.current = false
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routine, open, airlines])
+
+  // Pré-preenchimento: o objetivo é não precisar escolher companhia, sem tirar
+  // de quem quer escolher. Rotina existente nunca é reescrita — a seleção dela
+  // congelou na criação.
+  useEffect(() => {
+    if (routine) return
+    if (escolhaDoUsuarioRef.current) return
+    if (recommendation.loading) return
+    const sugeridas = recommendation.recommendedCodes
+    setForm((prev) =>
+      prev.airlines.length === sugeridas.length && prev.airlines.every((c) => sugeridas.includes(c))
+        ? prev
+        : { ...prev, airlines: sugeridas })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommendation.recommendedCodes.join(','), recommendation.loading, routine])
 
   useEffect(() => {
     const currentAirlines = airlines.filter((a) => form.airlines.includes(a.code))
@@ -275,15 +288,10 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
     }
   }
 
-  // Sorted airlines for the Select — full coverage first, then partial, then none
-  const sortedAirlines = useMemo(() => {
-    if (!form.origin && !form.destination) return activeAirlines
-    return [...activeAirlines].sort((a, b) => {
-      const statusA = getAirlineCoverageStatus(a.code, form.origin, form.destination, coverageIndex)
-      const statusB = getAirlineCoverageStatus(b.code, form.origin, form.destination, coverageIndex)
-      return coverageOrder[statusA] - coverageOrder[statusB]
-    })
-  }, [activeAirlines, form.origin, form.destination, coverageIndex])
+  // A API já devolve recomendadas primeiro. Enquanto não há trajeto, ou se a
+  // chamada falhou, cai na lista simples de ativas — sem destaque, mas sem
+  // impedir ninguém de criar a rotina.
+  const sortedAirlines = recommendation.airlines.length > 0 ? recommendation.airlines : activeAirlines
 
   const isEdit = !!routine
   const selectedAirlines = airlines.filter((a) => form.airlines.includes(a.code))
@@ -366,18 +374,34 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               </Box>
             </Box>
 
+            {recommendation.uncovered && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                No momento não atendemos {form.origin}→{form.destination}. Nenhuma
+                companhia ativa tem direito de tráfego neste trajeto — você ainda
+                pode escolher uma à mão, mas a coleta provavelmente não trará
+                ofertas.
+              </Alert>
+            )}
             <FormField
               select
               label="Companhia(s) aérea(s)"
               value={form.airlines}
               onChange={(e) => {
                 const val = e.target.value
+                escolhaDoUsuarioRef.current = true
                 set('airlines', typeof val === 'string' ? val.split(',') : val as string[])
               }}
               required
               size="medium"
               error={!!errors.airlines}
-              helperText={errors.airlines ?? 'Selecione uma ou mais companhias'}
+              helperText={
+                errors.airlines ??
+                (recommendation.loading
+                  ? 'Verificando quais companhias atendem o trajeto…'
+                  : recommendation.recommendedCodes.length > 0
+                    ? 'Pré-selecionadas pelo trajeto. Abra para ajustar.'
+                    : 'Selecione uma ou mais companhias')
+              }
               SelectProps={{
                 multiple: true,
                 renderValue: (selected) => (
@@ -390,24 +414,23 @@ export function RoutineForm({ open, routine, airlines, onClose, onSubmit }: Rout
               }}
             >
               {sortedAirlines.map((a) => {
-                const status = getAirlineCoverageStatus(a.code, form.origin, form.destination, coverageIndex)
-                const isSelected = form.airlines.includes(a.code)
-                // An airline with no coverage on the route is disabled (cannot be scraped).
-                // If it was already selected, it stays enabled so it can be unselected.
-                const disabled = status === 'uncovered' && !isSelected && !coverageLoading
+                const reason = recommendation.reasonOf(a.code)
+                // Não recomendada NÃO é bloqueada. O mapa de mercado decide o
+                // padrão, nunca o teto: errar o mapa custa um clique de quem
+                // discorda, e não uma oferta perdida em silêncio.
+                const naoRecomendada = reason != null && reason !== 'serves_route'
                 return (
                   <MenuItem
                     key={a.code}
                     value={a.code}
-                    disabled={disabled}
-                    sx={status === 'uncovered' && !isSelected ? { opacity: 0.5 } : {}}
+                    sx={naoRecomendada ? { opacity: 0.6 } : {}}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                         <Typography variant="body2">{a.name}</Typography>
-                        {status === 'uncovered' && !coverageLoading && (
+                        {naoRecomendada && !recommendation.loading && (
                           <Typography variant="caption" color="text.disabled">
-                            Sem cobertura para {form.origin || '—'}→{form.destination || '—'}
+                            {REASON_LABEL[reason] ?? 'Não recomendada'} ({form.origin || '—'}→{form.destination || '—'})
                           </Typography>
                         )}
                       </Box>
