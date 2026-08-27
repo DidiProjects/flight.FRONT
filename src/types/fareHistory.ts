@@ -18,9 +18,24 @@ export interface FareHistoryBucket {
   samples: number
 }
 
+/** A curva de UMA companhia, para o gráfico mostrar a disputa. */
+export interface FareHistoryAirlineSeries {
+  airline: string
+  buckets: FareHistoryBucket[]
+}
+
 export interface FareHistorySeries {
   range: FareHistoryRange
   /** Currency of the series, as the API measured it. Never the routine's target unit. */
   currency: string | null
+  /** O melhor entre todas, bucket a bucket. Continua sendo a curva em destaque. */
   buckets: FareHistoryBucket[]
+  /**
+   * Uma curva por companhia que teve preço na janela.
+   *
+   * Vazio quando a API é antiga: o gráfico continua desenhando só o destaque em
+   * vez de sumir. Vem da mesma varredura do total na API, então as curvas não
+   * podem discordar do destaque.
+   */
+  byAirline: FareHistoryAirlineSeries[]
 }

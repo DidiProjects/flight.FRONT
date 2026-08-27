@@ -26,6 +26,7 @@ type RawSeries = {
   range: FareHistoryRange
   currency: string | null
   buckets: RawBucket[]
+  byAirline?: { airline: string; buckets: RawBucket[] }[]
 }
 
 /** NUMERIC arrives from the API as a string; comparing it raw sorts lexicographically. */
@@ -67,6 +68,12 @@ class FareHistoryServiceClass extends ApiService {
       range: raw.range,
       currency: raw.currency ?? null,
       buckets: raw.buckets.map(bucketFromApi),
+      // `?? []` de propósito: contra uma API que ainda não devolve o campo o
+      // gráfico perde as curvas por companhia, não o destaque.
+      byAirline: (raw.byAirline ?? []).map((s) => ({
+        airline: s.airline,
+        buckets: s.buckets.map(bucketFromApi),
+      })),
     }
   }
 }

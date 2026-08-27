@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Box, Typography, useTheme } from '@mui/material'
 import { useElementWidth } from '@hooks/useElementWidth'
-import { areaPath, buildGeometry, linePath } from './geometry'
+import { AIRLINE_COLORS, areaPath, buildGeometry, linePath } from './geometry'
 import { formatMoney } from '@utils/money'
 import type { FareHistoryBucket, FareHistoryRange } from '@app-types/fareHistory'
 
@@ -28,7 +28,16 @@ interface PriceChartProps {
   metric: ChartMetric
   currency: string | null
   height?: number
+  /**
+   * Uma curva por companhia, desenhada atrás do destaque.
+   *
+   * O destaque continua sendo o melhor entre todas — é o número pelo qual a
+   * rotina é julgada. As curvas atrás mostram a disputa: sem elas, o card diz
+   * "R$ 900" e esconde que uma companhia cobrava o dobro.
+   */
+  airlineSeries?: { airline: string; buckets: FareHistoryBucket[] }[]
 }
+
 
 /** Label of the horizontal axis, at the resolution the range actually has. */
 function formatTick(iso: string, range: FareHistoryRange): string {
@@ -47,7 +56,7 @@ function formatMoment(iso: string, range: FareHistoryRange): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
-export function PriceChart({ buckets, range, metric, currency, height = 150 }: PriceChartProps) {
+export function PriceChart({ buckets, range, metric, currency, height = 150, airlineSeries = [] }: PriceChartProps) {
   const theme = useTheme()
   const [wrapRef, width] = useElementWidth<HTMLDivElement>()
   const [hover, setHover] = useState<number | null>(null)
@@ -61,7 +70,41 @@ export function PriceChart({ buckets, range, metric, currency, height = 150 }: P
 
   const hasData = series.filter((v) => v != null).length >= 2
 
-  const g = useMemo(() => buildGeometry(series, width, height), [series, width, height])
+  // Só vale desenhar a disputa quando há disputa: com uma companhia, a curva
+  // dela é idêntica ao destaque e o gráfico ficaria com duas linhas sobrepostas.
+  const competidoras = useMemo(
+    () => (airlineSeries.length > 1 ? airlineSeries : []),
+    [airlineSeries],
+  )
+
+  const seriesPorCia = useMemo(
+    () => competidoras.map((s) => ({ airline: s.airline, valores: s.buckets.map((b) => valueOf(b, metric)) })),
+    [competidoras, metric],
+  )
+
+  // Escala compartilhada: cada curva tem geometria própria, mas todas precisam
+  // do mesmo mínimo e máximo, senão duas curvas de preços diferentes se
+  // sobrepõem depois de normalizadas separadamente.
+  const todosValores = useMemo(
+    () => seriesPorCia.flatMap((s) => s.valores),
+    [seriesPorCia],
+  )
+
+  const g = useMemo(
+    () => buildGeometry(series, width, height, todosValores),
+    [series, width, height, todosValores],
+  )
+
+  const gPorCia = useMemo(
+    () => seriesPorCia
+      .map((s, i) => ({
+        airline: s.airline,
+        color: AIRLINE_COLORS[i % AIRLINE_COLORS.length],
+        geo: buildGeometry(s.valores, width, height, [...series, ...todosValores]),
+      }))
+      .filter((s): s is { airline: string; color: string; geo: NonNullable<ReturnType<typeof buildGeometry>> } => s.geo != null),
+    [seriesPorCia, width, height, series, todosValores],
+  )
 
   if (!hasData) {
     return (
@@ -119,6 +162,21 @@ export function PriceChart({ buckets, range, metric, currency, height = 150 }: P
               <stop offset="100%" stopColor={stroke} stopOpacity={0} />
             </linearGradient>
           </defs>
+
+          {gPorCia.map((c) =>
+            c.geo.runs.map((r, i) => (
+              <path
+                key={`c${c.airline}${i}`}
+                d={linePath(r)}
+                fill="none"
+                stroke={c.color}
+                strokeWidth={1.25}
+                strokeOpacity={0.55}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )),
+          )}
 
           {g.runs.map((r, i) => (
             <path key={`a${i}`} d={areaPath(r, g.baseline)} fill="url(#priceChartFill)" stroke="none" />
