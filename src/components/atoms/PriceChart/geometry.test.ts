@@ -82,3 +82,37 @@ describe('buildGeometry', () => {
     expect(d.match(/L/g)).toHaveLength(2)
   })
 })
+
+/**
+ * Escala compartilhada entre curvas.
+ *
+ * Cada companhia é desenhada com geometria própria. Sem uma escala comum, duas
+ * curvas normalizadas separadamente ficam sobrepostas mesmo com preços muito
+ * diferentes — o gráfico mostraria empate onde há o dobro.
+ */
+describe('buildGeometry com escala compartilhada', () => {
+  const W = 300
+  const H = 150
+
+  it('sem `scaleWith`, duas séries de preços diferentes desenham no mesmo lugar', () => {
+    const barata = buildGeometry([100, 200], W, H)!
+    const cara   = buildGeometry([1000, 2000], W, H)!
+    expect(cara.points[0]!.y).toBeCloseTo(barata.points[0]!.y, 5)
+  })
+
+  it('com `scaleWith`, a curva cara fica acima da barata', () => {
+    const todos = [100, 200, 1000, 2000]
+    const barata = buildGeometry([100, 200], W, H, todos)!
+    const cara   = buildGeometry([1000, 2000], W, H, todos)!
+    // y menor = mais alto no SVG, e preço maior tem de ficar mais alto.
+    expect(cara.points[0]!.y).toBeLessThan(barata.points[0]!.y)
+    expect(cara.min).toBe(100)
+    expect(cara.max).toBe(2000)
+  })
+
+  it('`scaleWith` vazio preserva o comportamento de série única', () => {
+    const sem  = buildGeometry([100, 200, 150], W, H)!
+    const com  = buildGeometry([100, 200, 150], W, H, [])!
+    expect(com.points.map((p) => p?.y)).toEqual(sem.points.map((p) => p?.y))
+  })
+})

@@ -1,3 +1,12 @@
+/**
+ * Cor por companhia, estável entre renders e entre rotinas.
+ *
+ * Índice na lista ordenada, não hash do nome: hash dá cores parecidas para
+ * códigos parecidos, e a lista é pequena o bastante para não repetir. Mora aqui,
+ * e não no componente, porque a legenda precisa da MESMA cor da curva.
+ */
+export const AIRLINE_COLORS = ['#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#ec4899']
+
 export interface ChartPoint {
   x: number
   y: number
@@ -35,6 +44,15 @@ export function buildGeometry(
   series: (number | null)[],
   width: number,
   height: number,
+  /**
+   * Valores que a escala precisa acomodar além desta série.
+   *
+   * Com uma curva por companhia, cada uma é desenhada com a sua própria
+   * geometria. Sem uma escala comum, duas curvas normalizadas separadamente
+   * ficam sobrepostas mesmo com preços muito diferentes — o gráfico mostraria
+   * empate onde há o dobro.
+   */
+  scaleWith: (number | null)[] = [],
 ): ChartGeometry | null {
   const measured = series.filter((v): v is number => v != null)
   // One point is a dot, not a history: nothing to read from it.
@@ -43,8 +61,9 @@ export function buildGeometry(
   const innerW = Math.max(width - CHART_PAD.x * 2, 1)
   const innerH = Math.max(height - CHART_PAD.top - CHART_PAD.bottom, 1)
 
-  const min = Math.min(...measured)
-  const max = Math.max(...measured)
+  const escala = [...measured, ...scaleWith.filter((v): v is number => v != null)]
+  const min = Math.min(...escala)
+  const max = Math.max(...escala)
   const span = max - min
 
   const toX = (i: number) => CHART_PAD.x + (i / (series.length - 1)) * innerW

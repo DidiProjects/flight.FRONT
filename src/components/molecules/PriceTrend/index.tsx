@@ -4,6 +4,7 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import TrendingFlatIcon from '@mui/icons-material/TrendingFlat'
 import { PriceChart, type ChartMetric } from '@atomic-components/atoms/PriceChart'
+import { AIRLINE_COLORS } from '@atomic-components/atoms/PriceChart/geometry'
 import { FareHistoryService } from '@services/FareHistoryService'
 import { formatMoney } from '@utils/money'
 import type { FareHistoryBucket, FareHistoryRange, FareHistorySeries } from '@app-types/fareHistory'
@@ -137,7 +138,21 @@ export function PriceTrend({
             range={series.range}
             metric={metric}
             currency={currency}
+            airlineSeries={series.byAirline}
           />
+
+          {series.byAirline.length > 1 && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 0.75 }}>
+              {series.byAirline.map((s, i) => (
+                <Box key={s.airline} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Box sx={{ width: 10, height: 2, borderRadius: 1, backgroundColor: AIRLINE_COLORS[i % AIRLINE_COLORS.length] }} />
+                  <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                    {s.airline}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
 
           <Box sx={trendStyles.stats}>
             {delta != null && (
