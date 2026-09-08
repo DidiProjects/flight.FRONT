@@ -22,6 +22,12 @@ export type ChartMetric = 'cash' | 'pts' | 'hyb'
 const MAIN_KEY = 'main'
 
 /**
+ * Duração da transição ao trocar de aba (24h/30 dias/6 meses) ou ao chegar
+ * dado novo. Recharts default (1500ms) arrasta demais num sparkline pequeno.
+ */
+const ANIMATION_MS = 600
+
+/**
  * Value of a bucket for the displayed dimension. Hybrid plots the POINTS side —
  * the same choice the calendar makes, because a hybrid fare has no single number.
  */
@@ -274,7 +280,9 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
                   fill={`url(#${gradientId}-${s.airline})`}
                   dot={false}
                   activeDot={{ r: 4, fill: color, stroke: theme.palette.background.paper, strokeWidth: 1.5 }}
-                  isAnimationActive={false}
+                  isAnimationActive
+                  animationDuration={ANIMATION_MS}
+                  animationEasing="ease-out"
                   connectNulls={false}
                 />
               )
@@ -285,7 +293,9 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
                   dataKey={MAIN_KEY}
                   stroke="none"
                   fill={`url(#${gradientId}-main)`}
-                  isAnimationActive={false}
+                  isAnimationActive
+                  animationDuration={ANIMATION_MS}
+                  animationEasing="ease-out"
                   connectNulls={false}
                   activeDot={false}
                 />
@@ -295,7 +305,9 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
                   strokeWidth={1.75}
                   dot={renderMainDot}
                   activeDot={{ r: 4, fill: mainColor, stroke: theme.palette.background.paper, strokeWidth: 1.5 }}
-                  isAnimationActive={false}
+                  isAnimationActive
+                  animationDuration={ANIMATION_MS}
+                  animationEasing="ease-out"
                   connectNulls={false}
                 />
               </>
