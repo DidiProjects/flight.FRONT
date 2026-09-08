@@ -1,4 +1,4 @@
-import { useMemo, type ComponentProps } from 'react'
+import { useId, useMemo, type ComponentProps } from 'react'
 import { Box, Typography, useTheme } from '@mui/material'
 import {
   ResponsiveContainer,
@@ -80,6 +80,12 @@ interface ChartRow {
 
 export function PriceChart({ buckets, range, metric, currency, height = 150, airlineSeries = [], highlightAirline = null }: PriceChartProps) {
   const theme = useTheme()
+
+  // Um `<PriceChart>` por card, vários cards na página: sem isto, o id do
+  // gradiente ("priceChartFill-main") repetia em todo card sem disputa, e o
+  // navegador resolve `url(#id)` duplicado pegando UMA definição pra todos os
+  // SVGs da página — a sombra de um card saía com a cor de outro.
+  const gradientId = useId()
 
   const fmt = (v: number) =>
     isPointsMetric(metric)
@@ -224,14 +230,14 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
               ? airlineSeries.map((s, i) => {
                 const color = colorForAirline(s.airline, i)
                 return (
-                  <linearGradient key={s.airline} id={`priceChartFill-${s.airline}`} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient key={s.airline} id={`${gradientId}-${s.airline}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={color} stopOpacity={0.16} />
                     <stop offset="100%" stopColor={color} stopOpacity={0} />
                   </linearGradient>
                 )
               })
               : (
-                <linearGradient id="priceChartFill-main" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={`${gradientId}-main`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={mainColor} stopOpacity={0.18} />
                   <stop offset="100%" stopColor={mainColor} stopOpacity={0} />
                 </linearGradient>
@@ -265,7 +271,7 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
                   dataKey={s.airline}
                   stroke={color}
                   strokeWidth={1.75}
-                  fill={`url(#priceChartFill-${s.airline})`}
+                  fill={`url(#${gradientId}-${s.airline})`}
                   dot={false}
                   activeDot={{ r: 4, fill: color, stroke: theme.palette.background.paper, strokeWidth: 1.5 }}
                   isAnimationActive={false}
@@ -278,7 +284,7 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
                 <Area
                   dataKey={MAIN_KEY}
                   stroke="none"
-                  fill="url(#priceChartFill-main)"
+                  fill={`url(#${gradientId}-main)`}
                   isAnimationActive={false}
                   connectNulls={false}
                   activeDot={false}
