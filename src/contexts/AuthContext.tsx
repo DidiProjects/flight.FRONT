@@ -68,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    const controller = new AbortController()
 
     const rt = storage.getRefreshToken()
     if (!rt) {
@@ -76,52 +75,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const timeoutId = setTimeout(() => {
-      if (!cancelled) {
-        tokenStore.clear()
-        storage.clearRefreshToken()
-        setIsLoading(false)
-        controller.abort()
-      }
-    }, 10_000)
-
-    fetch(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: rt }),
-      signal: controller.signal,
+    // `proactiveRefresh` is the SAME single-flight call the 401 handler and the
+    // scheduled renewal use. Without sharing it, StrictMode's double-invoke of
+    // this effect fired two independent `/auth/refresh` requests: the refresh
+    // token rotates on use (one-shot), so the second request always arrived
+    // with an already-spent token and 401'd — logging out a session that had
+    // just been restored, on every mount, dev or not.
+    const timeout = new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), 10_000)
     })
-      .then((res) => {
-        if (!res.ok) throw new Error('Invalid session')
-        return res.json() as Promise<{ accessToken: string; refreshToken: string }>
-      })
-      .then((data) => {
-        if (cancelled) return
-        tokenStore.set(data.accessToken)
-        storage.setRefreshToken(data.refreshToken)
+
+    Promise.race([proactiveRefresh(), timeout])
+      .then((token) => {
+        if (cancelled || !token) return
         setUser({
-          accessToken: data.accessToken,
+          accessToken: token,
           mustChangePassword: false,
-          role: extractRole(data.accessToken),
-          email: extractEmail(data.accessToken),
+          role: extractRole(token),
+          email: extractEmail(token),
         })
-        scheduleProactiveRefresh(data.accessToken)
-      })
-      .catch((err: unknown) => {
-        if (cancelled || (err instanceof Error && err.name === 'AbortError')) return
-        tokenStore.clear()
-        storage.clearRefreshToken()
+        scheduleProactiveRefresh(token)
       })
       .finally(() => {
-        clearTimeout(timeoutId)
         if (!cancelled) setIsLoading(false)
       })
 
-    return () => {
-      cancelled = true
-      clearTimeout(timeoutId)
-      controller.abort()
-    }
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {

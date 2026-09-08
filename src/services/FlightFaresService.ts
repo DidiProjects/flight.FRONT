@@ -1,5 +1,5 @@
 import { ApiService } from './ApiService'
-import type { PriceHistorySummary, CurrentPrice, PriceByDateEntry, Journey } from '@app-types/flightFares'
+import type { PriceHistorySummary, CurrentPrice, PriceByDateEntry, PriceByDateAirline, Journey } from '@app-types/flightFares'
 
 type RawByDate = {
   flight_date:   string
@@ -7,6 +7,11 @@ type RawByDate = {
   best_pts:      number | string | null
   best_hyb_pts:  number | string | null
   best_hyb_cash: number | string | null
+}
+
+type RawByDateResult = {
+  dates: RawByDate[]
+  byAirline: { airline: string; dates: RawByDate[] }[]
 }
 
 function byDateFromApi(raw: RawByDate): PriceByDateEntry {
@@ -29,6 +34,10 @@ type RawCurrent = RawPriceHistory & {
   best_pts_at:      string | null
   best_hyb_pts_at:  string | null
   best_hyb_cash_at: string | null
+  best_cash_airline:     string | null
+  best_pts_airline:      string | null
+  best_hyb_pts_airline:  string | null
+  best_hyb_cash_airline: string | null
   /** RT with no total because the return is undefined (outbound collected, pair open). */
   inbound_unavailable?: boolean | null
   /**
@@ -50,6 +59,10 @@ function currentFromApi(raw: RawCurrent): CurrentPrice {
     bestPtsAt:     raw.best_pts_at ?? null,
     bestHybPtsAt:  raw.best_hyb_pts_at ?? null,
     bestHybCashAt: raw.best_hyb_cash_at ?? null,
+    bestCashAirline:    raw.best_cash_airline ?? null,
+    bestPtsAirline:     raw.best_pts_airline ?? null,
+    bestHybPtsAirline:  raw.best_hyb_pts_airline ?? null,
+    bestHybCashAirline: raw.best_hyb_cash_airline ?? null,
     avgCash30d:  toNum(raw.avg_cash_30d),
     minCash30d:  toNum(raw.min_cash_30d),
     p20Cash30d:  toNum(raw.p20_cash_30d),
@@ -159,7 +172,7 @@ class FlightFaresServiceClass extends ApiService {
     return currentFromApi(raw)
   }
 
-  async getPriceByDate(params: RoutineSummaryParams): Promise<PriceByDateEntry[]> {
+  async getPriceByDate(params: RoutineSummaryParams): Promise<{ dates: PriceByDateEntry[]; byAirline: PriceByDateAirline[] }> {
     const qs = new URLSearchParams({
       airlines:    params.airlines.join(','),
       origin:      params.origin,
@@ -171,8 +184,16 @@ class FlightFaresServiceClass extends ApiService {
       ...inboundParams(params),
     }).toString()
 
-    const raw = await this.get<{ dates: RawByDate[] }>(`/fares/by-date?${qs}`)
-    return raw.dates.map(byDateFromApi)
+    const raw = await this.get<RawByDateResult>(`/fares/by-date?${qs}`)
+    return {
+      dates: raw.dates.map(byDateFromApi),
+      // `?? []` de propósito: contra uma API que ainda não devolve o campo o
+      // calendário perde a quebra por companhia, não o calendário combinado.
+      byAirline: (raw.byAirline ?? []).map((s) => ({
+        airline: s.airline,
+        dates: s.dates.map(byDateFromApi),
+      })),
+    }
   }
 }
 

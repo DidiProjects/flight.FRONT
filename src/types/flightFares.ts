@@ -24,6 +24,12 @@ export interface PriceByDateEntry {
   bestHybCash: number | null
 }
 
+/** One airline's own calendar — the same entries `byDate` merges into one. */
+export interface PriceByDateAirline {
+  airline: string
+  dates: PriceByDateEntry[]
+}
+
 /** One flown SEGMENT. One per journey today; modelling connections will give N. */
 export interface Segment {
   origin: string
@@ -65,6 +71,15 @@ export interface CurrentPrice {
   bestPtsAt: string | null
   bestHybPtsAt: string | null
   bestHybCashAt: string | null
+  /**
+   * Companhia dona do preço vencedor de CADA dimensão — não é sempre a mesma:
+   * comparando mais de uma companhia, a mais barata em dinheiro não é
+   * necessariamente a mais barata em pontos.
+   */
+  bestCashAirline: string | null
+  bestPtsAirline: string | null
+  bestHybPtsAirline: string | null
+  bestHybCashAirline: string | null
   avgCash30d: number | null
   minCash30d: number | null
   p20Cash30d: number | null

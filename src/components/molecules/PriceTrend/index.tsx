@@ -4,7 +4,7 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import TrendingFlatIcon from '@mui/icons-material/TrendingFlat'
 import { PriceChart, type ChartMetric } from '@atomic-components/atoms/PriceChart'
-import { AIRLINE_COLORS } from '@atomic-components/atoms/PriceChart/geometry'
+import { colorForAirline, labelForAirline } from '@atomic-components/atoms/PriceChart/geometry'
 import { FareHistoryService } from '@services/FareHistoryService'
 import { formatMoney } from '@utils/money'
 import type { FareHistoryBucket, FareHistoryRange, FareHistorySeries } from '@app-types/fareHistory'
@@ -28,6 +28,8 @@ interface PriceTrendProps {
   metric: ChartMetric
   /** 30-day baseline the card already loaded — no second request for the stats. */
   baseline: { min: number | null; avg: number | null } | null
+  /** Airline holding the current best price — its curve gets the highlight. */
+  highlightAirline?: string | null
 }
 
 /** Movement across the visible window: first measured point against the last. */
@@ -57,7 +59,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: 'go
 
 export function PriceTrend({
   airlines, origin, destination, dateFrom, dateTo,
-  currencyFallback, inboundFrom, inboundTo, metric, baseline,
+  currencyFallback, inboundFrom, inboundTo, metric, baseline, highlightAirline,
 }: PriceTrendProps) {
   const [range, setRange] = useState<FareHistoryRange>('month')
   const [loading, setLoading] = useState(true)
@@ -139,15 +141,16 @@ export function PriceTrend({
             metric={metric}
             currency={currency}
             airlineSeries={series.byAirline}
+            highlightAirline={highlightAirline}
           />
 
           {series.byAirline.length > 1 && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 0.75 }}>
               {series.byAirline.map((s, i) => (
                 <Box key={s.airline} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box sx={{ width: 10, height: 2, borderRadius: 1, backgroundColor: AIRLINE_COLORS[i % AIRLINE_COLORS.length] }} />
+                  <Box sx={{ width: 10, height: 2, borderRadius: 1, backgroundColor: colorForAirline(s.airline, i) }} />
                   <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                    {s.airline}
+                    {labelForAirline(s.airline)}
                   </Typography>
                 </Box>
               ))}
