@@ -29,10 +29,6 @@ describe('buildBookingLink — só-ida', () => {
     expect(p.get('ida')).toBe('21-09-2026')
   })
 
-  it('gol ignora a volta — pilot é só-ida', () => {
-    expect(buildBookingLink('gol', rt)).not.toContain('volta')
-  })
-
   it('companhia desconhecida não tem link', () => {
     expect(buildBookingLink('iberia', base)).toBeNull()
   })
@@ -68,6 +64,13 @@ describe('buildBookingLink — ida-e-volta', () => {
     const p = q(buildBookingLink('latam', rt)!)
     expect(p.get('trip')).toBe('RT')
     expect(p.get('inbound')).toBe('2026-09-25')
+  })
+
+  it('gol adiciona a volta ao busca-parceiros, tipo continua DF', () => {
+    const p = q(buildBookingLink('gol', rt)!)
+    expect(p.get('tipo')).toBe('DF')
+    expect(p.get('ida')).toBe('21-09-2026')
+    expect(p.get('volta')).toBe('25-09-2026')
   })
 
   it('pts troca a moeda da azul sem perder a volta', () => {
