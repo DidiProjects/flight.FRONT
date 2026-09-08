@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Box, Typography, useTheme } from '@mui/material'
 import { useElementWidth } from '@hooks/useElementWidth'
-import { AIRLINE_COLORS, areaPath, buildGeometry, linePath } from './geometry'
+import { areaPath, buildGeometry, colorForAirline, linePath } from './geometry'
 import { formatMoney } from '@utils/money'
 import type { FareHistoryBucket, FareHistoryRange } from '@app-types/fareHistory'
 
@@ -36,6 +36,11 @@ interface PriceChartProps {
    * "R$ 900" e esconde que uma companhia cobrava o dobro.
    */
   airlineSeries?: { airline: string; buckets: FareHistoryBucket[] }[]
+  /**
+   * Companhia dona do preço atual — a curva dela ganha a cor de destaque e as
+   * demais recuam em opacidade, em vez de todas disputarem atenção igual.
+   */
+  highlightAirline?: string | null
 }
 
 
@@ -56,7 +61,7 @@ function formatMoment(iso: string, range: FareHistoryRange): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
-export function PriceChart({ buckets, range, metric, currency, height = 150, airlineSeries = [] }: PriceChartProps) {
+export function PriceChart({ buckets, range, metric, currency, height = 150, airlineSeries = [], highlightAirline = null }: PriceChartProps) {
   const theme = useTheme()
   const [wrapRef, width] = useElementWidth<HTMLDivElement>()
   const [hover, setHover] = useState<number | null>(null)
@@ -99,12 +104,18 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
     () => seriesPorCia
       .map((s, i) => ({
         airline: s.airline,
-        color: AIRLINE_COLORS[i % AIRLINE_COLORS.length],
+        color: colorForAirline(s.airline, i),
         geo: buildGeometry(s.valores, width, height, [...series, ...todosValores]),
       }))
       .filter((s): s is { airline: string; color: string; geo: NonNullable<ReturnType<typeof buildGeometry>> } => s.geo != null),
     [seriesPorCia, width, height, series, todosValores],
   )
+
+  // Sabendo qual companhia está com o preço atual, a linha dela é o destaque —
+  // na cor da própria marca — e as demais recuam para não competir por atenção.
+  const highlight = highlightAirline != null
+    ? gPorCia.find((c) => c.airline === highlightAirline)
+    : undefined
 
   if (!hasData) {
     return (
@@ -126,7 +137,7 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
     )
   }
 
-  const stroke = theme.palette.primary.main
+  const stroke = highlight?.color ?? theme.palette.primary.main
   const hovered = hover != null ? g?.points[hover] : null
 
   // Three ticks is what fits a phone without the labels colliding.
@@ -163,20 +174,26 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
             </linearGradient>
           </defs>
 
-          {gPorCia.map((c) =>
-            c.geo.runs.map((r, i) => (
-              <path
-                key={`c${c.airline}${i}`}
-                d={linePath(r)}
-                fill="none"
-                stroke={c.color}
-                strokeWidth={1.25}
-                strokeOpacity={0.55}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            )),
-          )}
+          {gPorCia
+            // A companhia em destaque já é desenhada por cima, na mesma cor e
+            // com traço mais forte — redesenhá-la aqui por baixo só duplicaria.
+            .filter((c) => c.airline !== highlight?.airline)
+            .map((c) =>
+              c.geo.runs.map((r, i) => (
+                <path
+                  key={`c${c.airline}${i}`}
+                  d={linePath(r)}
+                  fill="none"
+                  stroke={c.color}
+                  strokeWidth={1.25}
+                  // Com uma companhia em destaque as demais recuam mais — é o
+                  // contraste que faz a vencedora saltar aos olhos.
+                  strokeOpacity={highlight ? 0.3 : 0.55}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )),
+            )}
 
           {g.runs.map((r, i) => (
             <path key={`a${i}`} d={areaPath(r, g.baseline)} fill="url(#priceChartFill)" stroke="none" />
