@@ -9,16 +9,16 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts'
-
-/** Matches whatever generic instantiation `Tooltip`'s own `content` prop expects. */
-type TooltipContentFn = Extract<NonNullable<ComponentProps<typeof Tooltip>['content']>, (...args: never[]) => unknown>
-import { colorForAirline } from './geometry'
+import { colorForAirline, labelForAirline } from './geometry'
 import { formatMoney } from '@utils/money'
 import type { FareHistoryBucket, FareHistoryRange } from '@app-types/fareHistory'
 
+/** Matches whatever generic instantiation `Tooltip`'s own `content` prop expects. */
+type TooltipContentFn = Extract<NonNullable<ComponentProps<typeof Tooltip>['content']>, (...args: never[]) => unknown>
+
 export type ChartMetric = 'cash' | 'pts' | 'hyb'
 
-/** Field the "destaque" (cross-airline best) line reads from each row. */
+/** Field the merged (cross-airline best) line reads from each row — used only without competition. */
 const MAIN_KEY = 'main'
 
 /**
@@ -43,16 +43,15 @@ interface PriceChartProps {
   currency: string | null
   height?: number
   /**
-   * Uma curva por companhia, desenhada atrás do destaque.
-   *
-   * O destaque continua sendo o melhor entre todas — é o número pelo qual a
-   * rotina é julgada. As curvas atrás mostram a disputa: sem elas, o card diz
-   * "R$ 900" e esconde que uma companhia cobrava o dobro.
+   * Uma curva por companhia, todas no mesmo pé — cada uma na sua própria cor de
+   * marca, sombra (área) incluída. Sem isso o card diz "R$ 900" e esconde que
+   * uma companhia cobrava o dobro.
    */
   airlineSeries?: { airline: string; buckets: FareHistoryBucket[] }[]
   /**
-   * Companhia dona do preço atual — a curva dela ganha a cor de destaque e as
-   * demais recuam em opacidade, em vez de todas disputarem atenção igual.
+   * Companhia dona do preço atual — usada só quando NÃO há disputa (uma
+   * companhia só, ou a API ainda não separa por companhia): aí a curva
+   * combinada assume a cor dela em vez da cor genérica do tema.
    */
   highlightAirline?: string | null
 }
@@ -90,26 +89,21 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
   const mainSeries = useMemo(() => buckets.map((b) => valueOf(b, metric)), [buckets, metric])
   const hasData = mainSeries.filter((v) => v != null).length >= 2
 
-  // Só vale desenhar a disputa quando há disputa: com uma companhia, a curva
-  // dela é idêntica ao destaque e o gráfico ficaria com duas linhas sobrepostas.
-  // A própria companhia em destaque também sai daqui — ela já é a linha de
-  // cima, redesenhá-la por baixo só duplicaria o traço.
-  const background = useMemo(
-    () => (airlineSeries.length > 1 ? airlineSeries.filter((s) => s.airline !== highlightAirline) : []),
-    [airlineSeries, highlightAirline],
-  )
+  // Só há disputa de verdade com 2+ companhias. Com uma só, a curva por
+  // companhia seria idêntica à combinada — duas linhas exatamente sobrepostas.
+  const competing = airlineSeries.length > 1
 
   const rows = useMemo<ChartRow[]>(
     () => buckets.map((b, i) => {
       const row: ChartRow = { bucketStart: b.bucketStart, [MAIN_KEY]: mainSeries[i] ?? null }
-      for (const s of background) row[s.airline] = valueOf(s.buckets[i], metric) ?? null
+      for (const s of airlineSeries) row[s.airline] = valueOf(s.buckets[i], metric) ?? null
       return row
     }),
-    [buckets, mainSeries, background, metric],
+    [buckets, mainSeries, airlineSeries, metric],
   )
 
-  // O destaque marca dois pontos: o mais barato da janela (referência de "bom
-  // preço") e o mais recente (o número que o card mostra agora).
+  // Sem disputa, a curva combinada marca dois pontos: o mais barato da janela
+  // (referência de "bom preço") e o mais recente (o número que o card mostra).
   const { minIndex, lastIndex } = useMemo(() => {
     const measured = mainSeries
       .map((v, i) => (v != null ? i : null))
@@ -119,9 +113,8 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
     return { minIndex: min, lastIndex: measured[measured.length - 1] }
   }, [mainSeries])
 
-  const highlightIndex = airlineSeries.findIndex((s) => s.airline === highlightAirline)
-  const stroke = highlightAirline
-    ? colorForAirline(highlightAirline, Math.max(highlightIndex, 0))
+  const mainColor = highlightAirline
+    ? colorForAirline(highlightAirline, 0)
     : theme.palette.primary.main
 
   if (!hasData) {
@@ -150,30 +143,68 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
       return <circle cx={cx} cy={cy} r={3.5} fill={theme.palette.success.main} stroke={theme.palette.background.paper} strokeWidth={1.5} />
     }
     if (index === lastIndex) {
-      return <circle cx={cx} cy={cy} r={3.5} fill={stroke} stroke={theme.palette.background.paper} strokeWidth={1.5} />
+      return <circle cx={cx} cy={cy} r={3.5} fill={mainColor} stroke={theme.palette.background.paper} strokeWidth={1.5} />
     }
     return <g />
   }
 
   const renderTooltip: TooltipContentFn = ({ active, payload, label }) => {
-    if (!active || !payload?.length) return null
-    const main = payload.find((p) => p.dataKey === MAIN_KEY)
-    if (main?.value == null || typeof label !== 'string') return null
+    if (!active || !payload?.length || typeof label !== 'string') return null
+
+    // Sem disputa: só a combinada. Com disputa: uma linha por companhia, na
+    // cor da própria curva — o ponto é comparar todas de uma vez no hover.
+    const entries = competing
+      ? airlineSeries
+        .map((s, i) => ({
+          label: labelForAirline(s.airline),
+          color: colorForAirline(s.airline, i),
+          value: payload.find((p) => p.dataKey === s.airline)?.value,
+        }))
+        .filter((e): e is typeof e & { value: number } => e.value != null)
+      : (() => {
+        const v = payload.find((p) => p.dataKey === MAIN_KEY)?.value
+        return v == null ? [] : [{ label: null, color: mainColor, value: v as number }]
+      })()
+
+    if (entries.length === 0) return null
+
     return (
       <Box
         sx={{
           px: 1,
-          py: 0.25,
+          py: 0.5,
           borderRadius: 1,
           backgroundColor: 'text.primary',
           color: 'background.paper',
           pointerEvents: 'none',
         }}
       >
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, lineHeight: 1.3 }}>
-          {fmt(main.value as number)}
-        </Typography>
-        <Typography sx={{ fontSize: '0.625rem', opacity: 0.75, lineHeight: 1.2 }}>
+        {entries.map((e, i) => (
+          <Box key={e.label ?? i} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {e.label && (
+              <Box
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  backgroundColor: e.color,
+                  flexShrink: 0,
+                  // Sem o anel, uma marca escura (ex: o azul-marinho da Azul)
+                  // some no fundo escuro do tooltip — mesmo truque dos pontos
+                  // do gráfico (stroke em background.paper).
+                  boxShadow: (t) => `0 0 0 1px ${t.palette.background.paper}`,
+                }}
+              />
+            )}
+            {e.label && (
+              <Typography sx={{ fontSize: '0.625rem', opacity: 0.85, lineHeight: 1.3 }}>{e.label}</Typography>
+            )}
+            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, lineHeight: 1.3, ml: e.label ? 'auto' : 0 }}>
+              {fmt(e.value)}
+            </Typography>
+          </Box>
+        ))}
+        <Typography sx={{ fontSize: '0.625rem', opacity: 0.75, lineHeight: 1.2, mt: 0.25 }}>
           {formatMoment(label, range)}
         </Typography>
       </Box>
@@ -182,16 +213,29 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
 
   const tickIndexes = [0, Math.floor((buckets.length - 1) / 2), buckets.length - 1]
   const ticks = [...new Set(tickIndexes.map((i) => buckets[i]?.bucketStart).filter((v): v is string => v != null))]
+  const measuredValues = mainSeries.filter((v): v is number => v != null)
 
   return (
-    <Box role="img" aria-label={`Histórico de preços do período: ${fmt(Math.min(...mainSeries.filter((v): v is number => v != null)))} a ${fmt(Math.max(...mainSeries.filter((v): v is number => v != null)))}`}>
+    <Box role="img" aria-label={`Histórico de preços do período: ${fmt(Math.min(...measuredValues))} a ${fmt(Math.max(...measuredValues))}`}>
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart data={rows} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
           <defs>
-            <linearGradient id="priceChartFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={stroke} stopOpacity={0.18} />
-              <stop offset="100%" stopColor={stroke} stopOpacity={0} />
-            </linearGradient>
+            {competing
+              ? airlineSeries.map((s, i) => {
+                const color = colorForAirline(s.airline, i)
+                return (
+                  <linearGradient key={s.airline} id={`priceChartFill-${s.airline}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity={0.16} />
+                    <stop offset="100%" stopColor={color} stopOpacity={0} />
+                  </linearGradient>
+                )
+              })
+              : (
+                <linearGradient id="priceChartFill-main" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={mainColor} stopOpacity={0.18} />
+                  <stop offset="100%" stopColor={mainColor} stopOpacity={0} />
+                </linearGradient>
+              )}
           </defs>
 
           <XAxis
@@ -212,40 +256,44 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
             isAnimationActive={false}
           />
 
-          {background.map((s) => (
-            <Line
-              key={s.airline}
-              dataKey={s.airline}
-              // Índice na lista COMPLETA (não na filtrada): a legenda em
-              // PriceTrend colore pela mesma lista, e o destaque some dela sem
-              // deslocar a cor das demais.
-              stroke={colorForAirline(s.airline, airlineSeries.findIndex((a) => a.airline === s.airline))}
-              strokeWidth={1.25}
-              strokeOpacity={0.3}
-              dot={false}
-              activeDot={false}
-              isAnimationActive={false}
-              connectNulls={false}
-            />
-          ))}
-
-          <Area
-            dataKey={MAIN_KEY}
-            stroke="none"
-            fill="url(#priceChartFill)"
-            isAnimationActive={false}
-            connectNulls={false}
-            activeDot={false}
-          />
-          <Line
-            dataKey={MAIN_KEY}
-            stroke={stroke}
-            strokeWidth={1.75}
-            dot={renderMainDot}
-            activeDot={{ r: 4, fill: stroke, stroke: theme.palette.background.paper, strokeWidth: 1.5 }}
-            isAnimationActive={false}
-            connectNulls={false}
-          />
+          {competing
+            ? airlineSeries.map((s, i) => {
+              const color = colorForAirline(s.airline, i)
+              return (
+                <Area
+                  key={s.airline}
+                  dataKey={s.airline}
+                  stroke={color}
+                  strokeWidth={1.75}
+                  fill={`url(#priceChartFill-${s.airline})`}
+                  dot={false}
+                  activeDot={{ r: 4, fill: color, stroke: theme.palette.background.paper, strokeWidth: 1.5 }}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
+              )
+            })
+            : (
+              <>
+                <Area
+                  dataKey={MAIN_KEY}
+                  stroke="none"
+                  fill="url(#priceChartFill-main)"
+                  isAnimationActive={false}
+                  connectNulls={false}
+                  activeDot={false}
+                />
+                <Line
+                  dataKey={MAIN_KEY}
+                  stroke={mainColor}
+                  strokeWidth={1.75}
+                  dot={renderMainDot}
+                  activeDot={{ r: 4, fill: mainColor, stroke: theme.palette.background.paper, strokeWidth: 1.5 }}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
+              </>
+            )}
         </ComposedChart>
       </ResponsiveContainer>
     </Box>
