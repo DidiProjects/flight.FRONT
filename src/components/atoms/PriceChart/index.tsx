@@ -1,11 +1,25 @@
-import { useMemo, useState } from 'react'
+import { useMemo, type ComponentProps } from 'react'
 import { Box, Typography, useTheme } from '@mui/material'
-import { useElementWidth } from '@hooks/useElementWidth'
-import { areaPath, buildGeometry, colorForAirline, linePath } from './geometry'
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from 'recharts'
+
+/** Matches whatever generic instantiation `Tooltip`'s own `content` prop expects. */
+type TooltipContentFn = Extract<NonNullable<ComponentProps<typeof Tooltip>['content']>, (...args: never[]) => unknown>
+import { colorForAirline } from './geometry'
 import { formatMoney } from '@utils/money'
 import type { FareHistoryBucket, FareHistoryRange } from '@app-types/fareHistory'
 
 export type ChartMetric = 'cash' | 'pts' | 'hyb'
+
+/** Field the "destaque" (cross-airline best) line reads from each row. */
+const MAIN_KEY = 'main'
 
 /**
  * Value of a bucket for the displayed dimension. Hybrid plots the POINTS side —
@@ -43,7 +57,6 @@ interface PriceChartProps {
   highlightAirline?: string | null
 }
 
-
 /** Label of the horizontal axis, at the resolution the range actually has. */
 function formatTick(iso: string, range: FareHistoryRange): string {
   const d = new Date(iso)
@@ -61,66 +74,59 @@ function formatMoment(iso: string, range: FareHistoryRange): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
+interface ChartRow {
+  bucketStart: string
+  [seriesKey: string]: number | string | null
+}
+
 export function PriceChart({ buckets, range, metric, currency, height = 150, airlineSeries = [], highlightAirline = null }: PriceChartProps) {
   const theme = useTheme()
-  const [wrapRef, width] = useElementWidth<HTMLDivElement>()
-  const [hover, setHover] = useState<number | null>(null)
 
   const fmt = (v: number) =>
     isPointsMetric(metric)
       ? `${Math.round(v).toLocaleString('pt-BR')} pts`
       : formatMoney(v, currency, { maximumFractionDigits: 0 })
 
-  const series = useMemo(() => buckets.map((b) => valueOf(b, metric)), [buckets, metric])
-
-  const hasData = series.filter((v) => v != null).length >= 2
+  const mainSeries = useMemo(() => buckets.map((b) => valueOf(b, metric)), [buckets, metric])
+  const hasData = mainSeries.filter((v) => v != null).length >= 2
 
   // Só vale desenhar a disputa quando há disputa: com uma companhia, a curva
   // dela é idêntica ao destaque e o gráfico ficaria com duas linhas sobrepostas.
-  const competidoras = useMemo(
-    () => (airlineSeries.length > 1 ? airlineSeries : []),
-    [airlineSeries],
+  // A própria companhia em destaque também sai daqui — ela já é a linha de
+  // cima, redesenhá-la por baixo só duplicaria o traço.
+  const background = useMemo(
+    () => (airlineSeries.length > 1 ? airlineSeries.filter((s) => s.airline !== highlightAirline) : []),
+    [airlineSeries, highlightAirline],
   )
 
-  const seriesPorCia = useMemo(
-    () => competidoras.map((s) => ({ airline: s.airline, valores: s.buckets.map((b) => valueOf(b, metric)) })),
-    [competidoras, metric],
+  const rows = useMemo<ChartRow[]>(
+    () => buckets.map((b, i) => {
+      const row: ChartRow = { bucketStart: b.bucketStart, [MAIN_KEY]: mainSeries[i] ?? null }
+      for (const s of background) row[s.airline] = valueOf(s.buckets[i], metric) ?? null
+      return row
+    }),
+    [buckets, mainSeries, background, metric],
   )
 
-  // Escala compartilhada: cada curva tem geometria própria, mas todas precisam
-  // do mesmo mínimo e máximo, senão duas curvas de preços diferentes se
-  // sobrepõem depois de normalizadas separadamente.
-  const todosValores = useMemo(
-    () => seriesPorCia.flatMap((s) => s.valores),
-    [seriesPorCia],
-  )
+  // O destaque marca dois pontos: o mais barato da janela (referência de "bom
+  // preço") e o mais recente (o número que o card mostra agora).
+  const { minIndex, lastIndex } = useMemo(() => {
+    const measured = mainSeries
+      .map((v, i) => (v != null ? i : null))
+      .filter((i): i is number => i != null)
+    if (measured.length === 0) return { minIndex: -1, lastIndex: -1 }
+    const min = measured.reduce((best, i) => (mainSeries[i]! < mainSeries[best]! ? i : best), measured[0])
+    return { minIndex: min, lastIndex: measured[measured.length - 1] }
+  }, [mainSeries])
 
-  const g = useMemo(
-    () => buildGeometry(series, width, height, todosValores),
-    [series, width, height, todosValores],
-  )
-
-  const gPorCia = useMemo(
-    () => seriesPorCia
-      .map((s, i) => ({
-        airline: s.airline,
-        color: colorForAirline(s.airline, i),
-        geo: buildGeometry(s.valores, width, height, [...series, ...todosValores]),
-      }))
-      .filter((s): s is { airline: string; color: string; geo: NonNullable<ReturnType<typeof buildGeometry>> } => s.geo != null),
-    [seriesPorCia, width, height, series, todosValores],
-  )
-
-  // Sabendo qual companhia está com o preço atual, a linha dela é o destaque —
-  // na cor da própria marca — e as demais recuam para não competir por atenção.
-  const highlight = highlightAirline != null
-    ? gPorCia.find((c) => c.airline === highlightAirline)
-    : undefined
+  const highlightIndex = airlineSeries.findIndex((s) => s.airline === highlightAirline)
+  const stroke = highlightAirline
+    ? colorForAirline(highlightAirline, Math.max(highlightIndex, 0))
+    : theme.palette.primary.main
 
   if (!hasData) {
     return (
       <Box
-        ref={wrapRef}
         sx={{
           height,
           display: 'flex',
@@ -137,36 +143,50 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
     )
   }
 
-  const stroke = highlight?.color ?? theme.palette.primary.main
-  const hovered = hover != null ? g?.points[hover] : null
+  function renderMainDot(props: { cx?: number; cy?: number; index?: number }) {
+    const { cx, cy, index } = props
+    if (cx == null || cy == null || index == null) return <g />
+    if (index === minIndex) {
+      return <circle cx={cx} cy={cy} r={3.5} fill={theme.palette.success.main} stroke={theme.palette.background.paper} strokeWidth={1.5} />
+    }
+    if (index === lastIndex) {
+      return <circle cx={cx} cy={cy} r={3.5} fill={stroke} stroke={theme.palette.background.paper} strokeWidth={1.5} />
+    }
+    return <g />
+  }
 
-  // Three ticks is what fits a phone without the labels colliding.
+  const renderTooltip: TooltipContentFn = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null
+    const main = payload.find((p) => p.dataKey === MAIN_KEY)
+    if (main?.value == null || typeof label !== 'string') return null
+    return (
+      <Box
+        sx={{
+          px: 1,
+          py: 0.25,
+          borderRadius: 1,
+          backgroundColor: 'text.primary',
+          color: 'background.paper',
+          pointerEvents: 'none',
+        }}
+      >
+        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, lineHeight: 1.3 }}>
+          {fmt(main.value as number)}
+        </Typography>
+        <Typography sx={{ fontSize: '0.625rem', opacity: 0.75, lineHeight: 1.2 }}>
+          {formatMoment(label, range)}
+        </Typography>
+      </Box>
+    )
+  }
+
   const tickIndexes = [0, Math.floor((buckets.length - 1) / 2), buckets.length - 1]
+  const ticks = [...new Set(tickIndexes.map((i) => buckets[i]?.bucketStart).filter((v): v is string => v != null))]
 
   return (
-    <Box ref={wrapRef} sx={{ position: 'relative', width: '100%' }}>
-      {g && (
-        <svg
-          width={width}
-          height={height}
-          role="img"
-          aria-label={`Histórico de preços: menor ${fmt(g.min)}, maior ${fmt(g.max)}`}
-          style={{ display: 'block', touchAction: 'pan-y' }}
-          onMouseLeave={() => setHover(null)}
-          onMouseMove={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect()
-            const ratio = (e.clientX - rect.left - g.padX) / g.innerW
-            const i = Math.round(ratio * (series.length - 1))
-            setHover(i >= 0 && i < series.length && series[i] != null ? i : null)
-          }}
-          onTouchMove={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect()
-            const ratio = (e.touches[0].clientX - rect.left - g.padX) / g.innerW
-            const i = Math.round(ratio * (series.length - 1))
-            setHover(i >= 0 && i < series.length && series[i] != null ? i : null)
-          }}
-          onTouchEnd={() => setHover(null)}
-        >
+    <Box role="img" aria-label={`Histórico de preços do período: ${fmt(Math.min(...mainSeries.filter((v): v is number => v != null)))} a ${fmt(Math.max(...mainSeries.filter((v): v is number => v != null)))}`}>
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart data={rows} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
           <defs>
             <linearGradient id="priceChartFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={stroke} stopOpacity={0.18} />
@@ -174,112 +194,60 @@ export function PriceChart({ buckets, range, metric, currency, height = 150, air
             </linearGradient>
           </defs>
 
-          {gPorCia
-            // A companhia em destaque já é desenhada por cima, na mesma cor e
-            // com traço mais forte — redesenhá-la aqui por baixo só duplicaria.
-            .filter((c) => c.airline !== highlight?.airline)
-            .map((c) =>
-              c.geo.runs.map((r, i) => (
-                <path
-                  key={`c${c.airline}${i}`}
-                  d={linePath(r)}
-                  fill="none"
-                  stroke={c.color}
-                  strokeWidth={1.25}
-                  // Com uma companhia em destaque as demais recuam mais — é o
-                  // contraste que faz a vencedora saltar aos olhos.
-                  strokeOpacity={highlight ? 0.3 : 0.55}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              )),
-            )}
+          <XAxis
+            dataKey="bucketStart"
+            ticks={ticks}
+            tickFormatter={(v: string) => formatTick(v, range)}
+            axisLine={false}
+            tickLine={false}
+            interval="preserveStartEnd"
+            tick={{ fontSize: 10, fill: theme.palette.text.disabled }}
+            height={18}
+          />
+          <YAxis hide domain={['dataMin', 'dataMax']} />
 
-          {g.runs.map((r, i) => (
-            <path key={`a${i}`} d={areaPath(r, g.baseline)} fill="url(#priceChartFill)" stroke="none" />
-          ))}
-          {g.runs.map((r, i) => (
-            <path
-              key={`l${i}`}
-              d={linePath(r)}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={1.75}
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <Tooltip
+            content={renderTooltip}
+            cursor={{ stroke: theme.palette.divider, strokeWidth: 1 }}
+            isAnimationActive={false}
+          />
+
+          {background.map((s) => (
+            <Line
+              key={s.airline}
+              dataKey={s.airline}
+              // Índice na lista COMPLETA (não na filtrada): a legenda em
+              // PriceTrend colore pela mesma lista, e o destaque some dela sem
+              // deslocar a cor das demais.
+              stroke={colorForAirline(s.airline, airlineSeries.findIndex((a) => a.airline === s.airline))}
+              strokeWidth={1.25}
+              strokeOpacity={0.3}
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+              connectNulls={false}
             />
           ))}
 
-          <circle
-            cx={g.minPoint.x}
-            cy={g.minPoint.y}
-            r={3.5}
-            fill={theme.palette.success.main}
-            stroke={theme.palette.background.paper}
-            strokeWidth={1.5}
+          <Area
+            dataKey={MAIN_KEY}
+            stroke="none"
+            fill="url(#priceChartFill)"
+            isAnimationActive={false}
+            connectNulls={false}
+            activeDot={false}
           />
-          <circle
-            cx={g.lastPoint.x}
-            cy={g.lastPoint.y}
-            r={3.5}
-            fill={stroke}
-            stroke={theme.palette.background.paper}
-            strokeWidth={1.5}
+          <Line
+            dataKey={MAIN_KEY}
+            stroke={stroke}
+            strokeWidth={1.75}
+            dot={renderMainDot}
+            activeDot={{ r: 4, fill: stroke, stroke: theme.palette.background.paper, strokeWidth: 1.5 }}
+            isAnimationActive={false}
+            connectNulls={false}
           />
-
-          {hovered && (
-            <>
-              <line
-                x1={hovered.x}
-                y1={0}
-                x2={hovered.x}
-                y2={g.baseline}
-                stroke={theme.palette.divider}
-                strokeWidth={1}
-              />
-              <circle cx={hovered.x} cy={hovered.y} r={4} fill={stroke} stroke={theme.palette.background.paper} strokeWidth={1.5} />
-            </>
-          )}
-
-          {tickIndexes.map((i) => (
-            <text
-              key={i}
-              x={Math.min(Math.max(g.points[i]?.x ?? (i / (series.length - 1)) * g.innerW + g.padX, 14), width - 14)}
-              y={height - 4}
-              textAnchor={i === 0 ? 'start' : i === buckets.length - 1 ? 'end' : 'middle'}
-              fill={theme.palette.text.disabled}
-              fontSize={10}
-            >
-              {formatTick(buckets[i].bucketStart, range)}
-            </text>
-          ))}
-        </svg>
-      )}
-
-      {hovered && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: `${Math.min(Math.max(hovered.x, 40), Math.max(width - 40, 40))}px`,
-            transform: 'translateX(-50%)',
-            px: 1,
-            py: 0.25,
-            borderRadius: 1,
-            backgroundColor: 'text.primary',
-            color: 'background.paper',
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, lineHeight: 1.3 }}>
-            {fmt(hovered.v)}
-          </Typography>
-          <Typography sx={{ fontSize: '0.625rem', opacity: 0.75, lineHeight: 1.2 }}>
-            {formatMoment(buckets[hovered.i].bucketStart, range)}
-          </Typography>
-        </Box>
-      )}
+        </ComposedChart>
+      </ResponsiveContainer>
     </Box>
   )
 }
