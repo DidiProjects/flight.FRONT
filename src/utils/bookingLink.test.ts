@@ -21,8 +21,20 @@ describe('buildBookingLink — só-ida', () => {
     expect(q(buildBookingLink('ryanair', base)!).get('isReturn')).toBe('false')
   })
 
+  it('gol vai para a busca do voegol, data em DD-MM-AAAA', () => {
+    const p = q(buildBookingLink('gol', base)!)
+    expect(buildBookingLink('gol', base)).toContain('b2c.voegol.com.br/compra/busca-parceiros')
+    expect(p.get('de')).toBe('GRU')
+    expect(p.get('para')).toBe('LHR')
+    expect(p.get('ida')).toBe('21-09-2026')
+  })
+
+  it('gol ignora a volta — pilot é só-ida', () => {
+    expect(buildBookingLink('gol', rt)).not.toContain('volta')
+  })
+
   it('companhia desconhecida não tem link', () => {
-    expect(buildBookingLink('gol', base)).toBeNull()
+    expect(buildBookingLink('iberia', base)).toBeNull()
   })
 })
 
