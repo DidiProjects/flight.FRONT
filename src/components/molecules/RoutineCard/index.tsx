@@ -21,6 +21,7 @@ import { StatusChip } from '@atomic-components/atoms/StatusChip'
 import { PriceTrend } from '@atomic-components/molecules/PriceTrend'
 import { FareCalendar } from '@atomic-components/molecules/FareCalendar'
 import type { ChartMetric } from '@atomic-components/atoms/PriceChart'
+import { colorForAirline, labelForAirline } from '@atomic-components/atoms/PriceChart/geometry'
 import { FlightFaresService } from '@services/FlightFaresService'
 import { timeAgo } from '@utils/timeAgo'
 import { buildBookingLink } from '@utils/bookingLink'
@@ -66,7 +67,7 @@ function breakdownByJourney(
 function currentForPriority(
   c: CurrentPrice,
   routine: Routine,
-): { display: string | null; verdict: Verdict | null; legs: string | null; checkedAt: string | null } {
+): { display: string | null; verdict: Verdict | null; legs: string | null; checkedAt: string | null; airline: string | null } {
   const currency = c.currency ?? routine.currency
   if (routine.priority === 'pts') {
     const v = c.bestPts
@@ -75,6 +76,7 @@ function currentForPriority(
       verdict: computeVerdict(v, c.avgPts30d, c.minPts30d),
       legs: breakdownByJourney(c.journeys, (j) => j.pts, (v) => fmtPts(v)),
       checkedAt: c.bestPtsAt,
+      airline: c.bestPtsAirline,
     }
   }
   if (routine.priority === 'hyb') {
@@ -92,6 +94,7 @@ function currentForPriority(
       verdict: null,
       legs: legs && legsCash ? `${legs} (+ ${legsCash})` : legs,
       checkedAt: c.bestHybPtsAt ?? c.bestHybCashAt,
+      airline: c.bestHybPtsAirline ?? c.bestHybCashAirline,
     }
   }
   const v = c.bestCash
@@ -100,6 +103,7 @@ function currentForPriority(
     verdict: computeVerdict(v, c.avgCash30d, c.p20Cash30d),
     legs: breakdownByJourney(c.journeys, (j) => j.cash, fmtCurrency),
     checkedAt: c.bestCashAt,
+    airline: c.bestCashAirline,
   }
 }
 
@@ -263,6 +267,21 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
                   />
                 )}
               </Box>
+              {/* Só faz sentido apontar a companhia quando a rotina compara mais
+                  de uma — com uma só, dizer "Azul" ao lado do preço da Azul não
+                  informa nada que o cabeçalho do card já não diga. */}
+              {routine.airlines.length > 1 && currentInfo.airline && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                  <Box sx={{
+                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                    backgroundColor: colorForAirline(currentInfo.airline, routine.airlines.indexOf(currentInfo.airline)),
+                  }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    {labelForAirline(currentInfo.airline)}
+                  </Typography>
+                </Box>
+              )}
               {currentInfo.legs && (
                 <Typography variant="caption" color="text.secondary" sx={cardStyles.priceCaption}>
                   {currentInfo.legs}
@@ -327,6 +346,7 @@ export function RoutineCard({ routine, airportNames, onEdit, onDelete, onToggleA
             inboundTo={routine.inboundEnd}
             metric={routine.priority as ChartMetric}
             baseline={baselineFor(current, routine.priority)}
+            highlightAirline={currentInfo?.airline}
           />
         </Box>
 
