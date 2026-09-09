@@ -98,12 +98,38 @@ function ryanairLink({ origin, destination, date, passengers, returnDate }: Book
   return `https://www.ryanair.com/gb/en/trip/flights/select?${p.toString()}`
 }
 
+/**
+ * Mirrors buildGolLink in flight.API and the scraper's voegol entry. Cash only
+ * (the GOL pilot never prices points). `ida`/`volta` are DD-MM-YYYY, unlike the
+ * other builders; `tipo` stays `DF` even round-trip — adding `volta` is what makes
+ * it a round-trip search.
+ */
+function golLink({ origin, destination, date, passengers, returnDate }: BookingParams): string {
+  const br = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d}-${m}-${y}` }
+  const p = new URLSearchParams({
+    pv: 'br',
+    tipo: 'DF',
+    lang: 'pt-BR',
+    de: origin,
+    para: destination,
+    ida: br(date),
+    ADT: String(passengers),
+    ADL: '0',
+    CHD: '0',
+    INF: '0',
+    voebiz: '0',
+  })
+  if (returnDate) p.set('volta', br(returnDate))
+  return `https://b2c.voegol.com.br/compra/busca-parceiros?${p.toString()}`
+}
+
 export function buildBookingLink(airline: string, params: BookingParams): string | null {
   switch (airline.toLowerCase()) {
     case 'azul':           return azulLink(params)
     case 'latam':          return latamLink(params)
     case 'britishairways': return britishAirwaysLink(params)
     case 'ryanair':        return ryanairLink(params)
+    case 'gol':            return golLink(params)
     default:               return null
   }
 }

@@ -20,7 +20,7 @@ export const AIRLINE_BRAND: Record<string, { color: string; label: string }> = {
   latam: { color: '#E4002B', label: 'LATAM' },
   britishairways: { color: '#075AAA', label: 'British Airways' },
   ryanair: { color: '#F2C230', label: 'Ryanair' },
-  goi: { color: '#FF6600', label: 'GOL' },
+  gol: { color: '#FF6600', label: 'GOL' },
 }
 
 /** Cor da companhia: da marca quando conhecida, senão a paleta genérica pelo índice. */
