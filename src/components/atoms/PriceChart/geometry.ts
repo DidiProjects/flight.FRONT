@@ -21,6 +21,8 @@ export const AIRLINE_BRAND: Record<string, { color: string; label: string }> = {
   britishairways: { color: '#075AAA', label: 'British Airways' },
   ryanair: { color: '#F2C230', label: 'Ryanair' },
   gol: { color: '#FF6600', label: 'GOL' },
+  // Same orange as GOL; they never share a route (Brazil vs. Europe).
+  easyjet: { color: '#FF6600', label: 'easyJet' },
 }
 
 /** Cor da companhia: da marca quando conhecida, senão a paleta genérica pelo índice. */
