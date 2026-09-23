@@ -18,9 +18,12 @@ export const AIRLINE_COLORS = ['#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#3b8
 export const AIRLINE_BRAND: Record<string, { color: string; label: string }> = {
   azul: { color: '#0033A0', label: 'Azul' },
   latam: { color: '#E4002B', label: 'LATAM' },
-  britishairways: { color: '#075AAA', label: 'British Airways' },
-  ryanair: { color: '#F2C230', label: 'Ryanair' },
-  goi: { color: '#FF6600', label: 'GOL' },
+  // BA, Ryanair and easyJet share European routes, so on the same chart their
+  // colors must stay apart: purple, light blue, yellow.
+  britishairways: { color: '#6B2FA3', label: 'British Airways' },
+  ryanair: { color: '#4FA8E8', label: 'Ryanair' },
+  gol: { color: '#FF6600', label: 'GOL' },
+  easyjet: { color: '#F2C230', label: 'easyJet' },
 }
 
 /** Cor da companhia: da marca quando conhecida, senão a paleta genérica pelo índice. */

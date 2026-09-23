@@ -98,12 +98,60 @@ function ryanairLink({ origin, destination, date, passengers, returnDate }: Book
   return `https://www.ryanair.com/gb/en/trip/flights/select?${p.toString()}`
 }
 
+/**
+ * Mirrors buildGolLink in flight.API and the scraper's voegol entry. Cash only
+ * (the GOL pilot never prices points). `ida`/`volta` are DD-MM-YYYY, unlike the
+ * other builders; `tipo` stays `DF` even round-trip — adding `volta` is what makes
+ * it a round-trip search.
+ */
+function golLink({ origin, destination, date, passengers, returnDate }: BookingParams): string {
+  const br = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d}-${m}-${y}` }
+  const p = new URLSearchParams({
+    pv: 'br',
+    tipo: 'DF',
+    lang: 'pt-BR',
+    de: origin,
+    para: destination,
+    ida: br(date),
+    ADT: String(passengers),
+    ADL: '0',
+    CHD: '0',
+    INF: '0',
+    voebiz: '0',
+  })
+  if (returnDate) p.set('volta', br(returnDate))
+  return `https://b2c.voegol.com.br/compra/busca-parceiros?${p.toString()}`
+}
+
+/**
+ * Mirrors buildEasyJetLink in flight.API. easyJet's `/deeplink` endpoint —
+ * checked on 2026-09-23 for round trip (`rd`) and one-way. The
+ * `/en/buy/flights?dep=…` URL is NOT a deep link: it ignores its parameters
+ * and reopens the browser's last search.
+ */
+function easyJetLink({ origin, destination, date, passengers, returnDate }: BookingParams): string {
+  const p = new URLSearchParams({
+    lang: 'EN',
+    dep: origin,
+    dest: destination,
+    dd: date,
+    apax: String(passengers),
+    cpax: '0',
+    ipax: '0',
+    SearchFrom: 'SearchPod',
+  })
+  if (returnDate) p.set('rd', returnDate)
+  return `https://www.easyjet.com/deeplink?${p.toString()}`
+}
+
 export function buildBookingLink(airline: string, params: BookingParams): string | null {
   switch (airline.toLowerCase()) {
     case 'azul':           return azulLink(params)
     case 'latam':          return latamLink(params)
     case 'britishairways': return britishAirwaysLink(params)
     case 'ryanair':        return ryanairLink(params)
+    case 'gol':            return golLink(params)
+    case 'easyjet':        return easyJetLink(params)
     default:               return null
   }
 }
