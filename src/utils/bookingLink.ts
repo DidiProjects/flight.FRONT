@@ -123,6 +123,27 @@ function golLink({ origin, destination, date, passengers, returnDate }: BookingP
   return `https://b2c.voegol.com.br/compra/busca-parceiros?${p.toString()}`
 }
 
+/**
+ * Mirrors buildEasyJetLink in flight.API. easyJet's `/deeplink` endpoint —
+ * checked on 2026-09-23 for round trip (`rd`) and one-way. The
+ * `/en/buy/flights?dep=…` URL is NOT a deep link: it ignores its parameters
+ * and reopens the browser's last search.
+ */
+function easyJetLink({ origin, destination, date, passengers, returnDate }: BookingParams): string {
+  const p = new URLSearchParams({
+    lang: 'EN',
+    dep: origin,
+    dest: destination,
+    dd: date,
+    apax: String(passengers),
+    cpax: '0',
+    ipax: '0',
+    SearchFrom: 'SearchPod',
+  })
+  if (returnDate) p.set('rd', returnDate)
+  return `https://www.easyjet.com/deeplink?${p.toString()}`
+}
+
 export function buildBookingLink(airline: string, params: BookingParams): string | null {
   switch (airline.toLowerCase()) {
     case 'azul':           return azulLink(params)
@@ -130,6 +151,7 @@ export function buildBookingLink(airline: string, params: BookingParams): string
     case 'britishairways': return britishAirwaysLink(params)
     case 'ryanair':        return ryanairLink(params)
     case 'gol':            return golLink(params)
+    case 'easyjet':        return easyJetLink(params)
     default:               return null
   }
 }

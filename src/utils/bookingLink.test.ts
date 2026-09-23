@@ -19,6 +19,7 @@ describe('buildBookingLink — só-ida', () => {
     expect(q(buildBookingLink('latam', base)!).get('trip')).toBe('OW')
     expect(q(buildBookingLink('britishairways', base)!).get('trip')).toBe('oneWay')
     expect(q(buildBookingLink('ryanair', base)!).get('isReturn')).toBe('false')
+    expect(q(buildBookingLink('easyjet', base)!).has('rd')).toBe(false)
   })
 
   it('gol vai para a busca do voegol, data em DD-MM-AAAA', () => {
@@ -27,6 +28,13 @@ describe('buildBookingLink — só-ida', () => {
     expect(p.get('de')).toBe('GRU')
     expect(p.get('para')).toBe('LHR')
     expect(p.get('ida')).toBe('21-09-2026')
+  })
+
+  it('easyjet vai para o /deeplink', () => {
+    const url = buildBookingLink('easyjet', base)!
+    expect(url).toContain('www.easyjet.com/deeplink')
+    expect(q(url).get('dep')).toBe('GRU')
+    expect(q(url).get('dd')).toBe('2026-09-21')
   })
 
   it('companhia desconhecida não tem link', () => {
@@ -71,6 +79,12 @@ describe('buildBookingLink — ida-e-volta', () => {
     expect(p.get('tipo')).toBe('DF')
     expect(p.get('ida')).toBe('21-09-2026')
     expect(p.get('volta')).toBe('25-09-2026')
+  })
+
+  it('easyjet põe a volta em rd', () => {
+    const p = q(buildBookingLink('easyjet', rt)!)
+    expect(p.get('dd')).toBe('2026-09-21')
+    expect(p.get('rd')).toBe('2026-09-25')
   })
 
   it('pts troca a moeda da azul sem perder a volta', () => {
