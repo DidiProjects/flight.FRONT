@@ -19,8 +19,8 @@ export const AIRLINE_BRAND: Record<string, { color: string; label: string }> = {
   azul: { color: '#0033A0', label: 'Azul' },
   latam: { color: '#E4002B', label: 'LATAM' },
   // BA, Ryanair and easyJet share European routes, so on the same chart their
-  // colors must stay apart: dark blue, light blue, yellow.
-  britishairways: { color: '#0B2D6B', label: 'British Airways' },
+  // colors must stay apart: purple, light blue, yellow.
+  britishairways: { color: '#6B2FA3', label: 'British Airways' },
   ryanair: { color: '#4FA8E8', label: 'Ryanair' },
   gol: { color: '#FF6600', label: 'GOL' },
   easyjet: { color: '#F2C230', label: 'easyJet' },
